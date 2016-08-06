@@ -1,6 +1,6 @@
 const curry = require('./curry')
 
-const counter = 0
+var counter = 0
 const toString = Object.prototype.toString
 
 function guid() {

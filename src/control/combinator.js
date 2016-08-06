@@ -28,7 +28,7 @@ const constant = function(x) {
   }
 }
 
-const flip = curry((f, a, b) => f(b(a)))
+const flip = curry((f, a, b) => f(b, a))
 
 const map = curry(function(f, u) {
   return u.fmap ? u.fmap(f)
