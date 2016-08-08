@@ -16,14 +16,6 @@ const handler = curry(function(key, action) {
   }]
 })
 
-const forwardTo = curry(function(parentAction, html) {
-  var childAction = html.__action__, action = parentAction
-  if (childAction) {
-    action = compose(parentAction, childAction)
-  }
-  return extend(html, {__action__: action})
-})
-
 const onClick = handler('onclick')
 const onDoubleClick = handler('ondbclick')
 const onInput = handler('oninput')
@@ -33,5 +25,4 @@ module.exports =
   { onClick
   , onDoubleClick
   , onInput
-  , onChange
-  , forwardTo }
+  , onChange }

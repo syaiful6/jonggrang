@@ -12,14 +12,14 @@ function app(config) {
 
   state(config.initialState())
 
-  return state.map(compose(render(inputs, identity), config.view))
+  return map(compose(render(inputs, identity), config.view), state)
 }
 
 function renderToDom(container, app, self) {
   return function () {
     var _render = renderService(self || window).render,
       mithrilRender = curry(_render)(container)
-    app.map(mithrilRender)
+    map(mithrilRender, app)
   }
 }
 

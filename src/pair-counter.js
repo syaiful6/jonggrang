@@ -1,8 +1,8 @@
 const Type = require('union-type')
 const Counter = require('./counter')
-const m = require('mithril/render/hyperscript')
-const {div, button} = require('./core/hyperscript')(m)
-const {forwardTo, onClick} = require('./core/event')
+const {map} = require('./control/pointfree')
+const {div, button} = require('./core/h')
+const {onClick} = require('./core/event')
 const {constant} = require('./control/combinator')
 const {extend} = require('./utils/common')
 
@@ -25,10 +25,9 @@ const update = Action.caseOn({
 
 function view(model) {
   return div([],
-    [ forwardTo(Action.Top, Counter.view(model.top))
-    , forwardTo(Action.Bottom, Counter.view(model.bottom))
-    , button([onClick(constant(Action.Reset()))], ['Reset'])
-    ]
+    map(Action.Top, Counter.view(model.top))
+    , map(Action.Bottom, Counter.view(model.bottom))
+    , button([onClick(constant(Action.Reset()))], 'Reset')
   )
 }
 

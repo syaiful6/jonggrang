@@ -1,5 +1,4 @@
-const m = require('mithril/render/hyperscript')
-const {div, button} = require('./core/hyperscript')(m)
+const {div, button} = require('./core/h')
 const {onClick} = require('./core/event')
 const {constant} = require('./control/combinator')
 const Type = require('union-type')
@@ -18,10 +17,9 @@ const update = Action.caseOn(
 
 function view(model) {
   return div([],
-    [ button([onClick(constant(Action.Increment()))], ['+'])
-    , div([], [model.toString()])
-    , button([onClick(constant(Action.Decrement()))], ['-'])
-    ]
+    button([onClick(constant(Action.Increment()))], '+')
+    , div([], model.toString())
+    , button([onClick(constant(Action.Decrement()))], '-')
   )
 }
 
