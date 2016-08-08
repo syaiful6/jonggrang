@@ -1,11 +1,6 @@
-const curry = require('./curry')
+const curry = require('ramda/src/curry')
 
-var counter = 0
 const toString = Object.prototype.toString
-
-function guid() {
-  return counter++
-}
 
 function type(x) {
   return toString.call(x).slice(8, -1)
@@ -39,8 +34,7 @@ function extend(original, update) {
 const prop = (key, obj) => obj[key]
 
 module.exports =
-  { guid
-  , type
+  { type
   , isType: curry(isType)
   , getInstance: curry(getInstance)
   , singleton: curry(singleton)

@@ -1,16 +1,10 @@
-const Type = require('./data/type')
+const Type = require('union-type')
 const Counter = require('./counter')
 const m = require('mithril/render/hyperscript')
 const {div, button} = require('./core/hyperscript')(m)
 const {forwardTo, onClick} = require('./core/event')
-const {flip, constant} = require('./control/combinator')
-
-const Model = Type({
-  Counter: {
-    top: Counter.Model
-    , bottom: Counter.Model
-  }
-})
+const {constant} = require('./control/combinator')
+const {extend} = require('./utils/common')
 
 const Action = Type({
   Top: [constant(true)]
@@ -18,15 +12,15 @@ const Action = Type({
   , Reset: []
 })
 
-function update(model, action) {
-  console.log(action);
-  return model;
-}
+const initialState = constant({
+  top: Counter.initialState()
+  , bottom: Counter.initialState()
+})
 
-const __update = Action.caseOn({
-  Top: model => Model.CounterOf({top: Counter.update(model.top), bottom: model.bottom})
-  , Bottom: model => Model.CounterOf({top: model.top, bottom: Counter.update(model.bottom)})
-  , Reset: () => Model.CounterOf({top: Counter.initialState(), bottom: Counter.initialState()})
+const update = Action.caseOn({
+  Top: (action, model) => extend(model, {top: Counter.update(action, model.top)})
+  , Bottom: (action, model) => extend(model, {bottom: Counter.update(action, model.bottom)})
+  , Reset: () => initialState()
 })
 
 function view(model) {
@@ -38,13 +32,8 @@ function view(model) {
   )
 }
 
-const initialState = constant(
-  Model.CounterOf({top: Counter.initialState(), bottom: Counter.initialState()})
-)
-
 module.exports =
   { update: update
-  , Model: Model
   , view
   , Action
   , initialState }

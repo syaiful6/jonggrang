@@ -1,11 +1,12 @@
 const stream = require('mithril/util/stream')
 
 function reduce(f, acc, s) {
-  var current = stream.combine(function (s) {
-    acc = f(current() || acc, s())
-    return acc
-  }, [s])
-  return current
+  var scan = stream.stream()
+  s.map(function (v) {
+    acc = f(scan() || acc, v)
+    scan(acc)
+  })
+  return scan
 }
 
 function merge() {

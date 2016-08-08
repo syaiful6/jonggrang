@@ -1,4 +1,4 @@
-const curry = require('../utils/curry')
+const curry = require('ramda/src/curry')
 
 function _hyperscript(h, tag, attrs, children) {
   if (Array.isArray(children[0])) children = children[0]
@@ -26,9 +26,9 @@ const TAG_NAMES = [
   'th', 'thead', 'title', 'tr', 'u', 'ul', 'video'
 ]
 
-module.exports = function (h) {
-  var h = hyperscript(h),
-    modules =
+module.exports = function (m) {
+  var h = hyperscript(m)
+  var modules =
       { TAG_NAMES
       , h }
   return TAG_NAMES.reduce(function(prev, current) {

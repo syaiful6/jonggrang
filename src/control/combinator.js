@@ -1,4 +1,4 @@
-const curry = require('../utils/curry')
+const curry = require('ramda/src/curry')
 
 const _groupsOf = curry(function(n, xs) {
   return !xs.length ? [] : [xs.slice(0, n)].concat(_groupsOf(n, xs.slice(n, xs.length)))
@@ -19,59 +19,51 @@ function toAssociativeCommaInfix(fn) {
   }
 }
 
+// compose :: (b → c) → (a → b) → (a → c)
 const compose = toAssociativeCommaInfix(_compose)
 
-const id = x => x
+// id :: a -> a
+const identity = x => x
+
+// constant :: a -> * -> a
 const constant = function(x) {
   return function() {
     return x
   }
 }
 
-const flip = curry((f, a, b) => f(b, a))
+// flip :: (a -> b -> c) -> (b -> a -> c)
+const flip = (f, a, b) => f(b, a)
 
-const map = curry(function(f, u) {
-  return u.fmap ? u.fmap(f)
-       : u.map  ? u.map(f)
-                : chain(compose(of(u), f), u)
-})
+// A combinator
+// apply :: (a -> b) -> a -> b
+const apply = (f, a) => f(a)
 
-const ap = curry(function(a1, a2) {
-  return a1.ap ? a1.ap(a2) : chain(flip(map, a2), a1)
-})
+//
+const thrush = (a, f) => f(a)
 
-const liftA2 = curry(function(f, x, y) {
-  return map(f,x).ap(y)
-})
-
-const liftA3 = curry(function(f, x, y, z) {
-  return map(f, x).ap(y).ap(z)
-});
-
-const chain = curry(function(f, mv) {
-  return mv.chain ? mv.chain(f) : mv.then(f)
-})
-
-const mjoin = chain(id)
-
-const concat = curry(function(x, y) {
-  return x.concat(y);
-})
-
-function mconcat(xs, empty) {
-  return xs.length ? xs.reduce(concat) : empty()
+// Y combinator
+function fix(f) {
+  const g = h => x => f(h(h))(x)
+  return g(g)
 }
 
-const of = x => x.of
+// psi combinator
+// Applies an unary function to both arguments of a binary function.
+// psi :: (b → b → c) → (a → b) → (a → a → c)
+const psi = (f, g, a, b) => f(g(a))(g(b))
+
+// substitution ::
+const _substitution = (f, g, x) => f(x)(g(x))
+const substitution = toAssociativeCommaInfix(_substitution)
 
 module.exports =
-  { identity: id
-  , constant: constant
-  , compose: compose
-  , of: of
-  , map: map
-  , chain: chain
-  , ap: ap
-  , flip: flip
-  , liftA2: liftA2
-  , liftA3: liftA3 }
+  { compose
+  , identity
+  , constant
+  , flip: curry(flip)
+  , apply: curry(apply)
+  , thrush: curry(thrush)
+  , fix
+  , psi: curry(psi)
+  , substitution: curry(substitution) }
