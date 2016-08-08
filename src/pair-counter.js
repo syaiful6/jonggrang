@@ -7,8 +7,8 @@ const {constant} = require('./control/combinator')
 const {extend} = require('./utils/common')
 
 const Action = Type({
-  Top: [constant(true)]
-  , Bottom: [constant(true)]
+  Top: [Counter.Action]
+  , Bottom: [Counter.Action]
   , Reset: []
 })
 
@@ -20,7 +20,7 @@ const initialState = constant({
 const update = Action.caseOn({
   Top: (action, model) => extend(model, {top: Counter.update(action, model.top)})
   , Bottom: (action, model) => extend(model, {bottom: Counter.update(action, model.bottom)})
-  , Reset: () => initialState()
+  , Reset: initialState
 })
 
 function view(model) {
