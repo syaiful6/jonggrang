@@ -7,8 +7,8 @@ const handler = curry(function(key, action) {
   // look at render.js file and app.js
   return [key, function(parentAction, input) {
     return function (ev) {
-      if ((key === 'onSubmit')
-        || (key === 'onClick' && ev.currentTarget.nodeName.toLowerCase() === 'a')) {
+      if ((key === 'onsubmit')
+        || (key === 'onclick' && ev.currentTarget.nodeName.toLowerCase() === 'a')) {
           ev.preventDefault();
         }
       input(parentAction(action(ev)))
