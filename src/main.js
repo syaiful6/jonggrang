@@ -1,4 +1,5 @@
-const {app, renderToDom, fromSimple} = require('./core/app')
+const {app, fromSimple} = require('./core/app')
+const {renderToDom} = require('./core/render')
 const Pair = require('./pair-counter')
 const {extend} = require('./utils/common')
 
@@ -7,7 +8,8 @@ function main() {
     inputs: []
     , update: fromSimple(Pair.update)
   })
-  renderToDom(document.body, app(config))()
+  var application = app(config)
+  renderToDom(document.body, application.html, window)()
 }
 
 document.addEventListener('DOMContentLoaded', main)

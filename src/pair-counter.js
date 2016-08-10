@@ -27,7 +27,7 @@ function view(model) {
   return div([],
     map(Action.Top, Counter.view(model.top))
     , map(Action.Bottom, Counter.view(model.bottom))
-    , button([onClick(constant(Action.Reset()))], 'Reset')
+    , div([], button([onClick(constant(Action.Reset()))], 'Reset'))
   )
 }
 

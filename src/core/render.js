@@ -3,6 +3,8 @@ const {extend} = require('../utils/common')
 const m = require('mithril/render/hyperscript')
 const {compose} = require('../control/combinator')
 const {map} = require('../control/pointfree')
+const renderService = require("mithril/render/render")
+const Vnode = require("mithril/render/vnode")
 
 // not really render anything to dom, this is just a wrapper around mithril rendering
 // engine, right now we just need to finalize the event handler, and give it where the
@@ -43,4 +45,33 @@ function _render(input, parentAction, html) {
   return doRender(input, composeAction(parentAction, html), html)
 }
 
-module.exports = curry(_render)
+function component(htmlSignal) {
+  return {
+    view: function () {
+      return htmlSignal()
+    }
+    , onbeforeupdate: function (vnode, old) {
+      return old.instance != htmlSignal()
+    }
+  }
+}
+
+function renderToDom(container, htmlSignal, self) {
+  return function () {
+    var dummy = {view: function() {}}
+    var mithrilRender = renderService(self).render,
+      mithrilComponent = component(htmlSignal)
+    function run() {
+      mithrilRender(
+        container,
+        Vnode(mithrilComponent === null ? dummy : mithrilComponent, undefined, undefined, undefined, undefined, undefined)
+      )
+    }
+    htmlSignal.map(run)
+  }
+}
+
+module.exports = {
+  renderToDom: renderToDom,
+  render: curry(_render)
+}

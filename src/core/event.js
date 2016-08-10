@@ -16,13 +16,39 @@ const handler = curry(function(key, action) {
   }]
 })
 
+const lifecylce = curry(function (key, action) {
+  return [key, function (parentAction, input) {
+    return function (...args) {
+      if (key === 'onbeforeupdate') {
+        return action(...args) // onbeforeupdate
+      } else {
+        input(parentAction(action(...args)))
+      }
+    }
+  }]
+})
+
 const onClick = handler('onclick')
 const onDoubleClick = handler('ondbclick')
 const onInput = handler('oninput')
 const onChange = handler('onchange')
 
+// lifecycle method
+const onInit = lifecylce('oninit')
+const onCreate = lifecylce('oncreate')
+const onBeforeUpdate = lifecylce('onbeforeupdate')
+const onUpdate = lifecylce('onupdate')
+const onBeforeRemove = lifecylce('onbeforeremove')
+const onRemove = lifecylce('onremove')
+
 module.exports =
   { onClick
   , onDoubleClick
   , onInput
-  , onChange }
+  , onChange
+  , onInit
+  , onCreate
+  , onBeforeUpdate
+  , onUpdate
+  , onBeforeRemove
+  , onRemove }

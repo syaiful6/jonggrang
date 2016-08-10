@@ -1,5 +1,5 @@
 const {div, button} = require('./core/h')
-const {onClick} = require('./core/event')
+const {onClick, onBeforeUpdate} = require('./core/event')
 const {constant} = require('./control/combinator')
 const Type = require('union-type')
 
