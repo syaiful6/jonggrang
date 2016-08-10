@@ -19,30 +19,29 @@ function composeAction(parentAction, html) {
 }
 
 // parameter 1, input is a stream
-function doRender(input, parentAction, html) {
-  let atrrs = html.attrs
-  let newAttrs = {}
-  let newChildren
-  for (let key in atrrs) {
-    if (typeof atrrs[key] === 'function') {
-      newAttrs[key] = atrrs[key](parentAction, input)
-    } else {
-      newAttrs[key] = atrrs[key]
-    }
+function composeVnodeEvent(input, parentAction, html) {
+  var attrs = html.attrs, newAttrs = {}, newChildren = html.children
+  if (!attrs) {
+    newAttrs = attrs
+  } else {
+    var keys = Object.keys(attrs)
+    keys.forEach(function(key) {
+      newAttrs[key] = typeof attrs[key] === 'function' ? attrs[key](parentAction, input) : attrs[key]
+    })
   }
   if (Array.isArray(html.children)) {
     newChildren = map(function (child) {
-      return typeof child === 'string' ? child : doRender(input, composeAction(parentAction, child), child)
-    }, html.children || [])
+      return typeof child === 'string' ? child : composeVnodeEvent(input, composeAction(parentAction, child), child)
+    }, html.children)
   }
   return extend(html, {attrs: newAttrs, children: newChildren})
 }
 
-function _render(input, parentAction, html) {
+function composeVnode(input, parentAction, html) {
   if (typeof html === 'string') {
     html = m('div', {}, html)
   }
-  return doRender(input, composeAction(parentAction, html), html)
+  return composeVnodeEvent(input, composeAction(parentAction, html), html)
 }
 
 function component(htmlSignal) {
@@ -72,5 +71,5 @@ function renderToDom(container, htmlSignal, self) {
 
 module.exports = {
   renderToDom: renderToDom,
-  render: curry(_render)
+  composeVnode: curry(composeVnode)
 }

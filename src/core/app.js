@@ -4,7 +4,7 @@ const {merge, reduce, dropRepeats} = require('../utils/stream-operator')
 const {identity, compose, flip} = require('../control/combinator')
 const {map} = require('../control/pointfree')
 const {stream} = require('mithril/util/stream')
-const {render} = require('./render')
+const {composeVnode} = require('./render')
 
 // this function return a stream with value virtual dom, take a look on renderToDom
 // below how to use the stream returned by this function.
@@ -27,7 +27,7 @@ function app(config) {
 
   effModelSignal(noEffects(config.initialState()))
 
-  var htmlSignal = map(compose(render(actionStream, identity), config.view), stateSignal)
+  var htmlSignal = map(compose(composeVnode(actionStream, identity), config.view), stateSignal)
   return {
     html: htmlSignal
     , state: stateSignal
