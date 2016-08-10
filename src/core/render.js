@@ -58,16 +58,15 @@ function component(htmlSignal) {
 
 function renderToDom(container, htmlSignal, self) {
   return function () {
-    var dummy = {view: function() {}}
     var mithrilRender = renderService(self).render,
       mithrilComponent = component(htmlSignal)
     function run() {
       mithrilRender(
         container,
-        Vnode(mithrilComponent === null ? dummy : mithrilComponent, undefined, undefined, undefined, undefined, undefined)
+        Vnode(mithrilComponent, undefined, undefined, undefined, undefined, undefined)
       )
     }
-    htmlSignal.map(run)
+    map(run, htmlSignal)
   }
 }
 
