@@ -1,17 +1,21 @@
-const curry = require('ramda/src/curry')
-const {extend} = require('../utils/common')
-const m = require('mithril/render/hyperscript')
-const {compose} = require('../control/combinator')
-const {map} = require('../control/pointfree')
-const renderService = require("mithril/render/render")
-const Vnode = require("mithril/render/vnode")
+var curryN = require('ramda/src/curryN'),
+  merge = merge = require('ramda/src/merge'),
+  m = require('mithril/render/hyperscript'),
+  compose = require('ramda/src/compose'),
+  map = require('../util/map'),
+  renderService = require("mithril/render/render"),
+  Vnode = require("mithril/render/vnode")
 
 // not really render anything to dom, this is just a wrapper around mithril rendering
 // engine, right now we just need to finalize the event handler, and give it where the
 // action should be routed.
 
+var isArray = Array.isArray || function(a) {
+  return 'length' in a
+}
+
 function composeAction(parentAction, html) {
-  let childAction = html.__action__, action = parentAction
+  var childAction = html.__action__, action = parentAction
   if (childAction) {
     action = compose(parentAction, childAction)
   }
@@ -25,16 +29,16 @@ function composeVnodeEvent(input, parentAction, html) {
     newAttrs = attrs
   } else {
     var keys = Object.keys(attrs)
-    keys.forEach(function(key) {
-      newAttrs[key] = typeof attrs[key] === 'function' ? attrs[key](parentAction, input) : attrs[key]
+    keys.forEach(function (key) {
+      newAttrs[key] = typeof attrs[key] === 'function' ? attrs[key](input, parentAction) : attrs[key]
     })
   }
-  if (Array.isArray(html.children)) {
+  if (isArray(html.children)) {
     newChildren = map(function (child) {
       return typeof child === 'string' ? child : composeVnodeEvent(input, composeAction(parentAction, child), child)
     }, html.children)
   }
-  return extend(html, {attrs: newAttrs, children: newChildren})
+  return merge(html, {attrs: newAttrs, children: newChildren})
 }
 
 function composeVnode(input, parentAction, html) {
@@ -57,8 +61,7 @@ function component(htmlSignal) {
 
 function renderToDom(container, htmlSignal, self) {
   return function () {
-    var mithrilRender = renderService(self).render,
-      mithrilComponent = component(htmlSignal)
+    var mithrilRender = renderService(self).render, mithrilComponent = component(htmlSignal)
     function run() {
       mithrilRender(
         container,
@@ -71,5 +74,5 @@ function renderToDom(container, htmlSignal, self) {
 
 module.exports = {
   renderToDom: renderToDom,
-  composeVnode: curry(composeVnode)
+  composeVnode: curryN(3, composeVnode)
 }

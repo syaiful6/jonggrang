@@ -2,13 +2,15 @@
   "name": "jonggrang",
   "version": "0.0.0",
   "private": true,
-  "author": "Syaiful Bahri",
+  "author": {
+    "name": "Syaiful Bahri"
+  },
+  "main": "./src/app.js",
   "license": "MIT",
   "dependencies": {
-    "data.task": "^3.1.0",
     "mithril": "lhorie/mithril.js#rewrite",
     "ramda": "^0.19.1",
-    "union-type": "^0.3.1"
+    "data.task": "^3.1.0"
   },
   "devDependencies": {
     "browserify": "13.0.0",
