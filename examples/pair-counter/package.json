@@ -1,15 +1,18 @@
 {
-  "name": "jonggrang",
-  "version": "0.1.0",
+  "name": "pair-counter",
+  "version": "0.0.0",
+  "private": true,
   "author": {
     "name": "Syaiful Bahri"
   },
-  "main": "./app.js",
+  "main": "./src/app.js",
   "license": "MIT",
   "dependencies": {
+    "data.task": "^3.1.0",
+    "jonggrang": "syaiful6/jonggrang#47374ea0df",
     "mithril": "lhorie/mithril.js#rewrite",
     "ramda": "^0.19.1",
-    "data.task": "^3.1.0"
+    "union-type": "^0.3.2"
   },
   "devDependencies": {
     "browserify": "13.0.0",
