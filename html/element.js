@@ -24,18 +24,16 @@ function mapAttribute(attr) {
 
 function addMethod(vdom) {
   return merge(vdom, {
-    map: mapVdom(vdom)
+    map: mapVdom
   })
 }
 
-function mapVdom(html) {
-  return function map(parentAction) {
-    var childAction = html.__action__, action = parentAction
-    if (childAction) {
-      action = compose(parentAction, childAction)
-    }
-    return merge(html, {__action__: action})
+function mapVdom(parentAction) {
+  var childAction = this.__action__, action = parentAction
+  if (childAction) {
+    action = compose(parentAction, childAction)
   }
+  return merge(this, {__action__: action})
 }
 
 function hyperscript(tag) {
