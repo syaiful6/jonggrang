@@ -1,14 +1,10 @@
-var Type = require('union-type'),
-  Counter = require('./counter'),
-  map = require('jonggrang/src/util/map'),
-  element = require('jonggrang/src/html/element'),
-  event = require('jonggrang/src/html/event'),
-  always = require('ramda/src/always'),
-  merge = require('ramda/src/merge')
-
-var div = element.div,
-  button = element.button,
-  onClick = event.onClick
+const Type = require('union-type')
+const always = require('ramda/src/always')
+const merge = require('ramda/src/merge')
+const Counter = require('./counter')
+const map = require('jonggrang/util/map')
+const {div, button} = require('jonggrang/html/element')
+const {onClick} = require('jonggrang/html/event')
 
 var Action = Type({
   Top: [Counter.Action]

@@ -1,24 +1,20 @@
-var element = require('jonggrang/src/html/element'),
-  event = require('jonggrang/src/html/event'),
-  always = require('ramda/src/always'),
-  add = require('ramda/src/add'),
-  Type = require('union-type')
-
-var div = element.div,
-  button = element.button,
-  onClick = event.onClick
+const {div, button} = require('jonggrang/html/element')
+const {onClick} = require('jonggrang/html/event')
+const  always = require('ramda/src/always')
+const  add = require('ramda/src/add')
+const  Type = require('union-type')
 
 // our Action
-var Action = Type({
+const Action = Type({
   Increment: []
   , Decrement: []
 })
 
 // state
-var initialState = always(0)
+const initialState = always(0)
 
 // update: action -> state -> state
-var update = Action.caseOn(
+const update = Action.caseOn(
   { Increment: add(1)
   , Decrement: add(-1) }
 )
