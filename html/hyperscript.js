@@ -1,6 +1,4 @@
-var m = require('mithril/render/hyperscript'),
-  merge = require('ramda/src/merge'),
-  compose = require('ramda/src/compose')
+var m = require('mithril/render/hyperscript')
 
 function isValidString(param) {
   return typeof param === 'string' && param.length > 0
@@ -22,38 +20,23 @@ function mapAttribute(attr) {
   }, {})
 }
 
-function addMethod(vdom) {
-  return merge(vdom, {
-    map: mapVdom
-  })
-}
-
-function mapVdom(parentAction) {
-  var childAction = this.__action__, action = parentAction
-  if (childAction) {
-    action = compose(parentAction, childAction)
-  }
-  return merge(this, {__action__: action})
-}
-
 function hyperscript(tag) {
   return function (first, attributes) {
+    if (tag === '@@component') {
+      return m.apply(undefined, [first, mapAttribute(attributes)].concat(rest))
+    }
+    if (isSelector(first)) {
+      return m.apply(undefined, [tag + first, mapAttribute(attributes)].concat(rest))
+    }
+    if (typeof first === 'undefined') {
+      return m(tag)
+    }
     var len = arguments.length, rest = Array(len > 2 ? len - 2 : 0), i
     for (i = 2; i < len; i++) {
       rest[i - 2] = arguments[i]
     }
-
-    if (tag === '@@component') {
-      return addMethod(m.apply(undefined, [first, mapAttribute(attributes)].concat(rest)))
-    }
-    if (isSelector(first)) {
-      return addMethod(m.apply(undefined, [tag + first, mapAttribute(attributes)].concat(rest)))
-    }
-    if (typeof first === 'undefined') {
-      return addMethod(m(tag))
-    }
     var args = [attributes].concat(rest)
-    return addMethod(m.apply(undefined, [tag, mapAttribute(first)].concat(args)))
+    return m.apply(undefined, [tag, mapAttribute(first)].concat(args))
   }
 }
 

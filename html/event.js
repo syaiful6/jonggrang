@@ -1,42 +1,46 @@
 var curryN = require('ramda/src/curryN'),
-  camelize = require('../util/camelize')
+  isArray = require('../util/is-array')
 
-function eventHandler(key, action) {
-  return [key, function (input, parentAction) {
-    return function (ev) {
-      if ((key === 'onsubmit')
-        || (key === 'onclick' && ev.currentTarget.nodeName.toLowerCase() === 'a')) {
-          ev.preventDefault();
-        }
-      input(parentAction(action(ev)))
+function arrInvoker(input, arr) {
+  return function eventHandler() {
+    if (!arr.length) return
+    var msg = arr.length === 2 ? arr[0].call(this, arr[1]) : arr[0].apply(this, arr.slice(1))
+    input(msg)
+  }
+}
+
+function fnInvoker(input, fn) {
+  return function eventHandler(ev) {
+    return input(fn.call(this, ev))
+  }
+}
+
+function eventHandler(key, input, action) {
+  return [key, isArray(action) ? arrInvoker(input, action) : fnInvoker(input, action)]
+}
+
+function onKeyHandler(keyName, input, action) {
+  return ['onkeyup', function keyUpHandler(ev) {
+    if (ev.key.toLowerCase() === keyName.toLowerCase()) {
+      input(action.call(this, ev))
     }
   }]
 }
 
-function onKeyHandler(keyName, action) {
-  return [key, function (input, parentAction) {
-    return function (ev) {
-      if (ev.key.toLowerCase() === keyName.toLowerCase()) {
-        input(parentAction(action(ev)))
-      }
-    }
-  }]
-}
-
-var handler = curryN(2, eventHandler)
-var onKey = curryN(2, onKeyHandler)
+var handler = curryN(3, eventHandler)
+var onKey = curryN(3, onKeyHandler)
 
 var eventNames = [
-  'click', 'copy', 'cut', 'paste', 'composition end', 'composition start',
-  'composition update', 'keydown', 'key press', 'key up', 'focus', 'blur',
-  'change', 'input', 'submit', 'click', 'context menu', 'dbl click', 'drag',
-  'drag end', 'drag enter', 'drag exit', 'drag leave', 'drag over', 'drag start',
-  'drop', 'mouse down', 'mouse enter', 'mouse leave', 'mouse move', 'mouse out',
-  'mouse over', 'mouse up', 'select', 'touch cancel', 'touch end', 'touch move',
-  'touch start', 'scroll', 'wheel', 'abort', 'can play', 'can play through',
-  'duration change', 'emptied', 'encrypted', 'ended', 'error', 'load', 'loaded data',
-  'pause', 'play', 'playing', 'progress', 'rate change', 'seeked', 'seeking', 'stalled',
-  'suspend', 'time update', 'volume change', 'waiting'
+  "onClick", "onCopy", "onCut", "onPaste", "onCompositionEnd", "onCompositionStart",
+  "onCompositionUpdate", "onKeydown", "onKeyPress", "onKeyUp", "onFocus", "onBlur",
+  "onChange", "onInput", "onSubmit", "onClick", "onContextMenu", "onDblClick", "onDrag",
+  "onDragEnd", "onDragEnter", "onDragExit", "onDragLeave", "onDragOver", "onDragStart",
+  "onDrop", "onMouseDown", "onMouseEnter", "onMouseLeave", "onMouseMove", "onMouseOut",
+  "onMouseOver", "onMouseUp", "onSelect", "onTouchCancel", "onTouchEnd", "onTouchMove",
+  "onTouchStart", "onScroll", "onWheel", "onAbort", "onCanPlay", "onCanPlayThrough",
+  "onDurationChange", "onEmptied", "onEncrypted", "onEnded", "onError", "onLoad",
+  "onLoadedData", "onPause", "onPlay", "onPlaying", "onProgress", "onRateChange",
+  "onSeeked", "onSeeking", "onStalled", "onSuspend", "onTimeUpdate", "onVolumeChange", "onWaiting"
 ]
 
 module.exports = (function () {
@@ -45,8 +49,7 @@ module.exports = (function () {
     , onKey: onKey }
 
   return eventNames.reduce(function (mod, item) {
-    var name = 'on ' + item
-    mod[camelize(name)] = handler(name.replace(' ', ''))
+    mod[item] = handler(item.toLowerCase())
     return mod
   }, exported)
 })()

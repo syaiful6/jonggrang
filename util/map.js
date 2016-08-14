@@ -1,9 +1,6 @@
 var curryN = require('ramda/src/curryN'),
-	rmap = require('ramda/src/map')
-
-var isArray = Array.isArray || function(a) {
-  return 'length' in a
-}
+	rmap = require('ramda/src/map'),
+  isArray = require('./is-array')
 
 // look like ramda fail to map a stream, so build it here
 module.exports = curryN(2, function map(fun, functor) {

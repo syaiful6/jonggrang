@@ -1,5 +1,4 @@
-const {app, fromSimple} = require('jonggrang')
-const {renderToDom} = require('jonggrang/html/render')
+const {app, fromSimple, renderToDom} = require('jonggrang')
 const Pair = require('./pair-counter')
 const merge = require('ramda/src/merge')
 

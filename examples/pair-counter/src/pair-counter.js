@@ -2,9 +2,9 @@ const Type = require('union-type')
 const always = require('ramda/src/always')
 const merge = require('ramda/src/merge')
 const Counter = require('./counter')
-const map = require('jonggrang/util/map')
-const {div, button} = require('jonggrang/html/element')
+const {div, button} = require('jonggrang/html/hyperscript')
 const {onClick} = require('jonggrang/html/event')
+const forwardTo = require('flyd/module/forwardto')
 
 var Action = Type({
   Top: [Counter.Action]
@@ -12,22 +12,21 @@ var Action = Type({
   , Reset: []
 })
 
-var initialState = always({
-  top: Counter.initialState()
-  , bottom: Counter.initialState()
-})
+var initialState =
+  { top: Counter.initialState
+  , bottom: Counter.initialState }
 
 var update = Action.caseOn({
   Top: (action, model) => merge(model, {top: Counter.update(action, model.top)})
   , Bottom: (action, model) => merge(model, {bottom: Counter.update(action, model.bottom)})
-  , Reset: initialState
+  , Reset: always(initialState)
 })
 
-function view(model) {
+function view(domSignal, model) {
   return div([],
-    map(Action.Top, Counter.view(model.top))
-    , map(Action.Bottom, Counter.view(model.bottom))
-    , div([], button([onClick(always(Action.Reset()))], 'Reset'))
+    Counter.view(forwardTo(domSignal, Action.Top), model.top)
+    , Counter.view(forwardTo(domSignal, Action.Bottom), model.bottom)
+    , div([], button([onClick(domSignal, always(Action.Reset()))], 'Reset'))
   )
 }
 

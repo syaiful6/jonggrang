@@ -1,8 +1,8 @@
-const {div, button} = require('jonggrang/html/element')
+const {div, button} = require('jonggrang/html/hyperscript')
 const {onClick} = require('jonggrang/html/event')
-const  always = require('ramda/src/always')
-const  add = require('ramda/src/add')
-const  Type = require('union-type')
+const always = require('ramda/src/always')
+const add = require('ramda/src/add')
+const Type = require('union-type')
 
 // our Action
 const Action = Type({
@@ -11,7 +11,7 @@ const Action = Type({
 })
 
 // state
-const initialState = always(0)
+const initialState = 0
 
 // update: action -> state -> state
 const update = Action.caseOn(
@@ -20,11 +20,11 @@ const update = Action.caseOn(
 )
 
 // counter view
-function view(state) {
+function view(domSignal, state) {
   return div([],
-    button([onClick(always(Action.Increment()))], '+')
+    button([onClick(domSignal, always(Action.Increment()))], '+')
     , div([], state)
-    , button([onClick(always(Action.Decrement()))], '-')
+    , button([onClick(domSignal, always(Action.Decrement()))], '-')
   )
 }
 
