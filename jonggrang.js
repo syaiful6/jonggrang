@@ -36,9 +36,7 @@ function app(config) {
 
   effModelSignal(noEffects(config.initialState))
 
-  var htmlSignal = map(function(state) {
-    return config.view(actionStream, state)
-  }, stateSignal)
+  var htmlSignal = map(config.view(actionStream), stateSignal)
 
   return {
     html: htmlSignal
@@ -61,9 +59,39 @@ function fromSimple(update, action, state) {
 
 function renderToDom(container, htmlSignal, self) {
   return function () {
-    var run = curryN(2, renderService(self).render)(container)
-    map(run, htmlSignal)
+    var mRender = curryN(2, renderService(self).render)(container),
+      raf = typeof self.requestAnimationFrame !== 'undefined'
+        ? self.requestAnimationFrame
+        : self.setTimeout
+    var renderer = makeRenderer(mRender, raf)
+    map(renderer, htmlSignal)
   }
+}
+
+function makeRenderer(draw, raf) {
+  var vnode, state = 'NO_REQUEST'
+  function update(nextVnode) {
+    if (state === 'NO_REQUEST') {
+      raf(updateIfNeeded)
+    }
+    state = 'PENDING_REQUEST'
+    vnode = nextVnode
+  }
+  function updateIfNeeded() {
+    switch(state) {
+      case 'NO_REQUEST':
+        throw new 'Unexpected draw callback'
+      case 'PENDING_REQUEST':
+        raf(updateIfNeeded)
+        state = 'EXTRA_REQUEST'
+        draw(vnode)
+        return
+      case 'EXTRA_REQUEST':
+        state = 'NO_REQUEST'
+        return
+    }
+  }
+  return update
 }
 
 module.exports =
