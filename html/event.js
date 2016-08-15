@@ -1,34 +1,33 @@
 var curryN = require('ramda/src/curryN'),
   isArray = require('../util/is-array')
 
-function arrInvoker(input, arr) {
+function arrInvoker(arr) {
   return function eventHandler() {
     if (!arr.length) return
     var msg = arr.length === 2 ? arr[0].call(this, arr[1]) : arr[0].apply(this, arr.slice(1))
-    input(msg)
   }
 }
 
-function fnInvoker(input, fn) {
+function fnInvoker(fn) {
   return function eventHandler(ev) {
     return input(fn.call(this, ev))
   }
 }
 
-function eventHandler(key, input, action) {
-  return [key, isArray(action) ? arrInvoker(input, action) : fnInvoker(input, action)]
+function eventHandler(key, action) {
+  return [key, action]
 }
 
-function onKeyHandler(keyName, input, action) {
+function onKeyHandler(keyName, action) {
   return ['onkeyup', function keyUpHandler(ev) {
     if (ev.key.toLowerCase() === keyName.toLowerCase()) {
-      input(action.call(this, ev))
+      return typeof action === 'function' ? action.call(this, ev) : arrInvoker(action)()
     }
   }]
 }
 
-var handler = curryN(3, eventHandler)
-var onKey = curryN(3, onKeyHandler)
+var handler = curryN(2, eventHandler)
+var onKey = curryN(2, onKeyHandler)
 
 var eventNames = [
   "onClick", "onCopy", "onCut", "onPaste", "onCompositionEnd", "onCompositionStart",
