@@ -4,7 +4,7 @@ var curryN = require('ramda/src/curryN'),
   compose = require('ramda/src/compose'),
   map = require('./util/map'),
   isArray = require('./util/is-array'),
-  renderService = require("mithril/render/render"),
+  renderService = require("./html/render"),
   flyd = require('flyd'),
   mergeAll = require('flyd/module/mergeall'),
   dropRepeats = require('flyd/module/droprepeats').dropRepeats
@@ -34,13 +34,18 @@ function app(config) {
     return affect
   }
 
+  function renderer(self) {
+    return renderService(self)(actionStream)
+  }
+
   effModelSignal(noEffects(config.initialState))
 
-  var htmlSignal = map(config.view(actionStream), stateSignal)
+  var htmlSignal = map(config.view, stateSignal)
 
   return {
     html: htmlSignal
     , state: stateSignal
+    , renderer: renderer
   }
 }
 
@@ -57,14 +62,14 @@ function fromSimple(update, action, state) {
   return noEffects(update(action, state))
 }
 
-function renderToDom(container, htmlSignal, self) {
+function renderToDom(container, application, self) {
   return function () {
-    var mRender = curryN(2, renderService(self).render)(container),
+    var syncrenderer = curryN(2, application.renderer(self))(container),
       raf = typeof self.requestAnimationFrame !== 'undefined'
         ? self.requestAnimationFrame
         : self.setTimeout
-    var renderer = makeRenderer(mRender, raf)
-    map(renderer, htmlSignal)
+    var renderer = makeRenderer(syncrenderer, raf)
+    map(renderer, application.html)
   }
 }
 
