@@ -1,0 +1,13 @@
+{
+  "framework": "jasmine2",
+  "src_files": [
+    "jonggrang.js",
+    "spec/*.js"
+  ],
+  "serve_files": [
+    "browserified.js"
+  ],
+  "before_tests": "browserify -t [ babelify --presets [ es2015 ] ] -d spec/index.js -o browserified.js",
+  "on_exit": "rm browserified.js",
+  "launch_in_dev": [ "firefox", "chrome" ]
+}

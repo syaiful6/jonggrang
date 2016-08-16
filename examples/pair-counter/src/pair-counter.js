@@ -2,8 +2,8 @@ const Type = require('union-type')
 const always = require('ramda/src/always')
 const merge = require('ramda/src/merge')
 const Counter = require('./counter')
-const {div, button} = require('jonggrang/html/hyperscript')
-const {onClick} = require('jonggrang/html/event')
+const {div, button} = require('jonggrang/vdom/h')
+const {onClick} = require('jonggrang/vdom/event')
 const forwardTo = require('flyd/module/forwardto')
 
 var Action = Type({

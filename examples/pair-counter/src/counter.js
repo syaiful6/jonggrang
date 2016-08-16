@@ -1,5 +1,5 @@
-const {div, button} = require('jonggrang/html/hyperscript')
-const {onClick} = require('jonggrang/html/event')
+const {div, button} = require('jonggrang/vdom/h')
+const {onClick} = require('jonggrang/vdom/event')
 const always = require('ramda/src/always')
 const add = require('ramda/src/add')
 const Type = require('union-type')

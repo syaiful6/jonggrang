@@ -1,5 +1,3 @@
-"use strict"
-
 var Vnode = require('./vnode'),
   isArray = require('../util/is-array')
 
@@ -427,7 +425,7 @@ module.exports = function ($window) {
     if (old != null) {
       for (var key in old) {
         if (attrs == null || !(key in attrs)) {
-          if (key[0] === "o" && key[1] === "n") updateEvent(vnode, key, undefined)
+          if (key[0] === "o" && key[1] === "n") updateEvent(vnode, eventNode, key, undefined)
           else if (key !== "key") vnode.dom.removeAttribute(key)
         }
       }
@@ -457,7 +455,6 @@ module.exports = function ($window) {
       }
     }
   }
-
   //event
   function updateEvent(vnode, eventNode, key, value) {
     var element = vnode.dom
@@ -473,12 +470,8 @@ module.exports = function ($window) {
       currentEventNode = eventNode
       while (currentEventNode) {
         tagger = currentEventNode.tagger
-        if (typeof tagger === 'function') {
-          msg = tagger(msg)
-        } else {
-          for (var i = tagger.length; i--;) {
-            msg = tagger[i](msg)
-          }
+        for (var i = tagger.length; i--;) {
+          msg = tagger[i](msg)
         }
         currentEventNode = currentEventNode.parent
       }
@@ -504,7 +497,7 @@ module.exports = function ($window) {
     return function renderer(dom, vnodes) {
       var active = $doc.activeElement,
         eventNode =
-          { tagger: tagger
+          { tagger: isArray(tagger) ? tagger : [tagger]
           , parent: undefined }
       // First time rendering into a node clears it out
       if (dom.vnodes == null) dom.textContent = ""
@@ -512,7 +505,6 @@ module.exports = function ($window) {
       updateNodes(dom, dom.vnodes, Vnode.normalizeChildren(vnodes), eventNode, null, undefined)
       dom.vnodes = vnodes
       if ($doc.activeElement !== active) active.focus()
-      return dom
     }
   }
   return init
