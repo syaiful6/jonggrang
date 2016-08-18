@@ -18,9 +18,18 @@ function activeElement() {
   return document.activeElement
 }
 
+function naiveAnimationFrame(cb) {
+  return setTimeout(cb, 1000 / 60)
+}
+
+var rAF = typeof window.requestAnimationFrame !== 'undefined'
+  ? window.requestAnimationFrame
+  : naiveAnimationFrame
+
 module.exports =
   { createDocumentFragment: createDocumentFragment
   , createTextNode: createTextNode
   , createElement: createElement
   , activeElement: activeElement
-  , createElementNS: createElementNS }
+  , createElementNS: createElementNS
+  , requestAnimationFrame: rAF }

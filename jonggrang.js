@@ -5,6 +5,7 @@ var curryN = require('ramda/src/curryN'),
   map = require('./util/map'),
   isArray = require('./util/is-array'),
   renderService = require("./vdom/render"),
+  requestAnimationFrame = require('./vdom/dom').requestAnimationFrame,
   flyd = require('flyd'),
   mergeAll = require('flyd/module/mergeall'),
   dropRepeats = require('flyd/module/droprepeats').dropRepeats
@@ -21,9 +22,12 @@ function app(config) {
     htmlSignal = flyd.map(config.view, stateSignal)
 
   function foldActions(effModel, actions) {
-    return actions.reduce(function (eff, action) {
-      return config.update(action, eff.state)
-    }, noEffects(effModel.state))
+    return actions.reduce(invokeAppUpdate, noEffects(effModel.state))
+  }
+
+  function invokeAppUpdate(eff, action) {
+    var result = config.update(action, eff.state)
+    return result instanceof EffModel ? result : new EffModel(result.state, result.effects)
   }
 
   function transformToArray(s) {
@@ -43,12 +47,24 @@ function app(config) {
   }
 }
 
+function EffModel(state, effects) {
+  this.state = state
+  this.effects = effects || []
+}
+
+//
+function mapState(fun, effModel) {
+  return new EffModel(fun(effModel.state), effModel.effects)
+}
+
+//
+function mapEffects(action, effModel) {
+  return new EffModel(effModel.state, map(map(action), effModel.effects))
+}
+
 // noEffects :: state -> {state: state, effects: []}
 function noEffects(state) {
-  return {
-    state: state,
-    effects: []
-  }
+  return new EffModel(state)
 }
 
 // fromSimple :: (action -> state -> newState) -> action -> state -> {state: state, effects: []}
@@ -57,10 +73,31 @@ function fromSimple(update, action, state) {
 }
 
 function renderToDom(container, application) {
-  function run(vnode) {
-    application.renderer(container, vnode)
+  var state = 0, nextVnode
+  function redraw(vnode) {
+    if (state === 0) {
+      requestAnimationFrame(runRenderer)
+    }
+    state = 1
+    nextVnode = vnode
   }
-  flyd.map(run, application.html)
+  function runRenderer() {
+    switch (state) {
+      case 0: // no request, this state is invalid here
+        throw new Error('invalid state')
+      case 1: // pending request, this state indicate new vnode
+        requestAnimationFrame(runRenderer)
+        state = 2
+        application.renderer(container, nextVnode)
+        nextVnode = null
+        return
+      case 2: // extra request
+        state = 0
+        return
+    }
+  }
+  // listen to virtual node stream
+  flyd.map(redraw, application.html)
 }
 
 module.exports =
