@@ -17,7 +17,8 @@ function app(config) {
     input = map(transformToArray, mergeAll([actionStream].concat(config.inputs))),
     effModelSignal = flyd.scan(foldActions, noEffects(config.initialState), input),
     effectsSignal = map(compose(map(mapAffect), prop('effects')), effModelSignal),
-    stateSignal = dropRepeats(map(prop('state'), effModelSignal))
+    stateSignal = dropRepeats(map(prop('state'), effModelSignal)),
+    htmlSignal = map(config.view, stateSignal)
 
   function foldActions(effModel, actions) {
     return actions.reduce(function (eff, action) {
@@ -31,7 +32,6 @@ function app(config) {
 
   function mapAffect(affect) {
     affect.fork(actionStream, actionStream)
-    return affect
   }
 
   function renderer(self) {
@@ -39,8 +39,6 @@ function app(config) {
   }
 
   effModelSignal(noEffects(config.initialState))
-
-  var htmlSignal = map(config.view, stateSignal)
 
   return {
     html: htmlSignal
@@ -62,45 +60,7 @@ function fromSimple(update, action, state) {
   return noEffects(update(action, state))
 }
 
-function renderToDom(container, application, self) {
-  return function () {
-    var syncrenderer = curryN(2, application.renderer(self))(container),
-      raf = typeof self.requestAnimationFrame !== 'undefined'
-        ? self.requestAnimationFrame
-        : self.setTimeout
-    var renderer = makeRenderer(syncrenderer, raf)
-    map(renderer, application.html)
-  }
-}
-
-function makeRenderer(draw, raf) {
-  var vnode, state = 'NO_REQUEST'
-  function update(nextVnode) {
-    if (state === 'NO_REQUEST') {
-      raf(updateIfNeeded)
-    }
-    state = 'PENDING_REQUEST'
-    vnode = nextVnode
-  }
-  function updateIfNeeded() {
-    switch(state) {
-      case 'NO_REQUEST':
-        throw new 'Unexpected draw callback'
-      case 'PENDING_REQUEST':
-        raf(updateIfNeeded)
-        state = 'EXTRA_REQUEST'
-        draw(vnode)
-        return
-      case 'EXTRA_REQUEST':
-        state = 'NO_REQUEST'
-        return
-    }
-  }
-  return update
-}
-
 module.exports =
   { app: app
   , noEffects: noEffects
-  , fromSimple: curryN(3, fromSimple)
-  , renderToDom: curryN(3, renderToDom) }
+  , fromSimple: curryN(3, fromSimple) }

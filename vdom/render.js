@@ -3,8 +3,15 @@ var Vnode = require('./vnode'),
 
 module.exports = function ($window) {
   var $doc = $window.document,
-    $emptyFragment = $doc.createDocumentFragment()
+    $emptyFragment = $doc.createDocumentFragment(),
+    listenerKey = typeof Symbol !== 'undefined' ? Symbol('listener') : '__listener__'
 
+  function EventNode(tagger, parent) {
+    return {
+      tagger: tagger
+      , parent: parent
+    }
+  }
   function createNodes(parent, vnodes, start, end, eventNode, nextSibling, ns) {
     var vnode, i
     for (i = start; i < end; i++) {
@@ -21,10 +28,10 @@ module.exports = function ($window) {
         case '#': return createText(vnode)
         case '<': return createHTML(vnode)
         case '[': return createFragment(vnode, eventNode, ns)
+        case '<$>': return createTagger(vnode, eventNode, ns)
         default: return createElement(vnode, eventNode, ns)
       }
     }
-    if (Vnode.isTagger(vnode)) return createTagger(vnode, eventNode, ns)
     return createThunk(vnode, eventNode, ns)
   }
   function createText(vnode) {
@@ -84,16 +91,12 @@ module.exports = function ($window) {
     return element
   }
   function createTagger(vnode, eventNode, ns) {
-    var tag = vnode.tag, subEventNode, subNode
-    subEventNode =
-      { tagger: tag.tagger
-      , parent: eventNode }
-    subNode = Vnode.normalize(tag.vnode)
+    var info = getVnodeTagger(vnode), tagger = info.tagger, subNode = info.children
+    subNode = Vnode.normalize(subNode)
     if (subNode != null) {
-      var element = createNode(subNode, subEventNode, ns)
+      var element = createNode(subNode, EventNode(tagger, eventNode), ns)
       vnode.dom = subNode.dom
       vnode.domSize = vnode.dom != null ? subNode.domSize : 0
-      vnode.evroot = subEventNode
       return element
     } else {
       vnode.domSize = 0
@@ -188,14 +191,15 @@ module.exports = function ($window) {
     var oldTag = old.tag, tag = vnode.tag
     if (oldTag === tag && typeof oldTag === 'string') {
       vnode.events = old.events
+      old.events = undefined
       switch (oldTag) {
         case '#': updateText(old, vnode); break
         case '<': updateHTML(parent, old, vnode, nextSibling); break
-        case "[": updateFragment(parent, old, vnode, eventNode, nextSibling, ns); break
+        case '[': updateFragment(parent, old, vnode, eventNode, nextSibling, ns); break
+        case '<$>': updateTagger(parent, old, vnode, eventNode, nextSibling, recycling, ns); break
         default: updateElement(old, vnode, eventNode, ns)
       }
     }
-    else if (Vnode.isTagger(old) && Vnode.isTagger(vnode)) updateTagger(parent, old, vnode, eventNode, nextSibling, recycling, ns)
     else if (Vnode.isThunk(old) && Vnode.isThunk(vnode)) updateThunk(parent, old, vnode, eventNode, nextSibling, recycling, ns)
     else {
       removeNode(parent, old, null, false)
@@ -251,28 +255,22 @@ module.exports = function ($window) {
     }
   }
   function updateTagger(parent, old, vnode, eventNode, nextSibling, recycling, ns) {
-    var oldTag = old.tag, tag = vnode.tag, nesting = false, subEventNode
-    var subNode = tag.vnode, tagger = tag.tagger
-    var oldSubNode = oldTag.vnode, oldTagger = old.tagger
-    var nesting = tagger.length > 1 || oldTagger > 1
-    if (nesting && oldTagger.length !== tagger.length) {
+    var info = getVnodeTagger(vnode), tagger = info.tagger, subNode = info.children
+    var oldInfo = getVnodeTagger(old), oldTagger = oldInfo.tagger, oldSubNode = oldInfo.children
+    var nesting = tagger.length > 1 || oldTagger.length > 1
+    // different tagger.length implies this vnode has different structure
+    if (nesting && tagger.length !== oldTagger.length) {
       removeNode(parent, old, null, false)
       insertNode(parent, createNode(vnode, eventNode, undefined), nextSibling)
       return
     }
-    subEventNode = old.evroot
-    if (nesting ? !pairwiseRefEqual(tagger, oldTagger) : tagger !== oldTagger) {
-      subEventNode = {
-        tagger: tagger,
-        parent: subEventNode.parent
-      }
-    }
+    var subEventNode = EventNode(tagger, eventNode)
+    subNode = Vnode.normalize(subNode)
     if (subNode != null) {
       if (oldSubNode == null) insertNode(parent, createNode(subNode, subEventNode, ns), nextSibling)
       else updateNode(parent, oldSubNode, subNode, subEventNode, nextSibling, recycling, ns)
       vnode.dom = subNode.dom
       vnode.domSize = subNode.domSize
-      vnode.evroot = subEventNode
     } else if (oldSubNode != null) {
       removeNode(parent, oldSubNode, null)
       vnode.dom = undefined
@@ -329,6 +327,17 @@ module.exports = function ($window) {
       }
     }
     return map
+  }
+  function getVnodeTagger(vnode) {
+    var tagger = vnode.tagger, children = vnode.children[0]
+    while (children.tag === '<$>') {
+      tagger = children.tagger.concat(tagger)
+      children = children.children[0]
+    }
+    return {
+      tagger: tagger
+      , children: children
+    }
   }
   function toFragment(vnode) {
     var count = vnode.domSize
@@ -455,50 +464,64 @@ module.exports = function ($window) {
       }
     }
   }
+  function createListener() {
+    return function eventHandler(event) {
+      var name = event.type,
+        vnode = eventHandler.vnode,
+        on = vnode && vnode.events
+      if (on && on[name]) invokeHandler(on[name], vnode, eventHandler.eventNode, event)
+    }
+  }
+  function invokeHandler(handler, vnode, eventNode, event) {
+    var msg = isArray(handler)
+      ? invokeArrayHandler(handler, vnode, event)
+      : invokeFnHandler(handler, vnode, event)
+    return sendHtmlSignal(msg, eventNode)
+  }
+  function invokeFnHandler(handler, vnode, event) {
+    var element = vnode.dom
+    return handler.call(element, event, vnode)
+  }
+  function invokeArrayHandler(handler, vnode, event) {
+    var element = vnode.dom
+    return handler.length === 2
+      ? handler[0].call(element, handler[1], event, vnode)
+      : handler[0].apply(element, handler.slice(1).concat(event, vnode))
+  }
+  function sendHtmlSignal(msg, eventNode) {
+    var currentEventNode = eventNode, tagger
+    while (currentEventNode) {
+      tagger = currentEventNode.tagger
+      for (var i = tagger.length; i--;) {
+        msg = tagger[i](msg)
+      }
+      currentEventNode = currentEventNode.parent
+    }
+    return msg
+  }
   //event
   function updateEvent(vnode, eventNode, key, value) {
-    var element = vnode.dom
-    function eventHandler(e) {
-      var msg, currentEventNode, tagger
-      if (typeof value === 'function') {
-        msg = value.call(element, e)
-      } else {
-        msg = value.length === 2
-          ? value[0].call(element, value[1], e)
-          : value[0].apply(element, value.slice(1).concat([e]))
-      }
-      currentEventNode = eventNode
-      while (currentEventNode) {
-        tagger = currentEventNode.tagger
-        for (var i = tagger.length; i--;) {
-          msg = tagger[i](msg)
-        }
-        currentEventNode = currentEventNode.parent
-      }
+    if (vnode.events == null) vnode.events = {}
+    var element = vnode.dom, eventName = key.slice(2),
+      oldListener = vnode.events[listenerKey],
+      listener = vnode.events[listenerKey] = oldListener || createListener()
+    listener.vnode = vnode
+    listener.eventNode = eventNode
+
+    if (oldListener && vnode.events[eventName] != null && !value) {
+      element.removeEventListener(eventName, oldListener, false)
+      vnodes.events[eventName] = undefined
     }
-    if (key in element) element[key] = eventHandler
-    else {
-      var eventName = key.slice(2)
-      if (vnode.events === undefined) vnode.events = {}
-      if (vnode.events[key] != null) element.removeEventListener(eventName, vnode.events[key], false)
-      if (typeof value === "function" || (isArray(value) && value.length > 0)) {
-        vnode.events[key] = eventHandler
-        element.addEventListener(eventName, vnode.events[key], false)
-      }
+    if (typeof value === "function" || (isArray(value) && value.length > 1)) {
+      if (vnode.events[eventName] == null) element.addEventListener(eventName, listener, false)
+      vnode.events[eventName] = value
     }
-  }
-  function pairwiseRefEqual(as, bs) {
-     for (var i = 0; i < as.length; i++) {
-       if (as[i] !== bs[i]) return false
-     }
-     return true
   }
   function init(tagger) {
+    tagger = isArray(tagger) ? tagger : [tagger]
     return function renderer(dom, vnodes) {
       var active = $doc.activeElement,
-        eventNode =
-          { tagger: isArray(tagger) ? tagger : [tagger]
-          , parent: undefined }
+        eventNode = EventNode(tagger, undefined)
       // First time rendering into a node clears it out
       if (dom.vnodes == null) dom.textContent = ""
       if (!isArray(vnodes)) vnodes = [vnodes]

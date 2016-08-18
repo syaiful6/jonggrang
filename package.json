@@ -4,6 +4,10 @@
   "author": {
     "name": "Syaiful Bahri"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syaiful6/jonggrang.git"
+  },
   "main": "./jonggrang.js",
   "license": "MIT",
   "dependencies": {
