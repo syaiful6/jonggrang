@@ -14,11 +14,11 @@ var curryN = require('ramda/src/curryN'),
 // app -> {view: (domSignal, state -> vnodes), update: (action -> state), initialState: state, inputs: [stream(action)]} -> stream
 function app(config) {
   var actionStream = flyd.stream(),
-    input = map(transformToArray, mergeAll([actionStream].concat(config.inputs))),
+    input = flyd.map(transformToArray, mergeAll([actionStream].concat(config.inputs))),
     effModelSignal = flyd.scan(foldActions, noEffects(config.initialState), input),
-    effectsSignal = map(compose(map(mapAffect), prop('effects')), effModelSignal),
+    effectsSignal = flyd.map(compose(map(mapAffect), prop('effects')), effModelSignal),
     stateSignal = dropRepeats(map(prop('state'), effModelSignal)),
-    htmlSignal = map(config.view, stateSignal)
+    htmlSignal = flyd.map(config.view, stateSignal)
 
   function foldActions(effModel, actions) {
     return actions.reduce(function (eff, action) {
@@ -34,16 +34,12 @@ function app(config) {
     affect.fork(actionStream, actionStream)
   }
 
-  function renderer(self) {
-    return renderService(self)(actionStream)
-  }
-
   effModelSignal(noEffects(config.initialState))
 
   return {
     html: htmlSignal
     , state: stateSignal
-    , renderer: renderer
+    , renderer: renderService(actionStream)
   }
 }
 
@@ -60,7 +56,15 @@ function fromSimple(update, action, state) {
   return noEffects(update(action, state))
 }
 
+function renderToDom(container, application) {
+  function run(vnode) {
+    application.renderer(container, vnode)
+  }
+  flyd.map(run, application.html)
+}
+
 module.exports =
   { app: app
   , noEffects: noEffects
-  , fromSimple: curryN(3, fromSimple) }
+  , fromSimple: curryN(3, fromSimple)
+  , renderToDom: curryN(2, renderToDom) }

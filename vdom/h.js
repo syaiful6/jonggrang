@@ -77,28 +77,19 @@ function h(selector) {
 	return Vnode(selector, attrs && attrs.key, attrs || {}, Vnode.normalizeChildren(children), undefined, undefined)
 }
 
-function mapAttribute(attr) {
-  return attr.reduce(function (prev, current) {
-    var key = current[0], value = current[1]
-    prev[key] = value
-    return prev
-  }, {})
-}
-
-function wrapper(tag) {
-  return function (first, attributes) {
-    var len = arguments.length, rest = Array(len > 2 ? len - 2 : 0), i
-    for (i = 2; i < len; i++) {
-      rest[i - 2] = arguments[i]
+function node(tag) {
+  return function (first) {
+    var len = arguments.length, rest = Array(len > 1 ? len - 1 : 0), i
+    for (i = 1; i < len; i++) {
+      rest[i - 1] = arguments[i]
     }
     if (isSelector(first)) {
-      return h.apply(undefined, [tag + first, mapAttribute(attributes)].concat(rest))
+      return h.apply(undefined, [tag + first].concat(rest))
     }
     if (typeof first === 'undefined') {
       return h(tag)
     }
-    var args = [attributes].concat(rest)
-    return h.apply(undefined, [tag, mapAttribute(first)].concat(args))
+    return h.apply(undefined, [tag, first].concat(rest))
   }
 }
 
@@ -121,7 +112,7 @@ module.exports = (function () {
     h: h
   }
   return TAG_NAMES.reduce(function (prev, current) {
-    prev[current] = wrapper(current)
+    prev[current] = node(current)
     return prev
   }, initial)
 })()
