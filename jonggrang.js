@@ -47,27 +47,31 @@ function app(config) {
   }
 }
 
+// the effects fields are array of task Future
+// EffModel :: a -> Array (Task b, c)
 function EffModel(state, effects) {
   this.state = state
   this.effects = effects || []
 }
 
-//
+// map a given function to the state field on EffModel
+// mapState :: (a -> b) -> EffModel[a, Task[]] -> EffModel[b, Task[]]
 function mapState(fun, effModel) {
   return new EffModel(fun(effModel.state), effModel.effects)
 }
 
-//
+// map a given function to all effects on EffModel
+// mapEffects :: (a -> b) -> EffModel[c, a[]] -> EffModel[c, b[]]
 function mapEffects(action, effModel) {
   return new EffModel(effModel.state, map(map(action), effModel.effects))
 }
 
-// noEffects :: state -> {state: state, effects: []}
+// noEffects :: state -> EffModel[state, []]
 function noEffects(state) {
   return new EffModel(state)
 }
 
-// fromSimple :: (action -> state -> newState) -> action -> state -> {state: state, effects: []}
+// fromSimple :: (action -> state -> newState) -> action -> state -> EffModel[state, []]
 function fromSimple(update, action, state) {
   return noEffects(update(action, state))
 }
