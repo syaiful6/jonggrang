@@ -1,2 +1,2 @@
-require('./vdom_spec')
-require('./http_spec')
+export * from './vdom_spec';
+export * from './http_spec';

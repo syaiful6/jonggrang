@@ -7,7 +7,7 @@
   "serve_files": [
     "browserified.js"
   ],
-  "before_tests": "browserify -t [ babelify --presets [ es2015 ] ] -d spec/index.js -o browserified.js",
-  "on_exit": "rm browserified.js",
+  "before_tests": "rollup -c rollup.config-spec.js",
+  "on_exit": "rm jonggrang-test.js",
   "launch_in_dev": [ "firefox", "chrome" ]
 }
