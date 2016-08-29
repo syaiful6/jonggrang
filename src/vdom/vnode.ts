@@ -91,7 +91,7 @@ export class Vnode {
 
   static normalizeChildren(children: Array<Vnode | string | number | boolean | Array<Vnode> | null>): Vnode[] {
     let item: Vnode | string | number | boolean | Array<Vnode> | null
-    let normalized : Vnode[] = []
+    let normalized: Vnode[] = []
     for (let i = 0; i < children.length; i++) {
       item = children[i]
       if (typeof item === 'boolean' || item == null) {

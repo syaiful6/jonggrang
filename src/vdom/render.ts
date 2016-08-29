@@ -6,7 +6,7 @@ export type EventNode = {
   parent: EventNode | null
 }
 
-type NS = "http://www.w3.org/1998/Math/MathML" | "http://www.w3.org/2000/svg"
+type NS = 'http://www.w3.org/1998/Math/MathML' | 'http://www.w3.org/2000/svg'
 
 function createNodes(parent: Element | DocumentFragment, vnodes: Array<Vnode | null>, start: number, end: number,
                      eventNode: EventNode, nextSibling: Node | null, ns: NS | undefined) {
@@ -23,9 +23,9 @@ function createNode(vnode: Vnode, eventNode: EventNode, ns: NS | undefined): Ele
   let tag = vnode.tag
   if (typeof tag === 'string') {
     switch (tag) {
-      case "#": return createText(vnode)
-      case "<": return createHTML(vnode)
-      case "[": return createFragment(vnode, eventNode, ns)
+      case '#': return createText(vnode)
+      case '<': return createHTML(vnode)
+      case '[': return createFragment(vnode, eventNode, ns)
       default:
         return createElement(vnode, eventNode, ns)
     }
@@ -49,8 +49,18 @@ function createText(vnode: Vnode): Text {
 function createHTML(vnode: Vnode): DocumentFragment {
   if (typeof vnode.children === 'string') {
     let match: string[] = vnode.children.match(/^\s*?<(\w+)/im) || []
-    let table: any = {caption: "table", thead: "table", tbody: "table", tfoot: "table", tr: "tbody", th: "tr", td: "tr", colgroup: "table", col: "colgroup"}
-    let parent: any = table[match[1]] || "div"
+    let table: any = {
+      caption: 'table',
+      thead: 'table',
+      tbody: 'table',
+      tfoot: 'table',
+      tr: 'tbody',
+      th: 'tr',
+      td: 'tr',
+      colgroup: 'table',
+      col: 'colgroup'
+    }
+    let parent: any = table[match[1]] || 'div'
     let temp = DOM.createElement(String(parent))
 
     temp.innerHTML = vnode.children
@@ -81,8 +91,12 @@ function createElement(vnode: Vnode, eventNode: EventNode, ns: NS | undefined): 
   let tag = vnode.tag as string
   let data = vnode.data
   switch (tag) {
-    case "svg": ns = "http://www.w3.org/2000/svg"; break
-    case "math": ns = "http://www.w3.org/1998/Math/MathML"; break
+    case 'svg':
+      ns = 'http://www.w3.org/2000/svg';
+      break
+    case 'math':
+      ns = 'http://www.w3.org/1998/Math/MathML';
+      break
   }
 
   let element = ns ? DOM.createElementNS(ns, tag) : DOM.createElement(tag)
@@ -93,7 +107,7 @@ function createElement(vnode: Vnode, eventNode: EventNode, ns: NS | undefined): 
   }
   if (vnode.text != null) {
     if (vnode.text !== '') element.textContent = vnode.text
-    else vnode.children = [new Vnode("#", undefined, undefined, vnode.text, undefined, undefined)]
+    else vnode.children = [new Vnode('#', undefined, undefined, vnode.text, undefined, undefined)]
   }
 
   if (vnode.children != null) {
@@ -134,12 +148,13 @@ function vnodeHasKey(vnode: Vnode | null) {
   return vnode != null && vnode.key != null
 }
 
-function updateNodes(parent: Element | DocumentFragment, old: Array<Vnode | null> | null, vnodes: Array<Vnode | null> | null,
-                    eventNode: EventNode, nextSibling: Node | null, ns: NS | undefined): void {
+function updateNodes(parent: Element | DocumentFragment, old: Array<Vnode | null> | null,
+                     vnodes: Array<Vnode | null> | null, eventNode: EventNode,
+                     nextSibling: Node | null, ns: NS | undefined): void {
   if (old === vnodes || old == null && vnodes == null) return
   else if (old == null && Array.isArray(vnodes)) createNodes(parent, vnodes, 0, vnodes.length, eventNode, nextSibling, undefined)
   else if (vnodes == null && Array.isArray(old)) removeNodes(parent, old, 0, old.length)
-  else if(Array.isArray(old) && Array.isArray(vnodes)) {
+  else if (Array.isArray(old) && Array.isArray(vnodes)) {
     if (old.length === vnodes.length && vnodeHasKey(vnodes[0])) {
       for (let i = 0; i < old.length; i++) {
         if (old[i] === vnodes[i] || old[i] == null && vnodes[i] == null) continue
@@ -156,29 +171,39 @@ function updateNodes(parent: Element | DocumentFragment, old: Array<Vnode | null
       while (oldEnd >= oldStart && end >= start) {
         let o = old[oldStart]
         let v = vnodes[start]
-        if (o === v) oldStart++, start++
-        else if (o != null && v != null && o.key === v.key) {
-          oldStart++, start++
+        if (o === v) {
+          oldStart++
+          start++
+        } else if (o != null && v != null && o.key === v.key) {
+          oldStart++
+          start++
           updateNode(parent, o, v, eventNode, getNextSibling(old, oldStart, nextSibling), ns)
         }
         else {
           let o = old[oldEnd]
-          if (o === v) oldEnd--, start++
-          else if (o != null && v != null && o.key === v.key) {
+          if (o === v) {
+            oldEnd--
+            start++
+          } else if (o != null && v != null && o.key === v.key) {
             updateNode(parent, o, v, eventNode, getNextSibling(old, oldEnd + 1, nextSibling), ns)
             if (start < end) insertNode(parent, toFragment(o), getNextSibling(old, oldStart, nextSibling))
-            oldEnd--, start++
+            oldEnd--
+            start++
+          } else {
+            break
           }
-          else break
         }
       }
       while (oldEnd >= oldStart && end >= start) {
-        var o = old[oldEnd], v = vnodes[end]
-        if (o === v) oldEnd--, end--
-        else if (o != null && v != null && o.key === v.key) {
+        let o = old[oldEnd], v = vnodes[end]
+        if (o === v) {
+          oldEnd--
+          end--
+        } else if (o != null && v != null && o.key === v.key) {
           updateNode(parent, o, v, eventNode, getNextSibling(old, oldEnd + 1, nextSibling), ns)
           if (o.dom != null) nextSibling = o.dom
-          oldEnd--, end--
+          oldEnd--
+          end--
         }
         else {
           if (!map) map = getKeyMap(old, oldEnd)
@@ -192,7 +217,7 @@ function updateNodes(parent: Element | DocumentFragment, old: Array<Vnode | null
               if (movable.dom != null) nextSibling = movable.dom
             }
             else {
-              var dom = createNode(v, eventNode, undefined)
+              let dom = createNode(v, eventNode, undefined)
               insertNode(parent, dom, nextSibling)
               nextSibling = dom
             }
@@ -216,9 +241,9 @@ function updateNode(parent: Element | DocumentFragment, old: Vnode, vnode: Vnode
       vnode.data.events = old.data.events
     }
     switch (tag) {
-      case "#": updateText(old, vnode); break
-      case "<": updateHTML(parent, old, vnode, nextSibling); break
-      case "[": updateFragment(parent, old, vnode, eventNode, nextSibling, ns); break
+      case '#': updateText(old, vnode); break
+      case '<': updateHTML(parent, old, vnode, nextSibling); break
+      case '[': updateFragment(parent, old, vnode, eventNode, nextSibling, ns); break
       default: updateElement(old, vnode, eventNode, ns)
     }
   } else if (old.data != null && typeof old.data.fn === 'function'
@@ -244,7 +269,10 @@ function updateHTML(parent: Element | DocumentFragment, old: Vnode, vnode: Vnode
     toFragment(old)
     insertNode(parent, createHTML(vnode), nextSibling)
   }
-  else vnode.dom = old.dom, vnode.domSize = old.domSize
+  else {
+    vnode.dom = old.dom
+    vnode.domSize = old.domSize
+  }
 }
 
 function updateFragment(parent: Element | DocumentFragment, old: Vnode, vnode: Vnode,
@@ -254,7 +282,7 @@ function updateFragment(parent: Element | DocumentFragment, old: Vnode, vnode: V
   let children = vnode.children
   vnode.dom = undefined
   if (children != null) {
-    for (let i = 0; i < children.length; i++) {
+    for (let i = 0; i < children.length; ++i) {
       let child = children[i] as Vnode
       if (child != null && child.dom != null) {
         if (vnode.dom == null) vnode.dom = child.dom
@@ -268,20 +296,20 @@ function updateFragment(parent: Element | DocumentFragment, old: Vnode, vnode: V
 function updateElement(old: Vnode, vnode: Vnode, eventNode: EventNode, ns: NS | undefined) {
   let element = vnode.dom = old.dom
   switch (vnode.tag) {
-    case "svg": ns = "http://www.w3.org/2000/svg"; break
-    case "math": ns = "http://www.w3.org/1998/Math/MathML"; break
+    case 'svg': ns = 'http://www.w3.org/2000/svg'; break
+    case 'math': ns = 'http://www.w3.org/1998/Math/MathML'; break
   }
-  if (vnode.tag === "textarea") {
+  if (vnode.tag === 'textarea') {
     if (vnode.data == null) vnode.data = {}
     if (vnode.text != null) vnode.data.value = vnode.text //FIXME handle multiple children
   }
   updateAttrs(vnode, eventNode, old.data, vnode.data, ns)
-  if (old.text != null && vnode.text != null && vnode.text !== "") {
+  if (old.text != null && vnode.text != null && vnode.text !== '') {
     if (old.text.toString() !== vnode.text.toString()) (old.dom as Text).firstChild.nodeValue = vnode.text
   }
   else {
-    if (old.text != null) old.children = [new Vnode("#", undefined, undefined, old.text, undefined, (old.dom as Text).firstChild as Text)]
-    if (vnode.text != null) vnode.children = [new Vnode("#", undefined, undefined, vnode.text, undefined, undefined)]
+    if (old.text != null) old.children = [new Vnode('#', undefined, undefined, old.text, undefined, (old.dom as Text).firstChild as Text)]
+    if (vnode.text != null) vnode.children = [new Vnode('#', undefined, undefined, vnode.text, undefined, undefined)]
     updateNodes(element as Element, old.children as Vnode[], vnode.children as Vnode[], eventNode, null, ns)
   }
 }
@@ -385,7 +413,7 @@ function getVnodeTagger(vnode: Vnode) {
 }
 
 function setAttrs(vnode: Vnode, eventNode: EventNode, data: any, ns: NS | undefined): void {
-  for (let key in data){
+  for (let key in data) {
     setAttr(vnode, eventNode, key, null, data[key], ns)
   }
 }
@@ -400,8 +428,8 @@ function updateAttrs(vnode: Vnode, eventNode: EventNode, old: any, data: any, ns
   if (old != null) {
     for (key in old) {
       if (data == null || !(key in (data as VnodeData))) {
-        if (key[0] === "o" && key[1] === "n") updateEvent(vnode, eventNode, key as string, undefined)
-        else if (key !== "key") (vnode.dom as Element).removeAttribute(key)
+        if (key[0] === 'o' && key[1] === 'n') updateEvent(vnode, eventNode, key as string, undefined)
+        else if (key !== 'key') (vnode.dom as Element).removeAttribute(key)
       }
     }
   }
@@ -409,51 +437,51 @@ function updateAttrs(vnode: Vnode, eventNode: EventNode, old: any, data: any, ns
 
 function setAttr(vnode: Vnode, eventNode: EventNode, key: string, old: any, value: any, ns: NS | undefined) {
   let element = vnode.dom as any
-  if (key === "key" || (old === value && !isFormAttribute(vnode, key))
-    && typeof value !== "object" || typeof value === "undefined") {
+  if (key === 'key' || (old === value && !isFormAttribute(vnode, key))
+    && typeof value !== 'object' || typeof value === 'undefined') {
       return
     }
-  var nsLastIndex = key.indexOf(":")
-  if (nsLastIndex > -1 && key.substr(0, nsLastIndex) === "xlink") {
-    element.setAttributeNS("http://www.w3.org/1999/xlink", key.slice(nsLastIndex + 1), value)
+  let nsLastIndex = key.indexOf(':')
+  if (nsLastIndex > -1 && key.substr(0, nsLastIndex) === 'xlink') {
+    element.setAttributeNS('http://www.w3.org/1999/xlink', key.slice(nsLastIndex + 1), value)
   }
-  else if (key[0] === "o" && key[1] === "n" && typeof value === "function" || Array.isArray(value)) updateEvent(vnode, eventNode, key, value)
-  else if (key === "style") updateStyle(element as HTMLElement, old, value)
+  else if (key[0] === 'o' && key[1] === 'n' && typeof value === 'function' || Array.isArray(value)) updateEvent(vnode, eventNode, key, value)
+  else if (key === 'style') updateStyle(element as HTMLElement, old, value)
   else if (key in element && !isAttribute(key) && ns === undefined) {
     //setting input[value] to same value by typing on focused element moves cursor to end in Chrome
-    if (vnode.tag === "input" && key === "value" && (element as HTMLInputElement).value === value && vnode.dom === DOM.activeElement()) return
+    if (vnode.tag === 'input' && key === 'value' && (element as HTMLInputElement).value === value && vnode.dom === DOM.activeElement()) return
     element[key] = value
   }
   else {
-    if (typeof value === "boolean") {
-      if (value) element.setAttribute(key, "")
+    if (typeof value === 'boolean') {
+      if (value) element.setAttribute(key, '')
       else element.removeAttribute(key)
     }
-    else element.setAttribute(key === "className" ? "class" : key, value)
+    else element.setAttribute(key === 'className' ? 'class' : key, value)
   }
 }
 
 function setLateAttrs(vnode: Vnode, eventNode: EventNode): void {
   let data = vnode.data
-  if (typeof vnode.tag === 'string' && vnode.tag === "select" && data != null) {
-    if ("value" in data) setAttr(vnode, eventNode, "value", null, data.value, undefined)
-    if ("selectedIndex" in data) setAttr(vnode, eventNode, "selectedIndex", null, data.selectedIndex, undefined)
+  if (typeof vnode.tag === 'string' && vnode.tag === 'select' && data != null) {
+    if ('value' in data) setAttr(vnode, eventNode, 'value', null, data.value, undefined)
+    if ('selectedIndex' in data) setAttr(vnode, eventNode, 'selectedIndex', null, data.selectedIndex, undefined)
   }
 }
 
 function isFormAttribute(vnode: Vnode, attr: string): boolean {
-  return attr === "value" || attr === "checked" || attr === "selectedIndex" || attr === "selected" && vnode.dom === DOM.activeElement()
+  return attr === 'value' || attr === 'checked' || attr === 'selectedIndex' || attr === 'selected' && vnode.dom === DOM.activeElement()
 }
 function isAttribute(attr: string): boolean {
-  return attr === "href" || attr === "list" || attr === "form"// || attr === "type" || attr === "width" || attr === "height"
+  return attr === 'href' || attr === 'list' || attr === 'form'// || attr === 'type' || attr === 'width' || attr === 'height'
 }
 
 function toFragment(vnode: Vnode): DocumentFragment | Element  {
-  var count = vnode.domSize
+  let count = vnode.domSize
   if (count != null || vnode.dom == null) {
-    var fragment = DOM.createDocumentFragment()
+    let fragment = DOM.createDocumentFragment()
     if (count > 0) {
-      var dom = vnode.dom as Node
+      let dom = vnode.dom as Node
       while (--count) fragment.appendChild(dom.nextSibling)
       fragment.insertBefore(dom, fragment.firstChild)
     }
@@ -473,17 +501,21 @@ function getNextSibling(vnodes: Array<Vnode | null>, i: number, nextSibling: Nod
 
 //style
 function updateStyle(element: HTMLElement, old: any, style: any) {
-  if (old === style) element.style.cssText = "", old = null
-  if (style == null) element.style.cssText = ""
-  else if (typeof style === "string") element.style.cssText = style
-  else {
-    if (typeof old === "string") element.style.cssText = ""
-    for (var key in style) {
+  if (old === style) {
+    element.style.cssText = ''
+    old = null
+  } if (style == null) {
+    element.style.cssText = ''
+  } else if (typeof style === 'string') {
+    element.style.cssText = style
+  } else {
+    if (typeof old === 'string') element.style.cssText = ''
+    for (let key in style) {
       (element.style as any)[key] = style[key]
     }
-    if (old != null && typeof old !== "string") {
-      for (var key in old) {
-        if (!(key in style)) (element.style as any)[key] = ""
+    if (old != null && typeof old !== 'string') {
+      for (let key in old) {
+        if (!(key in style)) (element.style as any)[key] = ''
       }
     }
   }
@@ -501,7 +533,7 @@ function sendHtmlSignal(msg: any, eventNode: EventNode) {
   while (currentEventNode) {
     tagger = currentEventNode.tagger
     if (Array.isArray(tagger)) {
-      for (var i = tagger.length; i--;) {
+      for (let i = tagger.length; i--; ) {
         msg = tagger[i](msg)
       }
     } else {

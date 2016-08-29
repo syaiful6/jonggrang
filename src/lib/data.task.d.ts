@@ -14,7 +14,7 @@ declare module 'data.task' {
     ap<R>(other: TaskInterface<A, R>): TaskInterface<A, B | R>
   }
 
-  function Task<A, B>(computation: (reject: (a: A) => void, resolve: (b: A) => void) => any, cleanup: (c: any) => void) : TaskInterface<A, B>
+  function Task<A, B>(computation: (reject: (a: A) => void, resolve: (b: A) => void) => any, cleanup: (c: any) => void): TaskInterface<A, B>
 
   export = Task
 }

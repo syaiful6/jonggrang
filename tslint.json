@@ -1,6 +1,6 @@
 {
   "rules": {
-    "curly": false,
+    "curly": null,
     "eofline": false,
     "align": [true, "parameters"],
     "class-name": true,
@@ -19,7 +19,6 @@
     "no-var-requires": false,
     "no-require-imports": false,
     "one-line": [true,
-      "check-else",
       "check-whitespace",
       "check-open-brace"],
     "quotemark": [true,

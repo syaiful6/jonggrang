@@ -6,6 +6,11 @@ export interface Task<A, B> {
   fork(reject: (a: A) => void, resove: (b: B) => void): void
 }
 
+export type EffModel<ST, AC> = {
+  state: ST
+  effects: Task<AC, AC>[]
+}
+
 export type Update<AC, ST> = {
   (action: AC, state: ST): EffModel<ST, AC>
 }
@@ -13,11 +18,6 @@ export type Update<AC, ST> = {
 export type App<ST> = {
   state: Stream<ST>
   vnode: Stream<Vnode>
-}
-
-export type EffModel<ST, AC> = {
-  state: ST
-  effects: Task<AC, AC>[]
 }
 
 export type Config<ST, AC> = {
@@ -28,7 +28,7 @@ export type Config<ST, AC> = {
 }
 
 export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
-  let actionStream : Stream<AC | undefined> = stream()
+  let actionStream: Stream<AC | undefined> = stream()
   let effModelSignal = scan(foldAction, noEffects(config.initialState), actionStream)
   let stateSignal = dropRepeats(map(getEffState, effModelSignal))
   let vnodeSignal = map(config.view, stateSignal)

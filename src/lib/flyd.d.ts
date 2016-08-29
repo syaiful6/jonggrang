@@ -2,8 +2,8 @@
 declare module 'flyd' {
 
   export interface Stream<A> {
-    () : A
-    (a: A) : void
+    (): A
+    (a: A): void
   }
 
   export function stream<A>(a: A): Stream<A>
@@ -17,7 +17,7 @@ declare module 'flyd' {
 declare module 'flyd/module/droprepeats' {
   import {Stream} from 'flyd';
 
-  export function dropRepeats<A>(stream: Stream<A>) : Stream<A>
+  export function dropRepeats<A>(stream: Stream<A>): Stream<A>
   // dropRepeatsWith accept callback to determine equality, the callback signature
   // of course accept 2 arguments with same type and return boolean
   export function dropRepeatsWith<A>(fn: (a: A, b: A) => boolean, stream: Stream<A>): Stream<A>
