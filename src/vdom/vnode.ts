@@ -48,6 +48,11 @@ export interface VnodeData extends EventData {
   id?: string
   events?: any
   key?: string | number
+  //
+  value?: any
+  selectedIndex?: any
+  checked?: boolean
+  selected?: boolean
   // thunk
   fn?: () => Vnode
   args?: any[]
@@ -58,7 +63,7 @@ export class Vnode {
   public key: string | number | undefined
   public children: ChildVnode | undefined
   public text: string | undefined
-  public dom: Element | Text | Node | undefined
+  public dom: Element | Text | undefined
   public domSize: number | undefined
   public data: VnodeData | undefined
   public tagger: Function | undefined
@@ -66,7 +71,7 @@ export class Vnode {
   public pool: Vnode[] | undefined
   constructor(tag: string | undefined, key: string | number | undefined,
               data: VnodeData | undefined, children: ChildVnode | undefined, text: string | undefined,
-              dom: Element | Text | Node | undefined) {
+              dom: Element | Text | undefined) {
     this.tag = tag
     this.key = key
     this.data = data
@@ -120,9 +125,10 @@ export interface ThunkData extends VnodeData {
 
 export class Thunk extends Vnode {
   public data: ThunkData
+  public node: Vnode | undefined
   constructor(tag: string | undefined, key: string | number | undefined,
-              data: ThunkData, children: ChildVnode, text: TextVnode,
-              dom: HTMLElement | Text | undefined) {
+              data: ThunkData, children: ChildVnode, text: string | undefined,
+              dom: Element | Text | undefined) {
     super(tag, key, data, children, text, dom)
   }
 }
