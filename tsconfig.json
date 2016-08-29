@@ -35,7 +35,10 @@
      "src/index.ts",
      "src/jonggrang.ts",
      "src/util/is.ts",
-     "src/vdom/vnode.ts"
+     "src/vdom/h.ts",
+     "src/vdom/vnode.ts",
+     "src/vdom/dom.ts",
+     "src/vdom/render.ts"
    ],
    "exclude": [
      "node_modules"

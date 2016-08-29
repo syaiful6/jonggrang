@@ -31,7 +31,7 @@ export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
   let actionStream : Stream<AC | undefined> = stream()
   let effModelSignal = scan(foldAction, noEffects(config.initialState), actionStream)
   let stateSignal = dropRepeats(map(getEffState, effModelSignal))
-  let vnodeSignal = map<ST, Vnode>(config.view, stateSignal)
+  let vnodeSignal = map(config.view, stateSignal)
 
   map(mapAffects, effModelSignal)
 

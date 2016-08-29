@@ -1,8 +1,6 @@
 import {isArray} from '../util/is'
 
-export type ChildVnode = Array<Vnode | string> | string | number | boolean
-
-export type TextVnode = string | number | boolean
+export type ChildVnode = Array<Vnode | null> | string | undefined
 
 export interface EventData {
   oncopy?: <T>(e: ClipboardEvent) => T
@@ -22,7 +20,7 @@ export interface EventData {
   oncontextmenu?: <T>(e: MouseEvent) => T
   ondblclick?: <T>(e: MouseEvent) => T
   ondrag?: <T>(e: MouseEvent) => T
-  ondragstart: <T>(e: MouseEvent) => T
+  ondragstart?: <T>(e: MouseEvent) => T
   ondragend?: <T>(e: MouseEvent) => T
   ondragenter?: <T>(e: MouseEvent) => T
   ondragexit?: <T>(e: MouseEvent) => T
@@ -49,24 +47,26 @@ export interface VnodeData extends EventData {
   class?: string
   id?: string
   events?: any
+  key?: string | number
   // thunk
   fn?: () => Vnode
   args?: any[]
 }
 
 export class Vnode {
-
   public tag: string | undefined
   public key: string | number | undefined
   public children: ChildVnode | undefined
-  public text: TextVnode | undefined
-  public dom: HTMLElement | Text | undefined
+  public text: string | undefined
+  public dom: Element | Text | Node | undefined
   public domSize: number | undefined
   public data: VnodeData | undefined
   public tagger: Function | undefined
+  public skip: boolean | undefined
+  public pool: Vnode[] | undefined
   constructor(tag: string | undefined, key: string | number | undefined,
-              data: VnodeData | undefined, children: ChildVnode | undefined, text: TextVnode | undefined,
-              dom: HTMLElement | Text | undefined) {
+              data: VnodeData | undefined, children: ChildVnode | undefined, text: string | undefined,
+              dom: Element | Text | Node | undefined) {
     this.tag = tag
     this.key = key
     this.data = data
@@ -75,10 +75,7 @@ export class Vnode {
     this.dom = dom
   }
 
-  static normalize(node: Array<Vnode>): Vnode;
-  static normalize(node: string): Vnode;
-  static normalize(node: Vnode): Vnode;
-  static normalize(node: any): Vnode {
+  static normalize(node: Vnode | Array<Vnode> | string): Vnode {
     if (isArray(node)) {
       return new Vnode('[', undefined, undefined, node, undefined, undefined)
     } else if (typeof node === 'string') {
@@ -87,8 +84,26 @@ export class Vnode {
     return node
   }
 
+  static normalizeChildren(children: Array<Vnode | string | number | boolean | Array<Vnode> | null>): Vnode[] {
+    let item: Vnode | string | number | boolean | Array<Vnode> | null
+    let normalized : Vnode[] = []
+    for (let i = 0; i < children.length; i++) {
+      item = children[i]
+      if (typeof item === 'boolean' || item == null) {
+        continue
+      }
+      if (typeof item === 'number' || typeof item === 'string') {
+        item = String(item)
+        normalized[i] = Vnode.normalize(item)
+      } else {
+        normalized[i] = Vnode.normalize(item)
+      }
+    }
+    return normalized
+  }
+
   map(tagger: Function): Vnode {
-    let vnode = new Vnode('<$>', undefined, undefined, [this], undefined, undefined)
+    let vnode = new Vnode(undefined, undefined, undefined, [this], undefined, undefined)
     vnode.tagger = tagger
     return vnode
   }
@@ -105,7 +120,6 @@ export interface ThunkData extends VnodeData {
 
 export class Thunk extends Vnode {
   public data: ThunkData
-
   constructor(tag: string | undefined, key: string | number | undefined,
               data: ThunkData, children: ChildVnode, text: TextVnode,
               dom: HTMLElement | Text | undefined) {

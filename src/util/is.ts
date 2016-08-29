@@ -1,3 +1,5 @@
-export let isArray = Array.isArray || function (v: any): boolean {
-  return v != null && Object.prototype.toString.call(v) === '[object Array]'
+export let isArray = Array.isArray
+
+export let isPrimitive = function (x: any) {
+  return typeof x === 'string' || typeof x === 'number'
 }
