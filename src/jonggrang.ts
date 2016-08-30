@@ -1,6 +1,7 @@
 import {Stream, stream, map, scan} from 'flyd'
 import {dropRepeats} from 'flyd/module/droprepeats'
 import {Vnode} from './vdom/vnode'
+import {mergeAll} from './util/stream-operator'
 
 export interface Task<A, B> {
   fork(reject: (a: A) => void, resove: (b: B) => void): void
@@ -27,9 +28,14 @@ export type Config<ST, AC> = {
   inputs: Stream<AC>[]
 }
 
+function toArray<T>(s: T | T[]): T[] {
+  return Array.isArray(s) ? s : [s]
+}
+
 export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
-  let actionStream: Stream<AC | undefined> = stream()
-  let effModelSignal = scan(foldAction, noEffects(config.initialState), actionStream)
+  let actionStream = stream<AC>()
+  let input = map<AC, Array<AC>>(toArray, mergeAll([actionStream].concat(config.inputs)))
+  let effModelSignal = scan(foldActions, noEffects(config.initialState), input)
   let stateSignal = dropRepeats(map(getEffState, effModelSignal))
   let vnodeSignal = map(config.view, stateSignal)
 
@@ -45,7 +51,10 @@ export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
       task.fork(actionStream, actionStream)
     }
   }
-  function foldAction(eff: EffModel<ST, AC>, action: AC) {
+  function foldActions(effModel: EffModel<ST, AC>, actions: Array<AC>) {
+    return actions.reduce(invokeAppUpdate, noEffects(effModel.state))
+  }
+  function invokeAppUpdate(eff: EffModel<ST, AC>, action: AC): EffModel<ST, AC> {
     return config.update(action, eff.state)
   }
 

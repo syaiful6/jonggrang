@@ -201,7 +201,9 @@ function updateNodes(parent: Element | DocumentFragment, old: Array<Vnode | null
           end--
         } else if (o != null && v != null && o.key === v.key) {
           updateNode(parent, o, v, eventNode, getNextSibling(old, oldEnd + 1, nextSibling), ns)
-          if (o.dom != null) nextSibling = o.dom
+          if (o.dom != null) {
+            nextSibling = o.dom as Node
+          }
           oldEnd--
           end--
         }
@@ -214,12 +216,14 @@ function updateNodes(parent: Element | DocumentFragment, old: Array<Vnode | null
               updateNode(parent, movable, v, eventNode, getNextSibling(old, oldEnd + 1, nextSibling), ns)
               insertNode(parent, toFragment(movable), nextSibling)
               (old as Vnode[])[oldIndex].skip = true
-              if (movable.dom != null) nextSibling = movable.dom
+              if (movable.dom != null) {
+                nextSibling = movable.dom as Node
+              }
             }
             else {
               let dom = createNode(v, eventNode, undefined)
               insertNode(parent, dom, nextSibling)
-              nextSibling = dom
+              nextSibling = dom as Node
             }
           }
           end--
@@ -238,7 +242,7 @@ function updateNode(parent: Element | DocumentFragment, old: Vnode, vnode: Vnode
   let tag = vnode.tag
   if (oldTag === tag && typeof oldTag === 'string') {
     if (typeof old.data !== 'undefined' && typeof vnode.data !== 'undefined') {
-      vnode.data.events = old.data.events
+      vnode.events = old.events
     }
     switch (tag) {
       case '#': updateText(old, vnode); break
@@ -345,9 +349,12 @@ function updateTagger(parent: Element | DocumentFragment, old: Vnode, vnode: Vno
   vnode.domSize = children.domSize
 }
 
-function insertNode(parent: Element | DocumentFragment, node: Element | DocumentFragment | Text, nextSibling: Node | null) {
-  if (nextSibling && nextSibling.parentNode) parent.insertBefore(node, nextSibling)
-  else parent.appendChild(node)
+function insertNode(parent: Element | DocumentFragment | Text, node: Element | DocumentFragment | Text, nextSibling: Node | null) {
+  if (nextSibling && nextSibling.parentNode) {
+    parent.insertBefore(node as Node, nextSibling)
+  } else {
+    parent.appendChild(node as Node)
+  }
 }
 
 function removeNodes(parent: Element | DocumentFragment, vnodes: Array<Vnode | null>, start: number, end: number) {
@@ -372,7 +379,7 @@ function removeNode(parent: Element | DocumentFragment, vnode: Vnode) {
         parent.removeChild(dom.nextSibling)
       }
     }
-    if (dom.parentNode != null) parent.removeChild(dom)
+    if (dom.parentNode != null) parent.removeChild(dom as Node)
   }
 }
 
@@ -555,14 +562,12 @@ function updateEvent(vnode: Vnode, eventNode: EventNode, key: string, value: any
   if (key in element && typeof value === 'function' && Array.isArray(value)) element[key] = listener
   else {
     let eventName = key.slice(2)
-    let data = vnode.data as VnodeData
-    if (data.events != null) data.events = {}
-    if (data.events[eventName] != null) element.removeEventListener(eventName, data.events[key], false)
+    if (vnode.events != null) vnode.events = {}
+    if (vnode.events[eventName] != null) element.removeEventListener(eventName, vnode.events[key], false)
     else if (typeof value === 'function' && Array.isArray(value)) {
-      data.events[eventName] = listener
-      element.addEventListener(eventName, data.events[key], false)
+      vnode.events[eventName] = listener
+      element.addEventListener(eventName, vnode.events[key], false)
     }
-    vnode.data = data
   }
 }
 

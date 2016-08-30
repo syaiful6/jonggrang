@@ -4,12 +4,14 @@
 /dist
 /tmp
 /ideas
+typings/
 
 # dependencies
 /node_modules
 /bower_components
 
 # misc
+/.vscode
 /.sass-cache
 /connect.lock
 /coverage/*

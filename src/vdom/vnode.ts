@@ -46,7 +46,6 @@ export interface VnodeData extends EventData {
   className?: string
   class?: string
   id?: string
-  events?: any
   key?: string | number
   //
   value?: any
@@ -68,7 +67,7 @@ export class Vnode {
   public data: VnodeData | undefined
   public tagger: Function | undefined
   public skip: boolean | undefined
-  public pool: Vnode[] | undefined
+  public events: any
   constructor(tag: string | undefined, key: string | number | undefined,
               data: VnodeData | undefined, children: ChildVnode | undefined, text: string | undefined,
               dom: Element | Text | undefined) {

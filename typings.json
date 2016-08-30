@@ -1,0 +1,7 @@
+{
+  "name": "jonggrang",
+  "dependencies": {
+    "flyd": "file:src/custom-typings/flyd.d.ts",
+    "flyd/module/droprepeats": "file:src/custom-typings/flyd-droprepeats.d.ts"
+  }
+}
