@@ -6,7 +6,12 @@ export interface Stream<A> {
   val: A // value
 }
 
+export interface StreamFn<Current, Next> extends Stream<(a: Current) => Next> {
+  ap<R>(v: Stream<Current>): StreamFn<Next, R>
+}
+
 export function stream<A>(a: A): Stream<A>
+export function stream<T, R>(fun: (a: T) => R): StreamFn<T, R>
 export function stream<A>(): Stream<A>
 export function map<A, B>(fn: (a: A) => B, stream: Stream<A>): Stream<B>
 export function on<A>(fn: (a: A) => any, stream: Stream<A>): Stream<undefined>
