@@ -91,7 +91,7 @@ export class Future<E, A> {
 
   map<T>(transformation: (v: A) => T): Future<E, T> {
     return this.chain<T>(function (v) {
-      return this.success(transformation(v))
+      return Future.success(transformation(v))
     })
   }
 
