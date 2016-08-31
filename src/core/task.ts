@@ -18,15 +18,16 @@ export type Listener<E, A> = {
   cancelled?: () => void
 }
 
-const delayed = typeof setImmediate !== 'undefined' ? setImmediate : setTimeout  
+export type Match<E, ET, A, AT> = {
+  resolved: (e: A) => AT
+  rejected: (e: E) => ET
+}
 
 export type ExecutionState = 'pending' | 'resolved' | 'rejected' | 'cancelled'
 
-export type ListenerCallState<E, A> = ['pending' | 'called', Listener<E, A>]
-
 export class Future<E, A> {
   _state: ExecutionState
-  _pending: Array<ListenerCallState<E, A>>
+  _pending: Array<Listener<E, A>>
   _value: E | A | undefined
   constructor() {
     this._state = 'pending'
@@ -56,10 +57,48 @@ export class Future<E, A> {
     return Future.failure(value)
   }
 
+  chain<T>(transformation: (v: A) => Future<any, T>): Future<E, T> {
+    let result = new Future<E, T>()
+    this.case({
+      cancelled: () => cancelFuture(result)
+      , rejected: reason => rejectFuture(result, reason)
+      , resolved: value => {
+        transformation(value).case({
+          cancelled: () => cancelFuture(result)
+          , rejected: reason => rejectFuture(result, reason)
+          , resolved: v => fulfilFuture(result, v)
+        })
+      }
+    })
+    return result
+  }
+
+  orElse<T>(handler: (e: E) => Future<T, A>): Future<T, A> {
+    let result = new Future<T, A>()
+    this.case({
+      cancelled: () => cancelFuture(result)
+      , resolved: value => fulfilFuture(result, value)
+      , rejected: er => {
+        handler(er).case({
+          cancelled: () => cancelFuture(result)
+          , rejected: reason => rejectFuture(result, reason)
+          , resolved: value => fulfilFuture(result, value)
+        })
+      }
+    })
+    return result
+  }
+
+  map<T>(transformation: (v: A) => T): Future<E, T> {
+    return this.chain<T>(function (v) {
+      return this.success(transformation(v))
+    })
+  }
+
   case(pattern: Listener<E, A>) {
     switch (this._state) {
       case 'pending':
-        this._pending.push(['pending', pattern])
+        this._pending.push(pattern)
         break
       case 'cancelled':
         if (typeof pattern.cancelled === 'function') pattern.cancelled()
@@ -77,14 +116,8 @@ export class Future<E, A> {
 }
 
 function invokePending<E, A>(future: Future<E, A>, block: (v: Listener<E, A>) => void): void {
-  let item: ListenerCallState<E, A>
-  for (let i = 0; i < future._pending.length; ++i) {
-    item = future._pending[i]
-    if (item[0] === 'pending') {
-      future._pending[i][0] = 'called'
-      block(item[1])
-    }
-  }
+  future._pending.forEach(block)
+  future._pending = []
 }
 
 function cancelFuture(future: Future<any, any>) {
@@ -116,48 +149,56 @@ export interface TaskExecution<E, A> {
   future: Future<E, A>
 }
 
-function createTaskExecution<E, A>(task: Task<E, A>): TaskExecution<E, A> {
+function createTaskExecution<E, A>(computation: Computation<E, A>, cleanup: Cleanup): TaskExecution<E, A> {
   let future = new Future<E, A>()
   let state: ExecutionState = 'pending'
   let resource: any
   
-  function cleanup() {
-    task.cleanup(resource)
-  }
   function cancel() {
     if (state === 'pending') {
       state = 'cancelled'
-      cleanup()
+      cleanup(resource)
       cancelFuture(future)
     }
   }
-  resource = task.fork((error: E) => {
+  resource = computation((error: E) => {
     if (state === 'pending') {
       state = 'rejected'
       rejectFuture(future, error)
-      cleanup()
     }
   }, (success: A) => {
     if (state === 'pending') {
       state = 'resolved'
       fulfilFuture(future, success)
-      cleanup()
     }
   })
-  
+   // listen for resource Cleanup
+  future.case({
+    resolved: () => cleanup(resource)
+    , rejected: () => cleanup(resource)
+  })  
   return {
     cancel,
     future
   }
 }
 
+class TwoResourceContainer {
+  resourceA: any
+  resourceB: any
+  constructor(resourceA: any, resourceB: any) {
+    this.resourceA = resourceA
+    this.resourceB = resourceB
+  }
+}
+
 export class Task<E, A> {
-  fork: Computation<E, A>
-  cleanup: Cleanup
+  _fork: Computation<E, A>
+  _cleanup: Cleanup
 
   constructor(computation: Computation<E, A>, cleanup?: Cleanup) {
-    this.fork = computation
-    this.cleanup = cleanup || emptyCleanup
+    this._fork = computation
+    this._cleanup = cleanup || emptyCleanup
   }
 
   // put a value to Task as it successfull computation
@@ -173,22 +214,22 @@ export class Task<E, A> {
 
   map<T>(fun: (a: A) => T): Task<E, T> {
     return new Task((reject: Handler<E>, resolve: Handler<T>) => {
-      return this.fork(reject, b => resolve(fun(b)))
-    }, this.cleanup)
+      return this._fork(reject, b => resolve(fun(b)))
+    }, this._cleanup)
   }
 
   chain<T>(fun: (a: A) => Task<any, T>): Task<E, T> {
     return new Task((reject: Handler<E>, resolve: Handler<T>) => {
-      return this.fork(reject, b => {
-        return fun(b).fork(reject, resolve)
+      return this._fork(reject, b => {
+        return fun(b)._fork(reject, resolve)
       })
-    }, this.cleanup)
+    }, this._cleanup)
   }
 
   ap<S>(other: Task<any, S>): Task<E, any> {
-    let cleanBoth = (states: any[]) => {
-      this.cleanup(states[0])
-      other.cleanup(states[1])
+    let cleanBoth = (resouces: any) => {
+      this._cleanup(resouces.resourceA)
+      other._cleanup(resouces.resourceB)
     }
     return new Task((reject: Handler<E>, resolve: Handler<any>) => {
       let fun: any
@@ -196,31 +237,18 @@ export class Task<E, A> {
       let val: S
       let valLoaded: boolean = false
       let rejected: boolean = false
-      let allState: any
-
-      let thisState = this.fork(guardReject, guardResolve<A>(function (x: A) {
-        funcLoaded = true
-        fun = x
-      }))
-
-      let otherState = other.fork(guardReject, guardResolve<S>(function (x: S) {
-        valLoaded = true
-        val = x
-      }))
-
+      // guard the resolved task
       function guardResolve<T>(setter: (v: T) => void) {
         return function (x: T): any {
           if (rejected) return
           setter(x)
           if (funcLoaded && valLoaded) {
-            delayed(() => cleanBoth(allState))
-            return resolve(fun(valLoaded))
+            return resolve(fun(val))
           } else {
             return x
           }
         }
       }
-
       function guardReject(x: E) {
         if (!rejected) {
           rejected = true
@@ -228,32 +256,37 @@ export class Task<E, A> {
         }
       }
 
-      return allState = [thisState, otherState]
+      let resourceThis = this._fork(guardReject, guardResolve<A>(function (x: A) {
+        funcLoaded = true
+        fun = x
+      }))
+      let resourceThat = other._fork(guardReject, guardResolve<S>(function (x: S) {
+        valLoaded = true
+        val = x
+      }))
+      return new TwoResourceContainer(resourceThis, resourceThat)
     }, cleanBoth)
   }
 
   concat<E1, A1>(other: Task<E1, A1>): Task<E | E1, A | A1> {
-    let cleanBoth = (states: any[]) => {
-      this.cleanup(states[0])
-      other.cleanup(states[1])
+    let cleanBoth = (resouces: any) => {
+      this._cleanup(resouces.resourceA)
+      other._cleanup(resouces.resourceB)
     }
     return new Task((reject: Handler<E | E1>, resolve: Handler<A | A1>) => {
       let done: boolean = false
-      let allState: any[]
-
-      let thisState = this.fork(guard(reject), guard(resolve))
-      let thatState = other.fork(guard(reject), guard(resolve))
-
       function guard<T>(fun: (x: T) => void) {
         return function (x: T): any {
           if (!done) {
             done = true
-            delayed(() => cleanBoth(allState))
             return fun(x)
           }
         }
       }
-      return [thisState, thatState]
+      return new TwoResourceContainer(
+        this._fork(guard(reject), guard(resolve)),
+        other._fork(guard(reject), guard(resolve))
+      )
     }, cleanBoth)
   }
 
@@ -268,10 +301,10 @@ export class Task<E, A> {
 
   orElse<T>(transform: (t: E) => Task<T, A>): Task<E | T, A> {
     return new Task((reject: Handler<E | T>, resolve: Handler<A>) => {
-      return this.fork((a) => {
-        return transform(a).fork(reject, resolve)
+      return this._fork((a) => {
+        return transform(a)._fork(reject, resolve)
       }, resolve)
-    }, this.cleanup)
+    }, this._cleanup)
   }
 
   static rejected<F>(err: F): Task<F, any> {
@@ -286,24 +319,28 @@ export class Task<E, A> {
 
   swap(): Task<A, E> {
     return new Task((reject: Handler<A>, resolve: Handler<E>) => {
-      return this.fork(resolve, reject)
-    }, this.cleanup)
+      return this._fork(resolve, reject)
+    }, this._cleanup)
   }
 
   fold<Rej, Res>(left: (e: E) => Rej, right: (a: A) => Res): Task<Rej, Res> {
     return new Task((reject: Handler<Rej>, resolve: Handler<Res>) => {
-      return this.fork((a) => reject(left(a)), (b) => resolve(right(b)))
-    }, this.cleanup)
+      return this._fork((a) => reject(left(a)), (b) => resolve(right(b)))
+    }, this._cleanup)
   }
 
   rejectedMap<T>(left: (e: E) => T): Task<T, A> {
     return new Task((reject: Handler<T>, resolve: Handler<A>) => {
-      return this.fork((a) => reject(left(a)), resolve)
+      return this._fork((a) => reject(left(a)), resolve)
     })
+  }
+
+  case<ET, AT>(pattern: Match<E, ET, A, AT>): Task<ET, AT> {
+    return this.fold(pattern.rejected, pattern.resolved)
   }
 
   // run this task
   run(): TaskExecution<E, A> {
-    return createTaskExecution<E, A>(this)
+    return createTaskExecution<E, A>(this._fork, this._cleanup)
   }
 }
