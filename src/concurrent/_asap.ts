@@ -20,8 +20,14 @@ function useMutationObserver() {
 }
 
 function useSetTimeout() {
-  return function() {
+  return () => {
     setTimeout(flush, 1);
+  }
+}
+
+function useSetImmediate() {
+  return () => {
+    setImmediate(flush)
   }
 }
 
@@ -35,6 +41,8 @@ if (isNode) {
   scheduleFlush = useNextTick()
 } else if (browserMutationObserver) {
   scheduleFlush = useMutationObserver()
+} else if (typeof setImmediate !== 'undefined') {
+  scheduleFlush = useSetImmediate()
 } else {
   scheduleFlush = useSetTimeout()
 }

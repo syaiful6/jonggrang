@@ -18,20 +18,22 @@ export class Future<E, A> {
   _pending: Array<Listener<E, A>>
   _value: E | A | undefined
   
-  constructor(val?: E | A) {
-    this._value = val
+  constructor() {
     this._state = STATE.PENDING
+    this._value = undefined
     this._pending = []
   }
 
-  static success<T>(val?: T): Future<any, T> {
-    let result = new Future(val) as Future<any, T>
+  static success<T>(val: T): Future<any, T> {
+    let result = new Future() as Future<any, T>
+    result._value = val
     result._state = STATE.RESOLVED
     return result
   }
 
-  static failure<T>(err?: T): Future<T, any> {
-    let result = new Future(err) as Future<T, any>
+  static failure<T>(err: T): Future<T, any> {
+    let result = new Future() as Future<T, any>
+    result._value = err
     result._state = STATE.REJECTED
     return result
   }

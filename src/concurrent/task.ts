@@ -1,4 +1,3 @@
-import { asap } from './_asap'
 import { Future, fulfilFuture, cancelFuture, rejectFuture } from './future'
 
 export type Handler<T> = {
@@ -25,22 +24,10 @@ export interface TaskExecution<E, A> {
 
 function emptyCleanup(_: any) { }
 
-function createTaskExecution<E, A>(computation: Computation<E, A>, cleanup: Cleanup): TaskExecution<E, A> {
+function createTaskExecution<E, A>(task: Task<E, A>): TaskExecution<E, A> {
   let future = new Future<E, A>()
   let open = true
-  let resource: any
-  
-  function cancel() {
-    if (open) {
-      open = false
-      cancelFuture(future)
-    }
-  }
-  function cleanupTask() {
-    cleanup(resource)
-    resource = undefined
-  }
-  resource = computation((error: E) => {
+  let resource: any = task._fork((error: E) => {
     if (open) {
       open = false
       rejectFuture(future, error)
@@ -51,26 +38,34 @@ function createTaskExecution<E, A>(computation: Computation<E, A>, cleanup: Clea
       fulfilFuture(future, success)
     }
   })
+  
+  function cancel() {
+    if (open) {
+      open = false
+      cancelFuture(future)
+    }
+  }
+  function cleanupTask() {
+    task._cleanup(resource)
+  }
    // listen for resource Cleanup
-  asap(() => {
-    future.case({
-      resolved: cleanupTask
-      , rejected: cleanupTask
-      , cancelled: cleanupTask
-    })  
-  })
+  future.case({
+    resolved: cleanupTask
+    , rejected: cleanupTask
+    , cancelled: cleanupTask
+  })  
   return {
     cancel,
     future
   }
 }
 
-class TwoResourceContainer {
-  resourceA: any
-  resourceB: any
-  constructor(resourceA: any, resourceB: any) {
-    this.resourceA = resourceA
-    this.resourceB = resourceB
+class Tuple<X, Y> {
+  x: X
+  y: Y
+  constructor(x: X, y: Y) {
+    this.x = x
+    this.y = y
   }
 }
 
@@ -110,8 +105,8 @@ export class Task<E, A> {
 
   ap<S>(other: Task<any, S>): Task<E, any> {
     let cleanBoth = (resouces: any) => {
-      this._cleanup(resouces.resourceA)
-      other._cleanup(resouces.resourceB)
+      this._cleanup(resouces.x)
+      other._cleanup(resouces.y)
     }
     return new Task((reject: Handler<E>, resolve: Handler<any>) => {
       let fun: any
@@ -119,41 +114,28 @@ export class Task<E, A> {
       let val: S
       let valLoaded: boolean = false
       let rejected: boolean = false
-      // guard the resolved task
-      function guardResolve<T>(setter: (v: T) => void) {
-        return function (x: T): any {
-          if (rejected) return
-          setter(x)
-          if (funcLoaded && valLoaded) {
-            return resolve(fun(val))
-          } else {
-            return x
-          }
-        }
-      }
       function guardReject(x: E) {
         if (!rejected) {
           rejected = true
           return reject(x)
         }
       }
-
-      let resourceThis = this._fork(guardReject, guardResolve<A>(function (x: A) {
-        funcLoaded = true
-        fun = x
-      }))
-      let resourceThat = other._fork(guardReject, guardResolve<S>(function (x: S) {
-        valLoaded = true
-        val = x
-      }))
-      return new TwoResourceContainer(resourceThis, resourceThat)
+      let resourceThis = this._fork(guardReject, function taskApThis(f: any) {
+        if (!valLoaded) return void (funcLoaded = true, fun = f)
+        return resolve(f(val))
+      })
+      let resourceThat = other._fork(guardReject, function taskApThat(x: S) {
+        if (!funcLoaded) return void (valLoaded = true, val = x)
+        return resolve(fun(x))
+      })
+      return new Tuple(resourceThis, resourceThat)
     }, cleanBoth)
   }
 
   concat<E1, A1>(other: Task<E1, A1>): Task<E | E1, A | A1> {
     let cleanBoth = (resouces: any) => {
-      this._cleanup(resouces.resourceA)
-      other._cleanup(resouces.resourceB)
+      this._cleanup(resouces.x)
+      other._cleanup(resouces.y)
     }
     return new Task((reject: Handler<E | E1>, resolve: Handler<A | A1>) => {
       let done: boolean = false
@@ -165,7 +147,7 @@ export class Task<E, A> {
           }
         }
       }
-      return new TwoResourceContainer(
+      return new Tuple(
         this._fork(guard(reject), guard(resolve)),
         other._fork(guard(reject), guard(resolve))
       )
@@ -223,6 +205,6 @@ export class Task<E, A> {
 
   // run this task
   run(): TaskExecution<E, A> {
-    return createTaskExecution<E, A>(this._fork, this._cleanup)
+    return createTaskExecution<E, A>(this)
   }
 }
