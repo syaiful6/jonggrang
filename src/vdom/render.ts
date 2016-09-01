@@ -574,14 +574,12 @@ function updateEvent(vnode: Vnode, eventNode: EventNode, key: string, value: any
 export function render(eventNode: EventNode) {
   return function (dom: HTMLElement, vnodes: Vnode | null | Array<Vnode | null>): void {
     let active = DOM.activeElement()
-    let elm: any = dom
-    if (elm.vnodes == null) elm.textContent = ''
+    if ((dom as any).vnodes == null) (dom as Element).textContent = ''
     if (!Array.isArray(vnodes)) vnodes = [vnodes]
-    updateNodes(dom, elm.vnodes as Array<Vnode | null>, Vnode.normalizeChildren(vnodes), eventNode, null, undefined)
-    elm.vnodes = vnodes
+    updateNodes(dom, (dom as any).vnodes as Array<Vnode | null>, Vnode.normalizeChildren(vnodes), eventNode, null, undefined)
+    (dom as any).vnodes = vnodes
     if (DOM.activeElement() !== active) {
       (active as HTMLElement).focus()
     }
-    elm = null
   }
 }

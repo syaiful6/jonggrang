@@ -1,3 +1,6 @@
+import { asap } from './_asap'
+import { Future, fulfilFuture, cancelFuture, rejectFuture } from './future'
+
 export type Handler<T> = {
   (v: T): void
 }
@@ -10,138 +13,9 @@ export type Cleanup = {
   (resource: any): void
 }
 
-function emptyCleanup(_: any) { }
-
-export type Listener<E, A> = {
-  resolved?: Handler<A>
-  rejected?: Handler<E>
-  cancelled?: () => void
-}
-
-export type Match<E, ET, A, AT> = {
+export interface Match<E, ET, A, AT> {
   resolved: (e: A) => AT
   rejected: (e: E) => ET
-}
-
-export type ExecutionState = 'pending' | 'resolved' | 'rejected' | 'cancelled'
-
-export class Future<E, A> {
-  _state: ExecutionState
-  _pending: Array<Listener<E, A>>
-  _value: E | A | undefined
-  constructor() {
-    this._state = 'pending'
-    this._pending = []
-    this._value = undefined
-  }
-
-  success(value: A): Future<any, A> {
-    return Future.success(value)
-  }
-
-  static success<T>(value: T) {
-    let result = new Future<any, T>()
-    result._state = 'resolved'
-    result._value = value
-    return result
-  }
-
-  static failure<Er>(value: Er) {
-    let result = new Future<Er, any>()
-    result._state = 'rejected'
-    result._value = value
-    return result
-  }
-
-  failure(value: E) {
-    return Future.failure(value)
-  }
-
-  chain<T>(transformation: (v: A) => Future<any, T>): Future<E, T> {
-    let result = new Future<E, T>()
-    this.case({
-      cancelled: () => cancelFuture(result)
-      , rejected: reason => rejectFuture(result, reason)
-      , resolved: value => {
-        transformation(value).case({
-          cancelled: () => cancelFuture(result)
-          , rejected: reason => rejectFuture(result, reason)
-          , resolved: v => fulfilFuture(result, v)
-        })
-      }
-    })
-    return result
-  }
-
-  orElse<T>(handler: (e: E) => Future<T, A>): Future<T, A> {
-    let result = new Future<T, A>()
-    this.case({
-      cancelled: () => cancelFuture(result)
-      , resolved: value => fulfilFuture(result, value)
-      , rejected: er => {
-        handler(er).case({
-          cancelled: () => cancelFuture(result)
-          , rejected: reason => rejectFuture(result, reason)
-          , resolved: value => fulfilFuture(result, value)
-        })
-      }
-    })
-    return result
-  }
-
-  map<T>(transformation: (v: A) => T): Future<E, T> {
-    return this.chain<T>(function (v) {
-      return Future.success(transformation(v))
-    })
-  }
-
-  case(pattern: Listener<E, A>) {
-    switch (this._state) {
-      case 'pending':
-        this._pending.push(pattern)
-        break
-      case 'cancelled':
-        if (typeof pattern.cancelled === 'function') pattern.cancelled()
-        break
-      case 'resolved':
-        if (typeof pattern.resolved === 'function') pattern.resolved(this._value as A)
-        break
-      case 'rejected':
-        if (typeof pattern.rejected === 'function') pattern.rejected(this._value as E)
-        break
-      default:
-        throw new Error('invalid state detected on future')
-    }
-  }
-}
-
-function invokePending<E, A>(future: Future<E, A>, block: (v: Listener<E, A>) => void): void {
-  future._pending.forEach(block)
-  future._pending = []
-}
-
-function cancelFuture(future: Future<any, any>) {
-  future._state = 'cancelled'
-  future._value = undefined
-  invokePending(future, (pattern) => {
-    return typeof pattern.cancelled === 'function' ? pattern.cancelled() : void 0
-  })
-}
-
-function fulfilFuture<E, A>(future: Future<E, A>, value: A) {
-  future._state = 'resolved'
-  future._value = value
-  invokePending<E, A>(future, (pattern) => {
-    return typeof pattern.resolved === 'function' ? pattern.resolved(value) : void 0
-  })
-}
-
-function rejectFuture<E, A>(future: Future<E, A>, value: E) {
-  future._state = 'rejected'
-  future._value = value
-  invokePending<E, A>(future, (pattern) => {
-    return typeof pattern.rejected === 'function' ? pattern.rejected(value) : void 0
-  })
 }
 
 export interface TaskExecution<E, A> {
@@ -149,34 +23,42 @@ export interface TaskExecution<E, A> {
   future: Future<E, A>
 }
 
+function emptyCleanup(_: any) { }
+
 function createTaskExecution<E, A>(computation: Computation<E, A>, cleanup: Cleanup): TaskExecution<E, A> {
   let future = new Future<E, A>()
-  let state: ExecutionState = 'pending'
+  let open = true
   let resource: any
   
   function cancel() {
-    if (state === 'pending') {
-      state = 'cancelled'
-      cleanup(resource)
+    if (open) {
+      open = false
       cancelFuture(future)
     }
   }
+  function cleanupTask() {
+    cleanup(resource)
+    resource = undefined
+  }
   resource = computation((error: E) => {
-    if (state === 'pending') {
-      state = 'rejected'
+    if (open) {
+      open = false
       rejectFuture(future, error)
     }
   }, (success: A) => {
-    if (state === 'pending') {
-      state = 'resolved'
+    if (open) {
+      open = false
       fulfilFuture(future, success)
     }
   })
    // listen for resource Cleanup
-  future.case({
-    resolved: () => cleanup(resource)
-    , rejected: () => cleanup(resource)
-  })  
+  asap(() => {
+    future.case({
+      resolved: cleanupTask
+      , rejected: cleanupTask
+      , cancelled: cleanupTask
+    })  
+  })
   return {
     cancel,
     future
@@ -332,7 +214,7 @@ export class Task<E, A> {
   rejectedMap<T>(left: (e: E) => T): Task<T, A> {
     return new Task((reject: Handler<T>, resolve: Handler<A>) => {
       return this._fork((a) => reject(left(a)), resolve)
-    })
+    }, this._cleanup)
   }
 
   case<ET, AT>(pattern: Match<E, ET, A, AT>): Task<ET, AT> {

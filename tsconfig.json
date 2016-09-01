@@ -31,7 +31,9 @@
   },
    "files": [
      "typings/index.d.ts",
-     "src/core/task.ts",
+     "src/concurrent/task.ts",
+     "src/concurrent/future.ts",
+     "src/concurrent/_asap.ts",
      "src/jonggrang.ts",
      "src/util/is.ts",
      "src/vdom/h.ts",
