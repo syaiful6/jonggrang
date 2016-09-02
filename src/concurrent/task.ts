@@ -43,7 +43,7 @@ function createTaskExecution<E, A>(task: Task<E, A>): TaskExecution<E, A> {
      // listen for resource Cleanup
     let context = {
       cleanup: task._cleanup,
-      resouces: resource
+      resource: resource
     }
     future.case({
       success: boundCleanUp
