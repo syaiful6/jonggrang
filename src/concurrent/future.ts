@@ -119,9 +119,10 @@ export class Future<E, A> {
 
 function publish<E, A>(future: Future<E, A>) {
   // invoke all pending pattern
-  future._pending.forEach(function (pattern) {
-    future.case(pattern)
-  })
+  let pending = future._pending
+  for (let i = 0; i < pending.length; ++i) {
+    future.case(pending[i])
+  }
   future._pending = []
 }
 

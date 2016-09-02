@@ -19,6 +19,7 @@ export interface Match<E, ET, A, AT> {
 
 export interface TaskExecution<E, A> {
   cancel: () => void
+  promise: () => Promise<A>
   future: Future<E, A>
 }
 
@@ -46,18 +47,39 @@ function createTaskExecution<E, A>(task: Task<E, A>): TaskExecution<E, A> {
     }
   }
   function cleanupTask() {
-    task._cleanup(resource)
+    let {_cleanup} = task
+    _cleanup(resource)
   }
-   // listen for resource Cleanup
-  future.case({
-    resolved: cleanupTask
-    , rejected: cleanupTask
-    , cancelled: cleanupTask
-  })  
+  if (task._cleanup !== emptyCleanup) {
+     // listen for resource Cleanup
+    future.case({
+      resolved: cleanupTask
+      , rejected: cleanupTask
+      , cancelled: cleanupTask
+    })  
+  }
   return {
     cancel,
+    promise: () => futureToPromise(future),
     future
   }
+}
+
+export function runTask<T, A>(reject: Handler<T>, resolve: Handler<A>, task: Task<T, A>) {
+  let { future } = task.run()
+  future.case({
+    resolved: resolve,
+    rejected: reject
+  })
+}
+
+function futureToPromise<A>(future: Future<any, A>): Promise<A> {
+  return new Promise((resolve, reject) => {
+    future.case({
+      resolved: resolve,
+      rejected: reject
+    })
+  })
 }
 
 class Tuple<X, Y> {
@@ -98,7 +120,7 @@ export class Task<E, A> {
   chain<T>(fun: (a: A) => Task<any, T>): Task<E, T> {
     return new Task((reject: Handler<E>, resolve: Handler<T>) => {
       return this._fork(reject, b => {
-        return fun(b)._fork(reject, resolve)
+        runTask(reject, resolve, fun(b))
       })
     }, this._cleanup)
   }
@@ -132,26 +154,40 @@ export class Task<E, A> {
     }, cleanBoth)
   }
 
+  // select this task or other task, whichever completed first
   concat<E1, A1>(other: Task<E1, A1>): Task<E | E1, A | A1> {
-    let cleanBoth = (resouces: any) => {
-      this._cleanup(resouces.x)
-      other._cleanup(resouces.y)
-    }
-    return new Task((reject: Handler<E | E1>, resolve: Handler<A | A1>) => {
-      let done: boolean = false
-      function guard<T>(fun: (x: T) => void) {
-        return function (x: T): any {
-          if (!done) {
-            done = true
-            return fun(x)
-          }
-        }
-      }
-      return new Tuple(
-        this._fork(guard(reject), guard(resolve)),
-        other._fork(guard(reject), guard(resolve))
-      )
-    }, cleanBoth)
+    return Task.race<E | E1, A | A1>([this, other])
+  }
+
+  /**
+   * Race the given array of tasks and select the first task that settled it result.
+   * This API is deterministic in that only the result of first task is matter. in
+   * other words, even if other tasks given to this method are settled it result,
+   * but when the first settled task has become rejected, then the returned Task
+   * it rejected.
+   */
+  static race<A, T>(tasks: Array<Task<A, T>>): Task<A, T> {
+    return new Task((reject: Handler<A>, resolve: Handler<T>) => {
+      let result = new Future() as Future<A, T>
+      let futures = tasks.map(task => {
+        let { future } = task.run()
+        return future
+      })
+      futures.forEach(future => {
+        future.case({
+          resolved: v => fulfilFuture(result, v),
+          rejected: e => rejectFuture(result, e)
+        })
+      })
+      result.case({
+        resolved: resolve,
+        rejected: reject,
+        cancelled: () => futures.forEach(v => cancelFuture(v))
+      })
+      return result
+    }, (v: any) => {
+      return v instanceof Future ? cancelFuture(v) : void 0
+    })
   }
 
   static empty(): Task<never, never> {
@@ -165,8 +201,8 @@ export class Task<E, A> {
 
   orElse<T>(transform: (t: E) => Task<T, A>): Task<E | T, A> {
     return new Task((reject: Handler<E | T>, resolve: Handler<A>) => {
-      return this._fork((a) => {
-        return transform(a)._fork(reject, resolve)
+      return this._fork(a => {
+        runTask(reject, resolve, transform(a))
       }, resolve)
     }, this._cleanup)
   }
@@ -203,7 +239,10 @@ export class Task<E, A> {
     return this.fold(pattern.rejected, pattern.resolved)
   }
 
-  // run this task
+  fork(reject: Handler<E>, resolve: Handler<A>) {
+    runTask(reject, resolve, this)
+  }
+
   run(): TaskExecution<E, A> {
     return createTaskExecution<E, A>(this)
   }
