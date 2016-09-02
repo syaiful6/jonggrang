@@ -1,4 +1,4 @@
-import { Future, fulfilFuture, cancelFuture, rejectFuture } from './future'
+import { Future, fulfil, cancel, reject, cancelFuture } from './future'
 
 export type Handler<T> = {
   (v: T): void
@@ -13,8 +13,8 @@ export type Cleanup = {
 }
 
 export interface Match<E, ET, A, AT> {
-  resolved: (e: A) => AT
-  rejected: (e: E) => ET
+  success: (e: A) => AT
+  failure: (e: E) => ET
 }
 
 export interface TaskExecution<E, A> {
@@ -31,54 +31,59 @@ function createTaskExecution<E, A>(task: Task<E, A>): TaskExecution<E, A> {
   let resource: any = task._fork((error: E) => {
     if (open) {
       open = false
-      rejectFuture(future, error)
+      reject.call(future, error)
     }
   }, (success: A) => {
     if (open) {
       open = false
-      fulfilFuture(future, success)
+      fulfil.call(future, success)
     }
   })
-  
-  function cancel() {
-    if (open) {
-      open = false
-      cancelFuture(future)
-    }
-  }
-  function cleanupTask() {
-    let {_cleanup} = task
-    _cleanup(resource)
-  }
   if (task._cleanup !== emptyCleanup) {
      // listen for resource Cleanup
+    let context = {
+      cleanup: task._cleanup,
+      resouces: resource
+    }
     future.case({
-      resolved: cleanupTask
-      , rejected: cleanupTask
-      , cancelled: cleanupTask
-    })  
+      success: boundCleanUp
+      , failure: boundCleanUp
+      , cancelled: boundCleanUp
+    }, context)
   }
   return {
-    cancel,
-    promise: () => futureToPromise(future),
+    cancel: cancelExecution,
+    promise: boundFutureToPromise,
     future
   }
+}
+
+function boundCleanUp(this: {cleanup: Cleanup, resource: any}) {
+  this.cleanup(this.resource)
+}
+
+//
+function cancelExecution(this: TaskExecution<any, any>) {
+  cancel.call(this.future)
+}
+
+// used to create promise method on TaskExecution, we move here to avoid
+// the creation of it every createTaskExecution called. the this keyword
+// here should point to target Future object.
+function boundFutureToPromise<E, A>(this: TaskExecution<E, A>): Promise<A> {
+  return new Promise<A>((resolve, reject) => {
+    this.future.case({
+      success: resolve,
+      failure: reject
+    })
+  })
 }
 
 export function runTask<T, A>(reject: Handler<T>, resolve: Handler<A>, task: Task<T, A>) {
   let { future } = task.run()
   future.case({
-    resolved: resolve,
-    rejected: reject
-  })
-}
-
-function futureToPromise<A>(future: Future<any, A>): Promise<A> {
-  return new Promise((resolve, reject) => {
-    future.case({
-      resolved: resolve,
-      rejected: reject
-    })
+    success: resolve,
+    failure: reject
   })
 }
 
@@ -167,7 +172,7 @@ export class Task<E, A> {
    * it rejected.
    */
   static race<A, T>(tasks: Array<Task<A, T>>): Task<A, T> {
-    return new Task((reject: Handler<A>, resolve: Handler<T>) => {
+    return new Task((onReject: Handler<A>, onResolve: Handler<T>) => {
       let result = new Future() as Future<A, T>
       let futures = tasks.map(task => {
         let { future } = task.run()
@@ -175,18 +180,18 @@ export class Task<E, A> {
       })
       futures.forEach(future => {
         future.case({
-          resolved: v => fulfilFuture(result, v),
-          rejected: e => rejectFuture(result, e)
-        })
+          success: fulfil,
+          failure: reject
+        }, result)
       })
       result.case({
-        resolved: resolve,
-        rejected: reject,
-        cancelled: () => futures.forEach(v => cancelFuture(v))
+        success: onResolve,
+        failure: onReject,
+        cancelled: () => futures.forEach(cancelFuture)
       })
       return result
     }, (v: any) => {
-      return v instanceof Future ? cancelFuture(v) : void 0
+      return v instanceof Future ? cancel.call(v) : void 0
     })
   }
 
@@ -236,7 +241,7 @@ export class Task<E, A> {
   }
 
   case<ET, AT>(pattern: Match<E, ET, A, AT>): Task<ET, AT> {
-    return this.fold(pattern.rejected, pattern.resolved)
+    return this.fold(pattern.failure, pattern.success)
   }
 
   fork(reject: Handler<E>, resolve: Handler<A>) {
