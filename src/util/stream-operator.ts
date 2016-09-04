@@ -1,4 +1,4 @@
-import {Stream, immediate, combine, endsOn} from 'flyd'
+import { Stream, immediate, combine, endsOn } from 'flyd'
 
 export function mergeAll<T>(streams: Stream<T>[]): Stream<T> {
   let s: Stream<T> = immediate(combine<T, T>((...args) => {

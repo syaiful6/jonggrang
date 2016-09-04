@@ -1,4 +1,4 @@
-import {isArray} from '../util/is'
+import { isArray } from '../util/is'
 
 export type ChildVnode = Array<Vnode | null> | string | undefined
 

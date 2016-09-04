@@ -1,18 +1,16 @@
-import {Stream, stream, map, scan} from 'flyd'
-import {dropRepeats} from 'flyd/module/droprepeats'
-import {Vnode} from './vdom/vnode'
-import {mergeAll} from './util/stream-operator'
+import { Stream, stream, map, scan } from 'flyd'
+import { dropRepeats } from 'flyd/module/droprepeats'
 
-export interface Task<A, B> {
-  fork(reject: (a: A) => void, resove: (b: B) => void): void
-}
+import { Vnode } from './vdom/vnode'
+import { Task } from './concurrent/task'
+import { mergeAll } from './util/stream-operator'
 
 export type EffModel<ST, AC> = {
   state: ST
   effects: Task<AC, AC>[]
 }
 
-export type Update<AC, ST> = {
+export interface Update<AC, ST> {
   (action: AC, state: ST): EffModel<ST, AC>
 }
 
@@ -21,7 +19,7 @@ export type App<ST> = {
   vnode: Stream<Vnode>
 }
 
-export type Config<ST, AC> = {
+export interface Config<ST, AC> {
   update: Update<AC, ST>
   view: (state: ST) => Vnode
   initialState: ST
@@ -32,23 +30,31 @@ function toArray<T>(s: T | T[]): T[] {
   return Array.isArray(s) ? s : [s]
 }
 
+function getEffState<ST>(eff: EffModel<ST, any>): ST {
+  return eff.state
+}
+
+function forwardTaskToStream<A>(stream: Stream<A>, task: Task<A, A>) {
+  let { future } = task.run()
+  future.listen({
+    success: stream
+    , failure: stream
+  })
+}
+
 export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
   let actionStream = stream<AC>()
   let input = map<AC, Array<AC>>(toArray, mergeAll([actionStream].concat(config.inputs)))
   let effModelSignal = scan(foldActions, noEffects(config.initialState), input)
-  let stateSignal = dropRepeats(map(getEffState, effModelSignal))
+  let stateSignal = dropRepeats(map<EffModel<ST, AC>, ST>(getEffState, effModelSignal))
   let vnodeSignal = map(config.view, stateSignal)
 
   map(mapAffects, effModelSignal)
 
-  function getEffState(eff: EffModel<ST, AC>) {
-    return eff.state
-  }
   function mapAffects(eff: EffModel<ST, AC>) {
     let effects = eff.effects
     for (let i = 0; i < effects.length; i++) {
-      let task = effects[i]
-      task.fork(actionStream, actionStream)
+      forwardTaskToStream(actionStream, effects[i])
     }
   }
   function foldActions(effModel: EffModel<ST, AC>, actions: Array<AC>) {

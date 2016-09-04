@@ -1,4 +1,4 @@
-import {Vnode, VnodeData, Thunk} from './vnode'
+import { Vnode, VnodeData, Thunk } from './vnode'
 import * as DOM from './dom'
 
 export type EventNode = {
@@ -98,8 +98,12 @@ function createElement(vnode: Vnode, eventNode: EventNode, ns: NS | undefined): 
       ns = 'http://www.w3.org/1998/Math/MathML';
       break
   }
-
-  let element = ns ? DOM.createElementNS(ns, tag) : DOM.createElement(tag)
+  let hashIdx = tag.indexOf('#')
+  let dotIdx = tag.indexOf('.', hashIdx)
+  let hash = hashIdx > 0 ? hashIdx : tag.length
+  let dot = dotIdx > 0 ? dotIdx : tag.length
+  let sel = hashIdx !== -1 || dotIdx !== -1 ? tag.slice(0, Math.min(hash, dot)) : tag
+  let element = ns ? DOM.createElementNS(ns, sel) : DOM.createElement(sel)
 
   vnode.dom = element
   if (data != null) {
@@ -241,9 +245,7 @@ function updateNode(parent: Element | DocumentFragment, old: Vnode, vnode: Vnode
   let oldTag = old.tag
   let tag = vnode.tag
   if (oldTag === tag && typeof oldTag === 'string') {
-    if (typeof old.data !== 'undefined' && typeof vnode.data !== 'undefined') {
-      vnode.events = old.events
-    }
+    vnode.events = old.events
     switch (tag) {
       case '#': updateText(old, vnode); break
       case '<': updateHTML(parent, old, vnode, nextSibling); break
@@ -321,7 +323,15 @@ function updateElement(old: Vnode, vnode: Vnode, eventNode: EventNode, ns: NS | 
 function updateThunk(parent: Element | DocumentFragment, old: Thunk, vnode: Thunk, eventNode: EventNode, nextSibling: Node | null) {
   let data = vnode.data
   let oldData = old.data
-  if (data.args === oldData.args && data.fn === oldData.fn) return
+  let i = data.args.length
+  let same = data.args === oldData.args && data.fn === oldData.fn
+  while (same && i--) {
+    same = data.args[i] === oldData.args[i]
+  }
+  if (same) {
+    vnode.node = old.node
+    return
+  }
   // thunk args or the fn has beed changed
   let node = Vnode.normalize(data.fn())
   updateNode(parent, old.node as Vnode, node, eventNode, nextSibling, undefined)
@@ -554,12 +564,12 @@ function sendHtmlSignal(msg: any, eventNode: EventNode) {
 
 //event
 function updateEvent(vnode: Vnode, eventNode: EventNode, key: string, value: any) {
-  let element = vnode.dom as any
+  let element = vnode.dom as Element
   function listener(event: Event) {
     let msg = Array.isArray(value) ? invokeArrayHandler(value, element, event) : value.call(element, value)
     sendHtmlSignal(msg, eventNode)
   }
-  if (key in element && typeof value === 'function' && Array.isArray(value)) element[key] = listener
+  if (key in element && typeof value === 'function' && Array.isArray(value)) (element as any)[key] = listener
   else {
     let eventName = key.slice(2)
     if (vnode.events != null) vnode.events = {}
@@ -576,7 +586,7 @@ export function render(eventNode: EventNode) {
     let active = DOM.activeElement()
     if ((dom as any).vnodes == null) (dom as Element).textContent = ''
     if (!Array.isArray(vnodes)) vnodes = [vnodes]
-    updateNodes(dom, (dom as any).vnodes as Array<Vnode | null>, Vnode.normalizeChildren(vnodes), eventNode, null, undefined)
+    updateNodes(dom, (dom as any).vnodes as Array<Vnode | null>, Vnode.normalizeChildren(vnodes), eventNode, null, undefined);
     (dom as any).vnodes = vnodes
     if (DOM.activeElement() !== active) {
       (active as HTMLElement).focus()

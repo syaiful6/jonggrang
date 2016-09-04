@@ -1,5 +1,5 @@
-import {Vnode, VnodeData, ChildVnode} from './vnode'
-import {isPrimitive} from '../util/is'
+import { Vnode, VnodeData, ChildVnode } from './vnode'
+import { isPrimitive } from '../util/is'
 
 export type ChildrenVnode = string | number | boolean | null
 

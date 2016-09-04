@@ -12,6 +12,7 @@ export interface Listener<E, A> {
   failure?: (e: E) => void
   cancelled?: () => void
   [key: string]: any
+  [key: number]: any
 }
 
 export class Future<E, A> {
@@ -43,11 +44,11 @@ export class Future<E, A> {
 
   chain<T>(transformation: (v: A) => Future<any, T>): Future<E, T> {
     let result = new Future<E, T>()
-    this.case({
+    this.listen({
       cancelled: cancel
       , failure: reject
       , success: value => {
-        transformation(value).case({
+        transformation(value).listen({
           cancelled: cancel
           , failure: reject
           , success: fulfil
@@ -57,13 +58,13 @@ export class Future<E, A> {
     return result
   }
 
-  orElse<T>(handler: (e: E) => Future<T, A>): Future<T, A> {
-    let result = new Future<T, A>()
-    this.case({
+  orElse<E1, A1>(handler: (e: E) => Future<E1, A1>): Future<E1, A | A1> {
+    let result = new Future<E1, A | A1>()
+    this.listen({
       cancelled: cancel
       , success: fulfil
       , failure: er => {
-        handler(er).case({
+        handler(er).listen({
           cancelled: cancel
           , failure: reject
           , success: fulfil
@@ -79,7 +80,7 @@ export class Future<E, A> {
     })
   }
 
-  case(pattern: Listener<E, A>, thisArgs?: any) {
+  listen(pattern: Listener<E, A>, thisArgs?: any) {
     switch (this._state) {
       case STATE.PENDING:
         let index = this._length
@@ -89,17 +90,17 @@ export class Future<E, A> {
         break
       case STATE.REJECTED:
         if (typeof pattern.failure === 'function') {
-          pattern.failure.call(thisArgs, this._value as E)
+          pattern.failure.call(thisArgs || pattern, this._value as E)
         }
         break
       case STATE.RESOLVED:
         if (typeof pattern.success === 'function') {
-          pattern.success.call(thisArgs, this._value as A)
+          pattern.success.call(thisArgs || pattern, this._value as A)
         }
         break
       case STATE.CANCELLED:
         if (typeof pattern.cancelled === 'function') {
-          pattern.cancelled.call(thisArgs)
+          pattern.cancelled.call(thisArgs || pattern)
         }
         break
       default:
@@ -128,7 +129,7 @@ function publish<E, A>(future: Future<E, A>) {
   let length = future._length
   let pending = future._pending
   for (let i = 0; i < length; i += 2) {
-    future.case(pending[i], pending[i + 1])
+    future.listen(pending[i], pending[i + 1])
   }
   future._pending = []
   future._length = 0
@@ -141,14 +142,14 @@ export function cancelFuture(future: Future<any, any>) {
   if (future._length !== 0) asap(publish, future)
 }
 
-export function fulfilFuture<E, A>(value: A, future: Future<E, A>) {
+export function fulfilFuture<E, A>(future: Future<E, A>, value: A) {
   if (future._state !== STATE.PENDING) return
   future._state = STATE.RESOLVED
   future._value = value
   if (future._length !== 0) asap(publish, future)
 }
 
-export function rejectFuture<E, A>(value: E, future: Future<E, A>) {
+export function rejectFuture<E, A>(future: Future<E, A>, value: E) {
   if (future._state !== STATE.PENDING) return
   future._state = STATE.REJECTED
   future._value = value
@@ -160,9 +161,9 @@ export function cancel(this: Future<any, any>) {
 }
 
 export function reject<E, A>(this: Future<E, A>, value: E) {
-  rejectFuture(value, this)
+  rejectFuture(this, value)
 }
 
 export function fulfil<E, A>(this: Future<E, A>, value: A) {
-  fulfilFuture(value, this)
+  fulfilFuture(this, value)
 }

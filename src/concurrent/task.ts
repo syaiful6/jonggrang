@@ -23,29 +23,22 @@ export interface TaskExecution<E, A> {
   future: Future<E, A>
 }
 
-function emptyCleanup(_: any) { }
+function noop(_: any) { }
 
 function createTaskExecution<E, A>(task: Task<E, A>): TaskExecution<E, A> {
   let future = new Future<E, A>()
-  let open = true
-  let resource: any = task._fork((error: E) => {
-    if (open) {
-      open = false
-      reject.call(future, error)
-    }
-  }, (success: A) => {
-    if (open) {
-      open = false
-      fulfil.call(future, success)
-    }
+  let resource: any = task._fork((error) => {
+    reject.call(future, error)
+  }, (success) => {
+    fulfil.call(future, success)
   })
-  if (task._cleanup !== emptyCleanup) {
+  if (task._cleanup !== noop) {
      // listen for resource Cleanup
     let context = {
       cleanup: task._cleanup,
       resource: resource
     }
-    future.case({
+    future.listen({
       success: boundCleanUp
       , failure: boundCleanUp
       , cancelled: boundCleanUp
@@ -58,8 +51,9 @@ function createTaskExecution<E, A>(task: Task<E, A>): TaskExecution<E, A> {
   }
 }
 
-function boundCleanUp(this: {cleanup: Cleanup, resource: any}) {
-  this.cleanup(this.resource)
+function boundCleanUp(this: { cleanup: Cleanup, resource: any }) {
+  let { cleanup } = this
+  cleanup(this.resource)
 }
 
 //
@@ -72,7 +66,7 @@ function cancelExecution(this: TaskExecution<any, any>) {
 // here should point to target Future object.
 function boundFutureToPromise<E, A>(this: TaskExecution<E, A>): Promise<A> {
   return new Promise<A>((resolve, reject) => {
-    this.future.case({
+    this.future.listen({
       success: resolve,
       failure: reject
     })
@@ -81,10 +75,22 @@ function boundFutureToPromise<E, A>(this: TaskExecution<E, A>): Promise<A> {
 
 export function runTask<T, A>(reject: Handler<T>, resolve: Handler<A>, task: Task<T, A>) {
   let { future } = task.run()
-  future.case({
+  future.listen({
     success: resolve,
     failure: reject
   })
+}
+
+function internalRunTask<T, A>(task: Task<T, A>): Future<T, A> {
+  let { future } = task.run()
+  return future
+}
+
+function internalFutureListen<T, A>(this: Future<T, A>, future: Future<T, A>) {
+  future.listen({
+    success: fulfil,
+    failure: reject
+  }, this)
 }
 
 class Tuple<X, Y> {
@@ -102,7 +108,7 @@ export class Task<E, A> {
 
   constructor(computation: Computation<E, A>, cleanup?: Cleanup) {
     this._fork = computation
-    this._cleanup = cleanup || emptyCleanup
+    this._cleanup = cleanup || noop
   }
 
   // put a value to Task as it successfull computation
@@ -159,7 +165,9 @@ export class Task<E, A> {
     }, cleanBoth)
   }
 
-  // select this task or other task, whichever completed first
+  /**
+   * select this Task or other Task result, whichever task complete first
+   */
   concat<E1, A1>(other: Task<E1, A1>): Task<E | E1, A | A1> {
     return Task.race<E | E1, A | A1>([this, other])
   }
@@ -174,17 +182,9 @@ export class Task<E, A> {
   static race<A, T>(tasks: Array<Task<A, T>>): Task<A, T> {
     return new Task((onReject: Handler<A>, onResolve: Handler<T>) => {
       let result = new Future() as Future<A, T>
-      let futures = tasks.map(task => {
-        let { future } = task.run()
-        return future
-      })
-      futures.forEach(future => {
-        future.case({
-          success: fulfil,
-          failure: reject
-        }, result)
-      })
-      result.case({
+      let futures = tasks.map(internalRunTask)
+      futures.forEach(internalFutureListen, result)
+      result.listen({
         success: onResolve,
         failure: onReject,
         cancelled: () => futures.forEach(cancelFuture)
@@ -195,17 +195,59 @@ export class Task<E, A> {
     })
   }
 
+  static parallel<A, T>(tasks: Array<Task<A, T>>): Task<A, Array<T>> {
+    function cleanAll(cleans: any[]) {
+      if (Array.isArray(cleans)) {
+        cleans.forEach(c => typeof c === 'function' ? c() : void 0)
+      }
+    }
+    return new Task((onReject: Handler<A>, onResolve: Handler<Array<T>>) => {
+      let length = tasks.length
+      let results: Array<T> = Array(length)
+      let open = true
+      function failureReceiver(e: A) {
+        if (open) {
+          open = false
+          onReject(e)
+        }
+      }
+      function successReceiver(s: T) {
+        if (open) {
+          results[this.index] = s
+          length = length - 1
+          if (length === 0) {
+            open = false
+            onResolve(results)
+          }
+        }
+      }
+      function handleTask(task: Task<A, T>, i: number) {
+        let { cancel, future } = task.run()
+        future.listen({
+          failure: failureReceiver,
+          success: successReceiver
+        }, {index: i})
+        return cancel
+      }
+      if (tasks.length === 0) {
+        onResolve([])
+        return []
+      } else {
+        return tasks.map(handleTask)
+      }
+    }, cleanAll)
+  }
+
   static empty(): Task<never, never> {
-    return new Task<never, never>(function () {
-    })
+    return new Task<never, never>(noop)
   }
 
   empty(): Task<never, never> {
     return Task.empty()
   }
 
-  orElse<T>(transform: (t: E) => Task<T, A>): Task<E | T, A> {
-    return new Task((reject: Handler<E | T>, resolve: Handler<A>) => {
+  orElse<E1, T1>(transform: (t: E) => Task<E1, T1>): Task<E1, A | T1> {
+    return new Task((reject: Handler<E1>, resolve: Handler<A | T1>) => {
       return this._fork(a => {
         runTask(reject, resolve, transform(a))
       }, resolve)
