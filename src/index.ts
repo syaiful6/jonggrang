@@ -1,7 +1,9 @@
-import * as virtualnode from './vdom/vnode'
-import * as future from './concurrent/future'
-import * as task from './concurrent/task'
+// concurrent
+export { Task } from './concurrent/task'
+export { Future, Listener } from './concurrent/future'
+
+export { Vnode, Thunk, VnodeData, ThunkData } from './vdom/vnode'
+export { h } from './vdom/h'
+export { render, EventNode } from './vdom/render'
 
 export * from './jonggrang'
-export let vnode = virtualnode
-export let concurrent = { future, task }
