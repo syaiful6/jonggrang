@@ -42,16 +42,19 @@ export interface EventData {
   onabort?: <T>(e: UIEvent | Event) => T
 }
 
-export interface VnodeData extends EventData {
-  className?: string
-  class?: string
-  id?: string
-  key?: string | number
-  //
+export interface VnodeAttr {
+  readonly?: boolean
   value?: any
   selectedIndex?: any
   checked?: boolean
   selected?: boolean
+}
+
+export interface VnodeData extends VnodeAttr, EventData {
+  className?: string
+  class?: string
+  id?: string
+  key?: string | number
   // thunk
   fn?: () => Vnode
   args?: any[]

@@ -6,9 +6,9 @@ import { render } from './vdom/render'
 import { Task } from './concurrent/task'
 import { mergeAll } from './util/stream-operator'
 
-export type EffModel<ST, AC> = {
+export interface EffModel<ST, AC> {
   state: ST
-  effects: Task<AC, AC>[]
+  effects: Array<Task<AC, AC>>
 }
 
 export interface Update<AC, ST> {
@@ -25,7 +25,7 @@ export interface Config<ST, AC> {
   update: Update<AC, ST>
   view: (state: ST) => Vnode
   init: EffModel<ST, AC>
-  inputs: Stream<AC>[]
+  inputs: Array<Stream<AC>>
 }
 
 function toArray<T>(s: T | T[]): T[] {
@@ -84,6 +84,17 @@ export function mapState<T, A, B>(fn: (a: A) => T, eff: EffModel<A, B>): EffMode
   }
 }
 
+export function foldEffModel<SR, EffR, S, Eff>(
+  stateFn: (s: S) => SR,
+  effFn: (eff: Array<Task<Eff, Eff>>) => Array<Task<EffR, EffR>>,
+  effModel: EffModel<S, Eff>
+): EffModel<SR, EffR> {
+  return {
+    state: stateFn(effModel.state),
+    effects: effFn(effModel.effects)
+  }
+}
+
 export function noEffects<ST>(state: ST): EffModel<ST, never> {
   return {
     state: state,
@@ -97,9 +108,11 @@ enum RENDER {
   EXTRA
 }
 
-function renderToDom(renderer: (dom: HTMLElement, vnode: Vnode | null | Array<Vnode | null>) => void,
-                     dom: HTMLElement,
-                     vnode: Stream<Vnode>) {
+function renderToDom(
+  renderer: (dom: HTMLElement, vnode: Vnode | null | Array<Vnode | null>) => void,
+  dom: HTMLElement,
+  vnode: Stream<Vnode>
+) {
   let state: RENDER = RENDER.NONE
   let nextVnode: Vnode | null = null
   function redraw(currentVnode: Vnode) {

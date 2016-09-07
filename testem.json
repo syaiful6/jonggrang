@@ -1,13 +1,12 @@
 {
   "framework": "jasmine2",
   "src_files": [
-    "jonggrang.js",
-    "spec/*.js"
+    "spec/*.ts"
   ],
   "serve_files": [
-    "browserified.js"
+    "spec-bundle.js"
   ],
   "before_tests": "rollup -c rollup.config-spec.js",
-  "on_exit": "rm jonggrang-test.js",
+  "on_exit": "rm ./spec-bundle.js && rm ./spec-bundle.js.map",
   "launch_in_dev": [ "firefox", "chrome" ]
 }

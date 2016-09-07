@@ -20,7 +20,7 @@ export class Future<E, A> {
   _pending: any[]
   _length: number
   _value: E | A | undefined
-  
+
   constructor() {
     this._state = STATE.PENDING
     this._value = undefined

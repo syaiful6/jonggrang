@@ -64,7 +64,7 @@ function flush() {
     callback(arg)
 
     queue[i] = undefined
-    queue[i+1] = undefined
+    queue[i + 1] = undefined
   }
   len = 0
 }

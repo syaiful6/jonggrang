@@ -23,7 +23,7 @@ export interface TaskExecution<E, A> {
   future: Future<E, A>
 }
 
-function noop(_: any) { }
+function noop(_: any) {}
 
 function createTaskExecution<E, A>(task: Task<E, A>): TaskExecution<E, A> {
   let future = new Future<E, A>()

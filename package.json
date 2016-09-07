@@ -38,7 +38,7 @@
     "typescript": "^2.1.0-dev.20160815"
   },
   "scripts": {
-    "clean": "rimraf lib && rimraf es6",
+    "clean": "rimraf lib && rimraf es6 && rimraf tmp",
     "lint": "tslint src/*.ts src/**/*.ts",
     "prebuild:dist": "tsc -p ./scripts",
     "build:dist": "rollup -c",
@@ -46,8 +46,9 @@
     "prebuild:commonjs": "rimraf lib",
     "build:commonjs": "tsc",
     "build": "npm run build:commonjs && npm run build:dist",
-    "test:browser": "browserify test/index.ts -p tsify > tests-bundle.js && testem && rm tests-bundle.js",
-    "test": "npm run lint && npm run test:browser",
+    "pretest": "rimraf tmp && tsc -p ./spec",
+    "test": "npm run lint && testem",
+    "posttest": "rimraf tmp && rm ./spec-bundle.*",
     "typings": "typings"
   }
 }
