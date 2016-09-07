@@ -67,7 +67,7 @@ export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
   }
   function renderer(dom: HTMLElement) {
     let renderService = render({ tagger: actionStream, parent: null })
-    renderToDom(dom, renderService, vnodeSignal)
+    renderToDom(renderService, dom, vnodeSignal)
   }
 
   return {
@@ -97,8 +97,8 @@ enum RENDER {
   EXTRA
 }
 
-function renderToDom(dom: HTMLElement,
-                     renderer: (dom: HTMLElement, vnode: Vnode | null | Array<Vnode | null>) => void,
+function renderToDom(renderer: (dom: HTMLElement, vnode: Vnode | null | Array<Vnode | null>) => void,
+                     dom: HTMLElement,
                      vnode: Stream<Vnode>) {
   let state: RENDER = RENDER.NONE
   let nextVnode: Vnode | null = null
