@@ -2,6 +2,7 @@ import { Stream, stream, map, scan } from 'flyd'
 import { dropRepeats } from 'flyd/module/droprepeats'
 
 import { Vnode } from './vdom/vnode'
+import { render } from './vdom/render'
 import { Task } from './concurrent/task'
 import { mergeAll } from './util/stream-operator'
 
@@ -17,12 +18,13 @@ export interface Update<AC, ST> {
 export type App<ST> = {
   state: Stream<ST>
   vnode: Stream<Vnode>
+  render: (dom: HTMLElement) => void
 }
 
 export interface Config<ST, AC> {
   update: Update<AC, ST>
   view: (state: ST) => Vnode
-  initialState: ST
+  init: EffModel<ST, AC>
   inputs: Stream<AC>[]
 }
 
@@ -45,7 +47,7 @@ function forwardTaskToStream<A>(stream: Stream<A>, task: Task<A, A>) {
 export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
   let actionStream = stream<AC>()
   let input = map<AC, Array<AC>>(toArray, mergeAll([actionStream].concat(config.inputs)))
-  let effModelSignal = scan(foldActions, noEffects(config.initialState), input)
+  let effModelSignal = scan(foldActions, config.init, input)
   let stateSignal = dropRepeats(map<EffModel<ST, AC>, ST>(getEffState, effModelSignal))
   let vnodeSignal = map(config.view, stateSignal)
 
@@ -63,12 +65,15 @@ export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
   function invokeAppUpdate(eff: EffModel<ST, AC>, action: AC): EffModel<ST, AC> {
     return config.update(action, eff.state)
   }
-
-  effModelSignal(noEffects(config.initialState))
+  function renderer(dom: HTMLElement) {
+    let renderService = render({ tagger: actionStream, parent: null })
+    renderToDom(dom, renderService, vnodeSignal)
+  }
 
   return {
     state: stateSignal,
-    vnode: vnodeSignal
+    vnode: vnodeSignal,
+    render: renderer
   }
 }
 
@@ -84,4 +89,40 @@ export function noEffects<ST>(state: ST): EffModel<ST, never> {
     state: state,
     effects: []
   }
+}
+
+enum RENDER {
+  NONE,
+  PENDING,
+  EXTRA
+}
+
+function renderToDom(dom: HTMLElement,
+                     renderer: (dom: HTMLElement, vnode: Vnode | null | Array<Vnode | null>) => void,
+                     vnode: Stream<Vnode>) {
+  let state: RENDER = RENDER.NONE
+  let nextVnode: Vnode | null = null
+  function redraw(currentVnode: Vnode) {
+    if (state === RENDER.NONE) {
+      requestAnimationFrame(runRenderer)
+    }
+    state = RENDER.PENDING
+    nextVnode = currentVnode
+  }
+  function runRenderer() {
+    switch (state) {
+      case RENDER.NONE:
+        throw new Error('invalid renderer state')
+      case RENDER.PENDING:
+        requestAnimationFrame(runRenderer)
+        state = RENDER.EXTRA
+        renderer(dom, nextVnode)
+        nextVnode = null
+        return
+      case RENDER.EXTRA:
+        state = RENDER.NONE
+        return
+    }
+  }
+  map(redraw, vnode)
 }

@@ -19,6 +19,7 @@
   "devDependencies": {
     "mkdirp": "0.5.x",
     "rollup": "^0.34.7",
+    "rollup-plugin-buble": "^0.12.1",
     "testem": "^1.10.3",
     "ts-node": "^1.2.2",
     "tsify": "^1.0.3",
@@ -39,11 +40,11 @@
   "scripts": {
     "clean": "rimraf lib && rimraf es6",
     "lint": "tslint src/*.ts src/**/*.ts",
-    "prebuild:commonjs": "rimraf lib",
-    "build:commonjs": "tsc",
-    "prebuild:dist": "tsc -declaration --module es2015 --moduleResolution node --noFallthroughCasesInSwitch --noImplicitAny --noImplicitReturns --noUnusedLocals --outDir tmp/ --preserveConstEnums --pretty --sourceMap --strictNullChecks --target es5 src/lib/flyd.d.ts src/lib/data.task.d.ts src/index.ts",
+    "prebuild:dist": "tsc -p ./scripts",
     "build:dist": "rollup -c",
     "postbuild:dist": "rimraf tmp",
+    "prebuild:commonjs": "rimraf lib",
+    "build:commonjs": "tsc",
     "build": "npm run build:commonjs && npm run build:dist",
     "test:browser": "browserify test/index.ts -p tsify > tests-bundle.js && testem && rm tests-bundle.js",
     "test": "npm run lint && npm run test:browser",
