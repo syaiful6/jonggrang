@@ -69,8 +69,9 @@ export class Vnode {
   public domSize: number | undefined
   public data: VnodeData | undefined
   public tagger: Function | undefined
-  public skip: boolean | undefined
   public events: any
+  public skip: boolean | undefined
+  node: Vnode | undefined
   constructor(tag: string | undefined, key: string | number | undefined,
               data: VnodeData | undefined, children: ChildVnode | undefined, text: string | undefined,
               dom: Element | Text | undefined) {
@@ -80,6 +81,11 @@ export class Vnode {
     this.children = children
     this.text = text
     this.dom = dom
+    this.domSize = undefined
+    this.events = undefined
+    this.tagger = undefined
+    this.skip = undefined
+    this.node = undefined
   }
 
   static normalize(node: Vnode | Array<Vnode> | string): Vnode {
@@ -125,12 +131,6 @@ export interface ThunkData extends VnodeData {
   args: any[]
 }
 
-export class Thunk extends Vnode {
-  public data: ThunkData
-  public node: Vnode | undefined
-  constructor(tag: string | undefined, key: string | number | undefined,
-              data: ThunkData, children: ChildVnode, text: string | undefined,
-              dom: Element | Text | undefined) {
-    super(tag, key, data, children, text, dom)
-  }
+export interface Thunk extends Vnode {
+  data: ThunkData
 }
