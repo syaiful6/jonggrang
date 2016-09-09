@@ -568,7 +568,7 @@ function sendHtmlSignal(msg: any, eventNode: EventNode) {
 function updateEvent(vnode: Vnode, eventNode: EventNode, key: string, value: any) {
   let element = vnode.dom as Element
   function listener(event: Event) {
-    let msg = Array.isArray(value) ? invokeArrayHandler(value, element, event) : value.call(element, value)
+    let msg = Array.isArray(value) ? invokeArrayHandler(value, element, event) : value.call(element, event)
     sendHtmlSignal(msg, eventNode)
   }
   if (key in element && typeof value === 'function' && Array.isArray(value)) (element as any)[key] = listener
