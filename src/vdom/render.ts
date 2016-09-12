@@ -98,14 +98,7 @@ function createElement(vnode: Vnode, eventNode: EventNode, ns: NS | undefined): 
       ns = 'http://www.w3.org/1998/Math/MathML';
       break
   }
-  let hashIdx = tag.indexOf('#')
-  let dotIdx = tag.indexOf('.', hashIdx)
-  let hash = hashIdx > 0 ? hashIdx : tag.length
-  let dot = dotIdx > 0 ? dotIdx : tag.length
-  let sel = hashIdx !== -1 || dotIdx !== -1 ? tag.slice(0, Math.min(hash, dot)) : tag
-  let element = ns ? DOM.createElementNS(ns, sel) : DOM.createElement(sel)
-  if (hash < dot) element.id = tag.slice(hash + 1, dot)
-  if (dotIdx > 0) element.className = tag.slice(dot + 1).replace(/\./g, ' ')
+  let element = ns ? DOM.createElementNS(ns, tag) : DOM.createElement(tag)
   vnode.dom = element
   if (data != null) {
     setAttrs(vnode, eventNode, data, ns)
@@ -568,17 +561,19 @@ function sendHtmlSignal(msg: any, eventNode: EventNode) {
 function updateEvent(vnode: Vnode, eventNode: EventNode, key: string, value: any) {
   let element = vnode.dom as Element
   function listener(event: Event) {
-    let msg = Array.isArray(value) ? invokeArrayHandler(value, element, event) : value.call(element, event)
-    sendHtmlSignal(msg, eventNode)
+    if (typeof value === 'function' || Array.isArray(value)) {
+      let msg = Array.isArray(value) ? invokeArrayHandler(value, element, event) : value.call(element, event)
+      sendHtmlSignal(msg, eventNode)
+    }
   }
-  if (key in element && typeof value === 'function' && Array.isArray(value)) (element as any)[key] = listener
+  if (key in element) (element as any)[key] = listener
   else {
     let eventName = key.slice(2)
     if (vnode.events === undefined) vnode.events = {}
-    if (vnode.events[eventName] != null) element.removeEventListener(eventName, vnode.events[key], false)
-    else if (typeof value === 'function' && Array.isArray(value)) {
+    if (vnode.events[eventName] != null) element.removeEventListener(eventName, vnode.events[eventName], false)
+    else if (typeof value === 'function' || Array.isArray(value)) {
       vnode.events[eventName] = listener
-      element.addEventListener(eventName, vnode.events[key], false)
+      element.addEventListener(eventName, vnode.events[eventName], false)
     }
   }
 }

@@ -43,6 +43,26 @@ export const h = <HyperscriptFn>function (tag: string, b?: any, c?: any): Vnode 
       childlist = undefined
     }
   }
-
-  return new Vnode(tag, data && data.key, data, childlist, text, undefined)
+  let hashIdx = tag.indexOf('#')
+  let dotIdx = tag.indexOf('.', hashIdx)
+  let hash = hashIdx > 0 ? hashIdx : tag.length
+  let dot = dotIdx > 0 ? dotIdx : tag.length
+  let sel = hashIdx !== -1 || dotIdx !== -1 ? tag.slice(0, Math.min(hash, dot)) : tag
+  let className = data.class || data.className
+  if (dotIdx > 0 && className === undefined) {
+    data.className = tag.slice(dot + 1).replace(/\./g, ' ')
+  }
+  if (hash < dot) {
+    data.id = tag.slice(hash + 1, dot)
+  }
+  if (className !== undefined) {
+    if (data.class !== 'undefined') {
+      data.class = undefined
+      data.className = className
+    }
+    if (dotIdx > 0) {
+      data.className = tag.slice(dot + 1).replace(/\./g, ' ') + className
+    }
+  }
+  return new Vnode(sel, data && data.key, data, childlist, text, undefined)
 }

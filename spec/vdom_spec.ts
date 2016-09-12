@@ -58,4 +58,50 @@ describe('virtual dom', () => {
       expect((vnode.dom as Text).nodeName === '#text' && (vnode.dom as Text).nodeValue === 'true').toEqual(true)
     })
   })
+  describe('vdom event', () => {
+    let parent: Element
+    let render: any
+    let clickHandler: any
+    let tagger: any
+    beforeEach(() => {
+      parent = document.createElement('div')
+      tagger = {
+        tagger: noop
+        , parent: null
+      }
+      spyOn(tagger, 'tagger')
+      render = renderService(tagger)
+      clickHandler = jasmine.createSpy('clickHandler').and.returnValue('msg')
+    })
+    it('handles onclick', () => {
+      let vdom = h('button', { onclick: clickHandler })
+      let event = document.createEvent("MouseEvents")
+      event.initEvent('click', true, true)
+      render(parent, [vdom]);
+      (vdom.dom as Element).dispatchEvent(event)
+      expect(clickHandler).toHaveBeenCalledWith(event)
+      expect(tagger.tagger).toHaveBeenCalledWith('msg')
+    })
+    it('handle remove events', () => {
+      let vdom = h('button', { onclick: clickHandler })
+      let update = h('button', {})
+      let event = document.createEvent("MouseEvents")
+      render(parent, [vdom])
+      render(parent, [update])
+      event.initEvent('click', true, true);
+      (vdom.dom as Element).dispatchEvent(event)
+      expect(clickHandler.calls.count()).toEqual(0)
+      expect(tagger.tagger.calls.count()).toEqual(0)
+    })
+    it('event handler array', () => {
+      let handler = jasmine.createSpy('arrayHandler')
+      let vdom = h('button', { onclick: [handler, 'foo'] })
+      let event = document.createEvent("MouseEvents")
+      render(parent, [vdom])
+      event.initEvent('click', true, true);
+      (vdom.dom as Element).dispatchEvent(event)
+      expect(handler).toHaveBeenCalledWith('foo', event)
+      expect(handler.calls.count()).toEqual(1)
+    })
+  })
 })
