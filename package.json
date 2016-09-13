@@ -44,7 +44,6 @@
     "prebuild:commonjs": "rimraf lib",
     "build:commonjs": "tsc",
     "build": "npm run build:commonjs && npm run build:dist",
-    "pretest": "rimraf tmp && tsc -p ./spec",
     "test": "npm run lint && testem",
     "posttest": "rimraf tmp && rm ./spec-bundle.*",
     "typings": "typings"

@@ -54,6 +54,16 @@ describe('hyperscript', () => {
       expect(vnode.key).toEqual(1)
       expect(vnode.tag).toEqual('li')
     })
+    it('handle merging classes with className property', () => {
+      let vnode = h('div.hello', { className: 'world' })
+      expect(vnode.tag).toEqual('div')
+      expect((vnode.data as VnodeData).className).toEqual('hello world')
+    })
+    it('handle merging classes with class property', () => {
+      let vnode = h('div.hello', { class: 'world' })
+      expect(vnode.tag).toEqual('div')
+      expect((vnode.data as VnodeData).className).toEqual('hello world')
+    })
   })
   describe('children', () => {
     it('can create vnode with children', () => {
@@ -66,6 +76,14 @@ describe('hyperscript', () => {
       let vnode = h('div', ['foo'])
       expect(vnode.text).toEqual('foo')
     })
+    it('handle multiple string children', () => {
+      let vnode = h('div', ['foo', 'bar'])
+      expect(vnode.tag).toEqual('div')
+      expect(getChild(vnode, 0).tag).toEqual('#')
+      expect(getChild(vnode, 0).children).toEqual('foo')
+      expect(getChild(vnode, 1).tag).toEqual('#')
+      expect(getChild(vnode, 1).children).toEqual('bar')
+    })
     it('handle single numeric children', () => {
       let vnode = h('div', 1)
       expect(vnode.text).toEqual('1')
@@ -73,6 +91,12 @@ describe('hyperscript', () => {
     it('handle vnode with props and text content in string', () => {
       let vnode = h('div', {}, 'hello')
       expect(vnode.text).toEqual('hello')
+    })
+    it('handle fragment children', () => {
+      let vnode = h('main', [[h('article'), h('section')]])
+      expect(getChild(vnode, 0).tag).toEqual('[')
+      expect(getChild(getChild(vnode, 0), 0).tag).toEqual('article')
+      expect(getChild(getChild(vnode, 0), 1).tag).toEqual('section')
     })
   })
 })

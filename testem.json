@@ -6,7 +6,7 @@
   "serve_files": [
     "spec-bundle.js"
   ],
-  "before_tests": "rollup -c rollup.config-spec.js",
+  "before_tests": "rimraf tmp && tsc -p ./spec && rollup -c rollup.config-spec.js",
   "on_exit": "rm ./spec-bundle.js && rm ./spec-bundle.js.map",
   "launch_in_dev": [ "firefox", "chrome" ]
 }

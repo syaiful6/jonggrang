@@ -61,7 +61,7 @@ export const h = <HyperscriptFn>function (tag: string, b?: any, c?: any): Vnode 
       data.className = className
     }
     if (dotIdx > 0) {
-      data.className = tag.slice(dot + 1).replace(/\./g, ' ') + className
+      data.className = tag.slice(dot + 1).replace(/\./g, ' ') + ' ' + className
     }
   }
   return new Vnode(sel, data && data.key, data, childlist, text, undefined)

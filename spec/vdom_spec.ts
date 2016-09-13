@@ -93,7 +93,7 @@ describe('virtual dom', () => {
       expect(clickHandler.calls.count()).toEqual(0)
       expect(tagger.tagger.calls.count()).toEqual(0)
     })
-    it('event handler array', () => {
+    it('handle event handler array with len 2', () => {
       let handler = jasmine.createSpy('arrayHandler')
       let vdom = h('button', { onclick: [handler, 'foo'] })
       let event = document.createEvent("MouseEvents")
@@ -102,6 +102,40 @@ describe('virtual dom', () => {
       (vdom.dom as Element).dispatchEvent(event)
       expect(handler).toHaveBeenCalledWith('foo', event)
       expect(handler.calls.count()).toEqual(1)
+    })
+    it('handle event handler array with more than len 2', () => {
+      let handler = jasmine.createSpy('arrayHandler')
+      let vdom = h('button', { onclick: [handler, 'foo', 'bar', 'baz'] })
+      let event = document.createEvent("MouseEvents")
+      render(parent, [vdom])
+      event.initEvent('click', true, true);
+      (vdom.dom as Element).dispatchEvent(event)
+      expect(handler).toHaveBeenCalledWith('foo', 'bar', 'baz', event)
+      expect(handler.calls.count()).toEqual(1)
+    })
+    it('handle transitionend event', () => {
+      let vnode = h('div', { ontransitionend: clickHandler })
+      let event = document.createEvent('HTMLEvents')
+      event.initEvent('transitionend', true, true)
+      render(parent, [vnode]);
+      (vnode.dom as HTMLElement).dispatchEvent(event)
+      expect(clickHandler.calls.count()).toEqual(1)
+      expect(clickHandler).toHaveBeenCalledWith(event)
+      expect(tagger.tagger).toHaveBeenCalledWith('msg')
+    })
+    it('handle tagger vnode event', () => {
+      let tag = jasmine.createSpy('tag').and.returnValue('tagmsg')
+      let vnode = h('div', { onclick: clickHandler }).map(tag)
+      let event = document.createEvent("MouseEvents")
+      event.initEvent('click', true, true)
+      render(parent, [vnode]);
+      (vnode.dom as HTMLElement).dispatchEvent(event)
+      expect(clickHandler).toHaveBeenCalledWith(event)
+      expect(clickHandler.calls.count()).toEqual(1)
+      expect(tag).toHaveBeenCalledWith('msg')
+      expect(tag.calls.count()).toEqual(1)
+      expect(tagger.tagger).toHaveBeenCalledWith('tagmsg')
+      expect(tagger.tagger.calls.count()).toEqual(1)
     })
   })
 })

@@ -40,6 +40,7 @@ export interface EventData {
   onscroll?: (<T>(e: UIEvent) => T) | any[]
   onwheel?: (<T>(e: WheelEvent) => T) | any[]
   onabort?: (<T>(e: UIEvent | Event) => T) | any[]
+  ontransitionend?: (<T>(e: TransitionEvent) => T) | any[]
 }
 
 export interface VnodeAttr {
