@@ -55,9 +55,19 @@ export interface VnodeData extends VnodeAttr, EventData {
   class?: string
   id?: string
   key?: string | number
+  dataset?: any
   // thunk
   fn?: () => Vnode
   args?: any[]
+}
+
+export interface ThunkData extends VnodeData {
+  fn: () => Vnode
+  args: any[]
+}
+
+export interface ThunkComparator {
+  (oldData: ThunkData, currentData: ThunkData): boolean
 }
 
 export class Vnode {
@@ -65,16 +75,16 @@ export class Vnode {
   public key: string | number | undefined
   public children: ChildVnode | undefined
   public text: string | undefined
-  public dom: Element | Text | undefined
+  public dom: HTMLElement | Text | undefined
   public domSize: number | undefined
   public data: VnodeData | undefined
   public tagger: Function | undefined
   public events: any
   public skip: boolean | undefined
-  node: Vnode | undefined
+  public node: Vnode | undefined
   constructor(tag: string | undefined, key: string | number | undefined,
               data: VnodeData | undefined, children: ChildVnode | undefined, text: string | undefined,
-              dom: Element | Text | undefined) {
+              dom: HTMLElement | Text | undefined) {
     this.tag = tag
     this.key = key
     this.data = data
@@ -126,11 +136,9 @@ export class Vnode {
   }
 }
 
-export interface ThunkData extends VnodeData {
-  fn: () => Vnode
-  args: any[]
-}
-
 export interface Thunk extends Vnode {
   data: ThunkData
+  // the comparison, return true if the old thunk is considered equals to current
+  // thunk. If it return true, we will not update it
+  compare: ThunkComparator
 }

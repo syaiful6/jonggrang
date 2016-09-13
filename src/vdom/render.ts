@@ -40,10 +40,7 @@ function createNode(vnode: Vnode, eventNode: EventNode, ns: NS | undefined): Ele
 }
 
 function createText(vnode: Vnode): Text {
-  if (typeof vnode.children === 'string') {
-    return vnode.dom = DOM.createTextNode(vnode.children)
-  }
-  throw new Error('trying to create vnode text with invalid vnode type')
+  return vnode.dom = DOM.createTextNode(vnode.children as string)
 }
 
 function createHTML(vnode: Vnode): DocumentFragment {
@@ -64,7 +61,7 @@ function createHTML(vnode: Vnode): DocumentFragment {
     let temp = DOM.createElement(String(parent))
 
     temp.innerHTML = vnode.children
-    vnode.dom = temp.firstChild as Element
+    vnode.dom = temp.firstChild as HTMLElement
     vnode.domSize = temp.childNodes.length
     let fragment = DOM.createDocumentFragment()
     let child: Node
@@ -82,7 +79,7 @@ function createFragment(vnode: Vnode, eventNode: EventNode, ns: NS | undefined):
     let children = vnode.children
     createNodes(fragment, children as Vnode[], 0, children.length, eventNode, null, ns)
   }
-  vnode.dom = fragment.firstChild as Element
+  vnode.dom = fragment.firstChild as HTMLElement
   vnode.domSize = fragment.childNodes.length
   return fragment
 }
@@ -99,7 +96,7 @@ function createElement(vnode: Vnode, eventNode: EventNode, ns: NS | undefined): 
       break
   }
   let element = ns ? DOM.createElementNS(ns, tag) : DOM.createElement(tag)
-  vnode.dom = element
+  vnode.dom = element as HTMLElement
   if (data != null) {
     setAttrs(vnode, eventNode, data, ns)
   }
@@ -316,17 +313,11 @@ function updateElement(old: Vnode, vnode: Vnode, eventNode: EventNode, ns: NS | 
 }
 
 function updateThunk(parent: Element | DocumentFragment, old: Thunk, vnode: Thunk, eventNode: EventNode, nextSibling: Node | null) {
-  let data = vnode.data
-  let oldData = old.data
-  let i = data.args.length
-  let same = data.args === oldData.args && data.fn === oldData.fn
-  while (same && i--) {
-    same = data.args[i] === oldData.args[i]
-  }
-  if (same) {
+  if (vnode.compare(old.data, vnode.data)) {
     vnode.node = old.node
     return
   }
+  let data = vnode.data
   // thunk args or the fn has beed changed
   let node = Vnode.normalize(data.fn())
   updateNode(parent, old.node as Vnode, node, eventNode, nextSibling, undefined)
@@ -336,7 +327,7 @@ function updateThunk(parent: Element | DocumentFragment, old: Thunk, vnode: Thun
 }
 
 function updateTagger(parent: Element | DocumentFragment, old: Vnode, vnode: Vnode, eventNode: EventNode, nextSibling: Node | null) {
-  let {tagger, children} = getVnodeTagger(vnode)
+  let { tagger, children } = getVnodeTagger(vnode)
   let oldInfo = getVnodeTagger(old)
   let nesting = tagger.length > 1 || oldInfo.tagger.length > 1
   if (nesting && oldInfo.tagger.length !== tagger.length) {
@@ -459,6 +450,7 @@ function setAttr(vnode: Vnode, eventNode: EventNode, key: string, old: any, valu
   }
   else if (key[0] === 'o' && key[1] === 'n' && typeof value === 'function' || Array.isArray(value)) updateEvent(vnode, eventNode, key, value)
   else if (key === 'style') updateStyle(element as HTMLElement, old, value)
+  else if (key === 'dataset') updateDataset(element as HTMLElement, old, value)
   else if (key in element && !isAttribute(key) && ns === undefined) {
     //setting input[value] to same value by typing on focused element moves cursor to end in Chrome
     if (vnode.tag === 'input' && key === 'value' && (element as HTMLInputElement).value === value && vnode.dom === DOM.activeElement()) return
@@ -529,6 +521,23 @@ function updateStyle(element: HTMLElement, old: any, style: any) {
       for (let key in old) {
         if (!(key in style)) (element.style as any)[key] = ''
       }
+    }
+  }
+}
+
+function updateDataset(element: HTMLElement, old: any, dataset: any) {
+  if (!old && !dataset) return
+  let oldDataset = old || {}
+  let current = dataset || {}
+  let key: any
+  for (key in oldDataset) {
+    if (!current[key]) {
+      delete element.dataset[key]
+    }
+  }
+  for (key in current) {
+    if (oldDataset[key] !== current[key]) {
+      element.dataset[key] = current[key]
     }
   }
 }
