@@ -3,7 +3,7 @@ import { Stream, immediate, combine, endsOn } from 'flyd'
 export function mergeAll<T>(streams: Stream<T>[]): Stream<T> {
   let s: Stream<T> = immediate(combine<T, T>((...args) => {
     let changed = args[args.length - 1]
-    if (Array.isArray(changed)) {
+    if (Array.isArray(changed) && changed.length > 0) {
       let depChanged = changed[0]
       return depChanged()
     }
