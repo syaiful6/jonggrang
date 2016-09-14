@@ -6,21 +6,46 @@ import { render } from './vdom/render'
 import { Task } from './concurrent/task'
 import { mergeAll } from './util/stream-operator'
 
+/**
+ * The container type for app state and a collection of task which will resolve
+ * with action. This type returned by update function.
+ */
 export interface EffModel<ST, AC> {
   state: ST
   effects: Array<Task<AC, AC>>
 }
 
+/**
+ * Interface for an update function, it take an action and current state of app and return
+ * EffModel
+ */
 export interface Update<AC, ST> {
   (action: AC, state: ST): EffModel<ST, AC>
 }
 
-export type App<ST> = {
+/**
+ * An app consists of two stream:
+ * - state: A stream representing the application's current state.
+ * - action: A stream input that can be used to send actions to application
+ *
+ * The render method can be used to mount the application to DOM.
+ */
+export type App<ST, AC> = {
   state: Stream<ST>
-  vnode: Stream<Vnode>
+  action: Stream<AC>
   render: (dom: HTMLElement) => void
 }
 
+/**
+ * The configuration of an app consists of update and view functions along with initial
+ * EffModel. The initial EffModel will be used to provide initial state of app and kick
+ * it's tasks - helpful to perform side effects on page-load.
+ *
+ * The `update` and `view` functions describe how to step the state and view the state.
+ *
+ * The `inputs` array is for any external stream you might need. These will be merged into
+ * the app's input strean.
+ */
 export interface Config<ST, AC> {
   update: Update<AC, ST>
   view: (state: ST) => Vnode
@@ -44,7 +69,7 @@ function forwardTaskToStream<A>(stream: Stream<A>, task: Task<A, A>) {
   })
 }
 
-export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
+export function app<ST, AC>(config: Config<ST, AC>): App<ST, AC> {
   let actionStream = stream<AC>()
   let input = map<AC, Array<AC>>(toArray, mergeAll([actionStream].concat(config.inputs)))
   let effModelSignal = scan(foldActions, config.init, input)
@@ -72,7 +97,7 @@ export function app<ST, AC>(config: Config<ST, AC>): App<ST> {
 
   return {
     state: stateSignal,
-    vnode: vnodeSignal,
+    action: actionStream,
     render: renderer
   }
 }

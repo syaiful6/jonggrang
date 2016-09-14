@@ -16,5 +16,6 @@ typings/
 /connect.lock
 /coverage/*
 /libpeerconnection.log
+spec-bundle.js
 npm-debug.log
 testem.log

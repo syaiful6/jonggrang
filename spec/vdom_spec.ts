@@ -58,6 +58,40 @@ describe('virtual dom', () => {
       expect((vnode.dom as Text).nodeName === '#text' && (vnode.dom as Text).nodeValue === 'true').toEqual(true)
     })
   })
+  describe('create element', () => {
+    let parent: Element
+    let render: any
+    beforeEach(() => {
+      parent = document.createElement('div')
+      render = renderService({ tagger: noop, parent: null })
+    })
+    it('has tag', () => {
+      let vnode = h('div')
+      render(parent, [vnode]);
+      expect((vnode.dom as HTMLElement).tagName).toEqual('DIV')
+    })
+    it('has id', () => {
+      let vnode = h('span#identity')
+      render(parent, [vnode]);
+      expect((vnode.dom as HTMLElement).tagName).toEqual('SPAN')
+      expect((vnode.dom as HTMLElement).id).toEqual('identity')
+    })
+    it('create style', () => {
+      let vnode = h('div', { style: { backgroundColor: "red" } })
+      render(parent, [vnode]);
+      expect((vnode.dom as HTMLElement).nodeName).toEqual('DIV')
+      expect((vnode.dom as HTMLElement).style.backgroundColor).toEqual('red')
+    })
+    it('create children', () => {
+      let vnode = h('div', [h('header'), h('article')])
+      render(parent, [vnode]);
+      let dom = vnode.dom as HTMLElement
+      expect(dom.nodeName).toEqual('DIV')
+      expect(dom.childNodes.length).toEqual(2)
+      expect(dom.childNodes[0].nodeName).toEqual('HEADER')
+      expect(dom.childNodes[1].nodeName).toEqual('ARTICLE')
+    })
+  })
   describe('vdom event', () => {
     let parent: Element
     let render: any

@@ -24,7 +24,7 @@ export default {
       dest: './spec-bundle.js',
       format: 'umd',
       moduleName: 'jonggrang',
-      sourceMap: true
+      sourceMap: false
     }
   ]
 };

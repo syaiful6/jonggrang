@@ -49,6 +49,8 @@ export interface VnodeAttr {
   selectedIndex?: any
   checked?: boolean
   selected?: boolean
+  title?: string
+  style?: any
 }
 
 export interface VnodeData extends VnodeAttr, EventData {
@@ -60,6 +62,7 @@ export interface VnodeData extends VnodeAttr, EventData {
   // thunk
   fn?: () => Vnode
   args?: any[]
+  [key: string]: any
 }
 
 export interface ThunkData extends VnodeData {
