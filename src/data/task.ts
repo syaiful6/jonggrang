@@ -136,15 +136,15 @@ export class Task<E, A> {
     }, this._cleanup)
   }
 
-  ap<S>(other: Task<any, S>): Task<E, any> {
+  ap<S>(other: Task<any, (input: A) => S>): Task<E, S> {
     let cleanBoth = (resouces: any) => {
       this._cleanup(resouces.x)
       other._cleanup(resouces.y)
     }
-    return new Task((reject: Handler<E>, resolve: Handler<any>) => {
-      let fun: any
+    return new Task((reject: Handler<E>, resolve: Handler<S>) => {
+      let fun: (input: A) => S
       let funcLoaded: boolean = false
-      let val: S
+      let val: A
       let valLoaded: boolean = false
       let rejected: boolean = false
       function guardReject(x: E) {
@@ -153,13 +153,13 @@ export class Task<E, A> {
           return reject(x)
         }
       }
-      let resourceThis = this._fork(guardReject, function taskApThis(f: any) {
+      let resourceThis = this._fork(guardReject, function taskApThis(v: A) {
+        if (!funcLoaded) return void (valLoaded = true, val = v)
+        return resolve(fun(val))
+      })
+      let resourceThat = other._fork(guardReject, function taskApThat(f: (i: A) => S) {
         if (!valLoaded) return void (funcLoaded = true, fun = f)
         return resolve(f(val))
-      })
-      let resourceThat = other._fork(guardReject, function taskApThat(x: S) {
-        if (!funcLoaded) return void (valLoaded = true, val = x)
-        return resolve(fun(x))
       })
       return new Tuple(resourceThis, resourceThat)
     }, cleanBoth)

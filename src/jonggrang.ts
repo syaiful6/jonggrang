@@ -3,7 +3,7 @@ import { dropRepeats } from 'flyd/module/droprepeats'
 
 import { Vnode } from './vdom/vnode'
 import { render } from './vdom/render'
-import { Task } from './concurrent/task'
+import { Task } from './data/task'
 import { mergeAll } from './util/stream-operator'
 
 /**
