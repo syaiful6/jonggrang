@@ -20,3 +20,13 @@ export function mergeAll<T>(streams: Stream<T>[]): Stream<T> {
   endsOn(combine(() => true, streams.map(sm => sm.end)), s)
   return s
 }
+
+export function foldr<A, B>(func: (a: A, b: B) => B, acc: B, stream: Stream<A>): Stream<B> {
+  let cur = acc
+  let out: Stream<B> = combine((s: Stream<A>) => {
+    cur = func(s.val, cur)
+    return cur
+  }, [stream])
+  if (!stream.hasVal) out(cur)
+  return out
+}
