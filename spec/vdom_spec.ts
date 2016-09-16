@@ -1,6 +1,4 @@
-import { render as renderService } from '../src/vdom/render'
-import { h } from '../src/vdom/h'
-import { Vnode } from '../src/vdom/vnode'
+import { render as renderService, h, Vnode } from '../src'
 
 function noop() {}
 

@@ -1,3 +1,3 @@
-export * from './hyperscript_spec'
-export * from './blueprint_spec'
-export * from './vdom_spec'
+import './hyperscript_spec'
+import './blueprint_spec'
+import './vdom_spec'

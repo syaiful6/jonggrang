@@ -43,9 +43,17 @@
     "postbuild:dist": "rimraf tmp",
     "prebuild:commonjs": "rimraf lib",
     "build:commonjs": "tsc",
+    "prebuild:spec": "npm run clean && npm run clean-spec",
+    "build:spec": "tsc -p ./spec && rollup -c rollup.config-spec.js",
     "build": "npm run build:commonjs && npm run build:dist",
-    "test": "npm run lint && testem",
-    "posttest": "rimraf tmp && rm ./spec-bundle.*",
+    "pretest:browser": "npm run build:spec",
+    "test:browser": "npm run lint && testem",
+    "posttest:browser": "npm run clean-spec",
+    "pretest:browser-ci": "npm run build:spec",
+    "test:browser-ci": "npm run lint && testem ci",
+    "posttest:browser-ci": "npm run clean-spec",
+    "test": "npm run test:browser-ci",
+    "clean-spec": "rimraf tmp && rimraf ./spec-bundle.*",
     "typings": "typings"
   }
 }

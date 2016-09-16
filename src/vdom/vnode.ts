@@ -146,3 +146,11 @@ export interface Thunk extends Vnode {
   // thunk. If it return true, we will not update it
   compare: ThunkComparator
 }
+
+export interface Blueprint {
+  tag?: string | { index: number }
+  key?: string | number | { index: number }
+  children?: ChildVnode | { index: number }
+  data?: VnodeData | { index: number }
+  tagger?: Function
+}

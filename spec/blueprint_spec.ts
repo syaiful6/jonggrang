@@ -1,5 +1,4 @@
-import { blueprint } from '../src/vdom/h'
-import { VnodeData, Vnode } from '../src/vdom/vnode'
+import { VnodeData, Vnode, blueprint } from '../src'
 
 describe('blueprint', () => {
   describe('dynamic tag', () => {

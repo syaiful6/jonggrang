@@ -1,5 +1,4 @@
-import { h } from '../src/vdom/h'
-import { Vnode, VnodeData } from '../src/vdom/vnode'
+import { h, Vnode, VnodeData } from '../src'
 
 function getChild(vnode: Vnode, index: number) {
   if (typeof vnode === 'string') {

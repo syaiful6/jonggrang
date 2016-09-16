@@ -16,7 +16,12 @@ export default {
       preferBuiltins: false,
     }),
     commonjs({
-      include: 'node_modules/**'
+      include: 'node_modules/**',
+      namedExports: {
+        'node_modules/flyd/lib/index.js': [
+          'merge', 'map', 'stream', 'on', 'scan', 'combine', 'immediate', 'endsOn'
+        ]
+      }
     })
   ],
   targets: [
