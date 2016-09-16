@@ -127,26 +127,6 @@ describe('virtual dom', () => {
       expect(clickHandler.calls.count()).toEqual(0)
       expect(tagger.tagger.calls.count()).toEqual(0)
     })
-    it('handle event handler array with len 2', () => {
-      let handler = jasmine.createSpy('arrayHandler')
-      let vdom = h('button', { onclick: [handler, 'foo'] })
-      let event = document.createEvent("MouseEvents")
-      render(parent, [vdom])
-      event.initEvent('click', true, true);
-      (vdom.dom as Element).dispatchEvent(event)
-      expect(handler).toHaveBeenCalledWith('foo', event)
-      expect(handler.calls.count()).toEqual(1)
-    })
-    it('handle event handler array with more than len 2', () => {
-      let handler = jasmine.createSpy('arrayHandler')
-      let vdom = h('button', { onclick: [handler, 'foo', 'bar', 'baz'] })
-      let event = document.createEvent("MouseEvents")
-      render(parent, [vdom])
-      event.initEvent('click', true, true);
-      (vdom.dom as Element).dispatchEvent(event)
-      expect(handler).toHaveBeenCalledWith('foo', 'bar', 'baz', event)
-      expect(handler.calls.count()).toEqual(1)
-    })
     it('handle transitionend event', () => {
       let vnode = h('div', { ontransitionend: clickHandler })
       let event = document.createEvent('HTMLEvents')
