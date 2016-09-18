@@ -4,7 +4,7 @@ let pkg = require('./package.json');
 let external = Object.keys(pkg.dependencies);
 
 export default {
-  entry: './tmp/index.js',
+  entry: './type-declaration/index.js',
   plugins: [buble()],
   external: external,
   targets: [

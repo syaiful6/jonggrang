@@ -1,20 +1,11 @@
 {
   "name": "jonggrang",
+  "private": true,
+  "license": "MIT",
   "version": "0.1.0",
-  "author": {
-    "name": "Syaiful Bahri"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/syaiful6/jonggrang.git"
-  },
-  "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
-  "module": "es6/jonggrang.es6.js",
-  "jsnext:main": "es6/jonggrang.es6.js",
-  "license": "MIT",
-  "dependencies": {
-    "flyd": "^0.2.2"
   },
   "devDependencies": {
     "mkdirp": "0.5.x",
@@ -22,38 +13,12 @@
     "rollup-plugin-buble": "^0.12.1",
     "rollup-plugin-commonjs": "^4.1.0",
     "rollup-plugin-node-resolve": "^2.0.0",
-    "testem": "^1.10.3",
     "ts-node": "^1.2.2",
     "tslint": "^3.14.0-dev.1",
     "typescript": "^2.1.0-dev.20160815",
     "uglify-js": "^2.7.1",
     "typings": "^1.3.3",
-    "@types/mocha": "^2.2.29",
-    "@types/node": "^6.0.33",
-    "rimraf": "^2.5.4"
-  },
-  "peerDependencies": {
-    "typescript": "^2.1.0-dev.20160815"
-  },
-  "scripts": {
-    "clean": "rimraf lib && rimraf es6 && rimraf tmp",
-    "lint": "tslint src/*.ts src/**/*.ts",
-    "prebuild:dist": "tsc -p ./scripts",
-    "build:dist": "rollup -c",
-    "postbuild:dist": "rimraf tmp",
-    "prebuild:commonjs": "rimraf lib",
-    "build:commonjs": "tsc",
-    "prebuild:spec": "npm run clean && npm run clean-spec",
-    "build:spec": "tsc -p ./spec && rollup -c rollup.config-spec.js",
-    "build": "npm run build:commonjs && npm run build:dist",
-    "pretest:browser": "npm run build:spec",
-    "test:browser": "npm run lint && testem",
-    "posttest:browser": "npm run clean-spec",
-    "pretest:browser-ci": "npm run build:spec",
-    "test:browser-ci": "npm run lint && testem ci",
-    "posttest:browser-ci": "npm run clean-spec",
-    "test": "npm run test:browser-ci",
-    "clean-spec": "rimraf tmp && rimraf ./spec-bundle.*",
-    "typings": "typings"
+    "rimraf": "^2.5.4",
+    "mocha": "3.0.2"
   }
 }

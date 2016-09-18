@@ -2,9 +2,6 @@ import buble from 'rollup-plugin-buble'
 import commonjs from 'rollup-plugin-commonjs';
 import nodeResolve from 'rollup-plugin-node-resolve';
 
-let pkg = require('./package.json');
-let external = Object.keys(pkg.dependencies);
-
 export default {
   entry: './tmp/examples/pair-counter/src/main.js',
   plugins: [

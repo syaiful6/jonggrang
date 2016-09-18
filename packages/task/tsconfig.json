@@ -6,7 +6,7 @@
       "es2015",
       "dom"
     ],
-    "module": "es2015",
+    "module": "commonjs",
     "moduleResolution": "node",
     "noEmitHelpers": false,
     "noFallthroughCasesInSwitch": true,
@@ -15,13 +15,13 @@
     "noImplicitReturns": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
-    "outDir": "../tmp",
+    "outDir": "./lib",
     "preserveConstEnums": true,
     "pretty": true,
     "removeComments": false,
     "sourceMap": true,
     "strictNullChecks": true,
-    "target": "es2015",
+    "target": "es5",
     "types": [
     ]
   },
@@ -30,7 +30,9 @@
     "tabSize": 2
   },
    "files": [
-     "../typings/index.d.ts",
-     "../src/index.ts"
+     "typings/index.d.ts",
+     "src/index.ts",
+     "src/task.ts",
+     "src/future.ts"
    ]
 }

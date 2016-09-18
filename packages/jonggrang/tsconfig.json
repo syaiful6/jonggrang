@@ -6,7 +6,7 @@
       "es2015",
       "dom"
     ],
-    "module": "commonjs",
+    "module": "es2015",
     "moduleResolution": "node",
     "noEmitHelpers": false,
     "noFallthroughCasesInSwitch": true,
@@ -15,13 +15,13 @@
     "noImplicitReturns": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
-    "outDir": "./lib",
+    "outDir": "./type-declaration",
     "preserveConstEnums": true,
     "pretty": true,
     "removeComments": false,
     "sourceMap": true,
     "strictNullChecks": true,
-    "target": "ES5",
+    "target": "es2015",
     "types": [
     ]
   },
@@ -33,14 +33,8 @@
      "typings/index.d.ts",
      "src/index.ts",
      "src/jonggrang.ts",
-     "src/fantasy.ts",
      "src/data/task.ts",
      "src/data/future.ts",
-     "src/vdom/h.ts",
-     "src/vdom/thunk.ts",
-     "src/vdom/vnode.ts",
-     "src/vdom/dom.ts",
-     "src/vdom/render.ts",
-     "src/util/is.ts"
+     "src/util.ts"
    ]
 }

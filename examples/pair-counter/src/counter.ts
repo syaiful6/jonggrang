@@ -1,4 +1,4 @@
-import { h, EffModel, Vnode } from '../../../src'
+import { h, Vnode } from '../../../src'
 
 export interface Pattern<T> {
   Increment(): T
@@ -37,10 +37,7 @@ export function update(action: Action, state: State): State {
   })
 }
 
-export const init: EffModel<State, Action> = {
-  state: 0
-  , effects: []
-}
+export const init: State = 0
 
 export function view(state: State): Vnode {
   return h('div', [

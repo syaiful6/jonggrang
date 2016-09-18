@@ -4,7 +4,6 @@ import { dropRepeats } from 'flyd/module/droprepeats'
 import { Vnode } from './vdom/vnode'
 import { render } from './vdom/render'
 import { Task } from './data/task'
-import { mergeAll } from './util/stream-operator'
 
 /**
  * The container type for app state and a collection of task which will resolve
@@ -38,19 +37,18 @@ export type App<ST, AC> = {
 
 /**
  * The configuration of an app consists of update and view functions along with initial
- * EffModel. The initial EffModel will be used to provide initial state of app and kick
- * it's tasks - helpful to perform side effects on page-load.
+ * state.
  *
  * The `update` and `view` functions describe how to step the state and view the state.
  *
- * The `inputs` array is for any external stream you might need. These will be merged into
- * the app's input strean.
+ * The `subscriptions` function take a state and return an array of Task, the results
+ * will be send to update function.
  */
 export interface Config<ST, AC> {
   update: Update<AC, ST>
   view: (state: ST) => Vnode
-  init: EffModel<ST, AC>
-  inputs: Array<Stream<AC>>
+  init: ST
+  subscriptions: (st: ST) => Array<Task<AC, AC>>
 }
 
 function toArray<T>(s: T | T[]): T[] {
@@ -71,15 +69,15 @@ function forwardTaskToStream<A>(stream: Stream<A>, task: Task<A, A>) {
 
 export function app<ST, AC>(config: Config<ST, AC>): App<ST, AC> {
   let actionStream = stream<AC>()
-  let input = map<AC, Array<AC>>(toArray, mergeAll([actionStream].concat(config.inputs)))
-  let effModelSignal = scan(foldActions, config.init, input)
+  let input = map<AC, Array<AC>>(toArray, actionStream)
+  let effModelSignal = scan(foldActions, noEffects(config.init), input)
   let stateSignal = dropRepeats(map<EffModel<ST, AC>, ST>(getEffState, effModelSignal))
   let vnodeSignal = map(config.view, stateSignal)
 
   map(mapAffects, effModelSignal)
 
   function mapAffects(eff: EffModel<ST, AC>) {
-    let effects = eff.effects
+    let effects = eff.effects.concat(config.subscriptions(eff.state))
     for (let i = 0; i < effects.length; i++) {
       forwardTaskToStream(actionStream, effects[i])
     }
@@ -106,6 +104,13 @@ export function mapState<T, A, B>(fn: (a: A) => T, eff: EffModel<A, B>): EffMode
   return {
     state: fn(eff.state),
     effects: eff.effects
+  }
+}
+
+export function mapEffects<T, A, B>(fn: (a: B) => T, eff: EffModel<A, B>): EffModel<A, T> {
+  return {
+    state: eff.state,
+    effects: eff.effects.map(b => b.fold(fn, fn))
   }
 }
 

@@ -9,7 +9,7 @@ const AppConfig: Config<Pair.State, Pair.Action> = {
   view: Pair.view
   , update: update
   , init: Pair.init
-  , inputs: []
+  , subscriptions: () => []
 }
 
 function main() {

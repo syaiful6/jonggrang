@@ -1,5 +1,5 @@
 import * as Counter from './counter'
-import { h, EffModel, Vnode } from '../../../src'
+import { h, Vnode } from '../../../src'
 
 export interface Pattern<T> {
   Top(action: Counter.Action): T
@@ -75,14 +75,10 @@ export function update(action: Action, state: State): State {
   })
 }
 
-export const init: EffModel<State, Action> = {
-  state: {
-    top: 0
-    , bottom: 0
-  }
-  , effects: []
+export const init: State = {
+  top: Counter.init,
+  bottom: Counter.init
 }
-
 
 export function view(state: State): Vnode {
   return h('div', [

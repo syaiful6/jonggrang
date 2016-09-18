@@ -4,11 +4,13 @@
 /dist
 /tmp
 /ideas
-typings/
+typings
+lib
+jsnext
 
 # dependencies
-/node_modules
-/bower_components
+node_modules
+bower_components
 
 # misc
 /.vscode
