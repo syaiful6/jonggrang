@@ -1,3 +1,4 @@
+/// <reference path="../typings/globals/node/index.d.ts" />
 let len: number = 0
 let scheduleFlush: () => void
 let queue: any[] = Array(1000)
