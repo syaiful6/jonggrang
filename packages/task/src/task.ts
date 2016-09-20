@@ -1,6 +1,6 @@
 import { asap } from './_asap'
 import {
-  Computation, Handler, Listener, LooseListener, ExecutionState, ChainRecResult,
+  Computation, Handler, Listener, ExecutionState, ChainRecResult,
   TaskExecution as ITaskExecution, Pending, Resolved, Rejected, Cancelled
 } from './interfaces'
 
@@ -80,18 +80,14 @@ export class Task<E, A> {
 
   static chainRec<L, R>(func: ChainRecFn<L, R>, initial: R): Task<L, R> {
     return new Task((reject: Handler<L>, resolve: Handler<R>, cancel: () => void) => {
-      let item: Task<L, ChainRecResult<R>>
-      let tasksExec: Array<ITaskExecution<L, ChainRecResult<R>>> = []
       function step(result: ChainRecResult<R>) {
         if (result.done) {
           resolve(result.value)
           return
         }
-        item = func(nextRec, doneRec, result.value)
+        let item = func(nextRec, doneRec, result.value)
         if (item) {
-          let newExec = item.run()
-          tasksExec.push(newExec)
-          newExec.listen({
+          item.run().listen({
             resolved: step,
             cancelled: cancel,
             rejected: reject
@@ -99,8 +95,7 @@ export class Task<E, A> {
         }
       }
       step(nextRec(initial))
-      return tasksExec
-    }, cancelExecutions)
+    })
   }
 
   ap<Er, T>(other: Task<Er, (v: A) => T>): Task<Er | E, T> {
@@ -190,7 +185,7 @@ export class Task<E, A> {
 }
 
 class TaskExecution<E, A> {
-  
+
   constructor(private _deferred: Deferred<E, A>) {
   }
 
@@ -204,7 +199,7 @@ class TaskExecution<E, A> {
     return this._deferred.cancel()
   }
 
-  listen(pattern: LooseListener<E, A>): void {
+  listen(pattern: Listener<E, A>): void {
     this._deferred.listen({
       cancelled: pattern.cancelled || noop,
       resolved : pattern.resolved  || noop,
@@ -220,9 +215,8 @@ class TaskExecution<E, A> {
 class Deferred<E, A> {
   private _state: ExecutionState<E, A>
   private _pending: Array<Listener<E, A>>
-
   constructor() {
-    this._state = new Pending()
+    this._state = new Pending<E, A>()
     this._pending = []
   }
 
@@ -239,8 +233,16 @@ class Deferred<E, A> {
   }
 
   listen(pattern: Listener<E, A>) {
+    if (this._state instanceof Pending) {
+      this._pending.push(pattern)
+      return
+    }
+    this._listen(pattern)
+  }
+
+  private _listen(pattern: Listener<E, A>) {
     this._state.matchWith({
-      Pending  : () => this._pending.push(pattern),
+      Pending  : noop,
       Cancelled: pattern.cancelled,
       Resolved : pattern.resolved,
       Rejected : pattern.rejected
@@ -261,11 +263,11 @@ class Deferred<E, A> {
     // dont allow move the state, if current state !== Pending, so it can be resolved
     // rejected, cancelled only once
     if (!(this._state instanceof Pending)) return false
+    this._state = newState
     let pending = this._pending
     for (let i = 0; i < pending.length; i++) {
       this.listen(pending[i])
     }
-    this._state = newState
     this._pending = []
     return true
   }

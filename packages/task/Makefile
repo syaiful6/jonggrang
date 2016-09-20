@@ -30,7 +30,7 @@ compile-cjs:
 	sh $(tsc)
 
 compile-jsnext:
-	sh $(tsc) -p config
+	sh $(tsc) -p scripts
 
 compile: compile-cjs compile-jsnext
 
@@ -40,3 +40,6 @@ clean:
 
 test: compile-cjs
 	sh $(mocha) --reporter spec --ui bdd
+
+test-opt:
+	node --allow-natives-syntax --trace-opt --trace-deopt --trace-inlining scripts/opt.js

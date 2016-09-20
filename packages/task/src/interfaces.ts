@@ -25,22 +25,12 @@ export interface ChainRecResult<T> {
 }
 
 /**
- * Interface for listener that want to observer the results of task. This strict
- * one used internally. User interface is the loose one.
+ * Interface for listener that want to observer the results of task.
  */
 export interface Listener<L, R> {
   resolved:  (value: R) => void
   rejected:  (reason: L) => void
   cancelled: () => void
-}
-
-/**
- *
- */
-export interface LooseListener<L, R> {
-  resolved?:  (value: R) => void
-  rejected?:  (reason: L) => void
-  cancelled?: () => void
 }
 
 /**
@@ -57,7 +47,7 @@ export interface LooseListener<L, R> {
 export interface TaskExecution<L, R> {
   cancel(): boolean
   promise(): Promise<R>
-  listen(pattern: LooseListener<L, R>): void
+  listen(pattern: Listener<L, R>): void
 }
 
 /**
@@ -74,8 +64,8 @@ export interface ExecutionState<L, R> {
   matchWith(pattern: StatePattern<L, R>): void
 }
 
-export class Pending implements ExecutionState<any, any> {
-  matchWith(pattern: StatePattern<any, any>) {
+export class Pending<E, A> implements ExecutionState<any, any> {
+  matchWith(pattern: StatePattern<E, A>) {
     pattern.Pending()
   }
 }
