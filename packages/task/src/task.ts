@@ -1,7 +1,7 @@
 import { asap } from './_asap'
 import {
   Computation, Handler, Listener, ExecutionState, ChainRecResult,
-  TaskExecution as ITaskExecution, Pending, Resolved, Rejected, Cancelled
+  TaskExecution as ITaskExecution, Resolved, Rejected, Cancelled
 } from './interfaces'
 
 function noop() { }
@@ -22,6 +22,14 @@ function doneRec<T>(value: T): ChainRecResult<T> {
 
 export type ChainRecFn<L, R> = {
   (next: (value: R) => ChainRecResult<R>, done: (value: R) => ChainRecResult<R>, v: R): Task<L, ChainRecResult<R>>
+}
+
+function generatorStep(n: any, d: any, last: any) {
+  let { next } = last
+  let { done, value } = next(last.value)
+  return done
+    ? value.map(d)
+    : value.map((x: any) => n({ value: x, next: next }))
 }
 
 export class Task<E, A> {
@@ -88,14 +96,23 @@ export class Task<E, A> {
         let item = func(nextRec, doneRec, result.value)
         if (item) {
           item.run().listen({
-            resolved: step,
+            resolved: latern,
             cancelled: cancel,
             rejected: reject
           })
         }
       }
+      function latern(v: ChainRecResult<R>) {
+        asap(step, v)
+      }
       step(nextRec(initial))
     })
+  }
+
+  static do(func: GeneratorFunction): Task<any, any> {
+    let gen = func()
+    const next = (x: any) => gen.next(x)
+    return Task.chainRec(generatorStep, {value: undefined, next: next})
   }
 
   ap<Er, T>(other: Task<Er, (v: A) => T>): Task<Er | E, T> {
@@ -176,7 +193,7 @@ export class Task<E, A> {
     )
     // clean up resource
     deferred.listen({
-      cancelled: () => (asap(this._cleanup, resource), asap(this._cleanup, resource)),
+      cancelled: () => (asap(this._onCancel, resource), asap(this._cleanup, resource)),
       resolved:  () => asap(this._cleanup, resource),
       rejected:  () => asap(this._cleanup, resource)
     })
@@ -213,11 +230,12 @@ class TaskExecution<E, A> {
 }
 
 class Deferred<E, A> {
-  private _state: ExecutionState<E, A>
-  private _pending: Array<Listener<E, A>>
+  private _state: ExecutionState<E, A> | undefined
+  private _length: number
+  [key: number]: any
   constructor() {
-    this._state = new Pending<E, A>()
-    this._pending = []
+    this._state = undefined
+    this._length = 0
   }
 
   resolve(value: A) {
@@ -233,16 +251,11 @@ class Deferred<E, A> {
   }
 
   listen(pattern: Listener<E, A>) {
-    if (this._state instanceof Pending) {
-      this._pending.push(pattern)
+    if (typeof this._state === 'undefined') {
+      this._addListener(pattern)
       return
     }
-    this._listen(pattern)
-  }
-
-  private _listen(pattern: Listener<E, A>) {
     this._state.matchWith({
-      Pending  : noop,
       Cancelled: pattern.cancelled,
       Resolved : pattern.resolved,
       Rejected : pattern.rejected
@@ -260,20 +273,33 @@ class Deferred<E, A> {
   }
 
   private _moveState(newState: ExecutionState<E, A>) {
-    // dont allow move the state, if current state !== Pending, so it can be resolved
-    // rejected, cancelled only once
-    if (!(this._state instanceof Pending)) return false
+    if (typeof this._state !== 'undefined') return false
     this._state = newState
-    let pending = this._pending
-    for (let i = 0; i < pending.length; i++) {
-      this.listen(pending[i])
-    }
-    this._pending = []
+    if (this._length > 0) this._notifyListener()
     return true
+  }
+
+  private _addListener(pattern: Listener<E, A>) {
+    let index = this._length
+    this._length++
+    this[index] = pattern
+  }
+
+  private _notifyListener() {
+    let length = this._length
+    this._length = 0
+    let item: any
+    for (let i = 0; i < length; i++) {
+      item = this[i]
+      this.listen(item)
+      this[i] = undefined
+    }
   }
 }
 
 function cancelExecutions(executions: Array<TaskExecution<any, any>>) {
-  executions.forEach(ex => ex.cancel())
+  for (let i = 0; i < executions.length; i++) {
+    executions[i].cancel()
+  }
 }
 

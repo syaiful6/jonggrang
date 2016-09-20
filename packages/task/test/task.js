@@ -1,8 +1,10 @@
-var jsverify = require('jsverify')
-var _        = require('../lib/task').Task
-var assert   = require('assert')
-var property = jsverify.property
-var forall   = jsverify.forall
+"use strict";
+
+const jsverify = require('jsverify')
+const _        = require('../lib/task').Task
+const assert   = require('assert')
+const property = jsverify.property
+const forall   = jsverify.forall
 
 function failRes(x) {
   throw new Error(`Invalidly entered resolution branch with value ${x}`);
@@ -14,7 +16,7 @@ function failRej(x) {
 
 function assertEqual(a, b) {
   return new Promise(function (done) {
-    var exec = a.and(b).run()
+    const exec = a.and(b).run()
     exec.listen({
       resolved: (v) => {
         assert.equal(v[0], v[1])
@@ -29,6 +31,12 @@ function lift(f) {
   return function (a) {
     return _.of(f(a))
   }
+}
+
+function rejectOf(a) {
+  return new _((reject, resolve) => {
+    reject(a)
+  })
 }
 
 describe('Task', function () {
@@ -50,5 +58,28 @@ describe('Task', function () {
     property('chain', 'json', 'json -> json', function(a, f) {
       return assertEqual(_.of(a).chain(lift(f)), lift(f)(a))
     });
+  })
+  describe('Task.do', function () {
+    property('quick return success', 'json', (a) => {
+      return assertEqual(_.do(function* () {
+        return _.of(a)
+      }), _.of(a))
+    })
+    it('it correctly handle rejected task', () => {
+      return new Promise(done => {
+        let exec = _.do(function* () {
+          let i = yield rejectOf(2)
+          failRej(i)
+          return _.of(9)
+        }).run()
+        exec.listen({
+          resolved: failRej,
+          rejected: (v) => {
+            assert.equal(v, 2)
+            done()
+          }
+        })
+      })
+    })
   })
 })

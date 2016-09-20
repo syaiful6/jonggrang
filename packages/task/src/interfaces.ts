@@ -16,8 +16,7 @@ export interface Computation<L, R> {
 
 /**
  * Basically this is same shape as IteratorResult interface. We use this for ChainRec
- * implementation. This same shape as iterator make our chainRec compatible with any
- * iterator, in other word you can pass iterator next method on our chainRec function.
+ * implementation.
  */
 export interface ChainRecResult<T> {
   done: boolean
@@ -56,18 +55,11 @@ export interface TaskExecution<L, R> {
 export interface StatePattern<L, R> {
   Resolved : (value: R) => void
   Rejected : (reason: L) => void
-  Pending  : () => void
   Cancelled: () => void
 }
 
 export interface ExecutionState<L, R> {
   matchWith(pattern: StatePattern<L, R>): void
-}
-
-export class Pending<E, A> implements ExecutionState<any, any> {
-  matchWith(pattern: StatePattern<E, A>) {
-    pattern.Pending()
-  }
 }
 
 export class Cancelled implements ExecutionState<any, any> {
