@@ -53,8 +53,8 @@ export interface TaskExecution<L, R> {
  * -- internal, this one to simulate ADT | union
  */
 export interface StatePattern<L, R> {
-  Resolved : (value: R) => void
-  Rejected : (reason: L) => void
+  Resolved: (value: R) => void
+  Rejected: (reason: L) => void
   Cancelled: () => void
 }
 

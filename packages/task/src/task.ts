@@ -32,6 +32,14 @@ function generatorStep(n: any, d: any, last: any) {
     : value.map((x: any) => n({ value: x, next: next }))
 }
 
+function createListener<E, S>(onCancel: () => void, onRejected: Handler<E>, onResolved: Handler<S>): Listener<E, S> {
+  return {
+    cancelled: onCancel,
+    rejected: onRejected,
+    resolved: onResolved
+  }
+}
+
 export class Task<E, A> {
   private _computation: Computation<E, A>
   private _cleanup: (resource: any) => void
@@ -61,51 +69,52 @@ export class Task<E, A> {
   }
 
   map<T>(fn: (a: A) => T): Task<E, T> {
-    return new Task((reject: Handler<E>, resolve: Handler<T>, cancel:() => void) => {
-      this.run().listen({
-        resolved: v => resolve(fn(v)),
-        rejected: reject,
-        cancelled: cancel
-      })
+    return new Task((reject: Handler<E>, resolve: Handler<T>, cancel: () => void) => {
+      const onResolve = (v: A) => resolve(fn(v))
+      this.run().listen(createListener(cancel, reject, onResolve))
     })
   }
 
   chain<Er, T>(transform: (a: A) => Task<E, T>): Task<Er | E, T> {
     return new Task((reject: Handler<E | Er>, resolve: Handler<T>, cancel: () => void) => {
-      this.run().listen({
-        rejected: reject,
-        cancelled: cancel,
-        resolved: v => {
-          return transform(v).run().listen({
-            rejected: reject,
-            cancelled: cancel,
-            resolved: resolve
-          })
-        }
-      })
+      const onResolve = (v: A) => {
+        return transform(v).run().listen(createListener(cancel, reject, resolve))
+      }
+      this.run().listen(createListener(cancel, reject, onResolve))
     })
   }
 
   static chainRec<L, R>(func: ChainRecFn<L, R>, initial: R): Task<L, R> {
     return new Task((reject: Handler<L>, resolve: Handler<R>, cancel: () => void) => {
-      function step(result: ChainRecResult<R>) {
-        if (result.done) {
-          resolve(result.value)
-          return
+      function step(acc: R) {
+        let status: number
+        let state = nextRec(acc)
+        function onResolve(v: ChainRecResult<R>) {
+          if (status === 0) {
+            state = v
+            status = 1
+          } else {
+            let handler = v.done ? resolve : step
+            handler(v.value)
+          }
         }
-        let item = func(nextRec, doneRec, result.value)
-        if (item) {
-          item.run().listen({
-            resolved: latern,
-            cancelled: cancel,
-            rejected: reject
-          })
+        while (!state.done) {
+          status = 0
+          let exec = func(nextRec, doneRec, state.value).run()
+          exec.listen(createListener(cancel, reject, onResolve))
+          if (status === 1) {
+            if (state.done) {
+              resolve(state.value)
+            } else {
+              continue
+            }
+          } else {
+            status = 2
+            return
+          }
         }
       }
-      function latern(v: ChainRecResult<R>) {
-        asap(step, v)
-      }
-      step(nextRec(initial))
+      step(initial)
     })
   }
 
@@ -136,16 +145,8 @@ export class Task<E, A> {
       let thisExec = this.run()
       let thatExec = other.run()
 
-      thisExec.listen({
-        rejected: guardReject,
-        resolved: guardValue,
-        cancelled: cancel
-      })
-      thatExec.listen({
-        rejected: guardReject,
-        resolved: guardFn,
-        cancelled: cancel
-      })
+      thisExec.listen(createListener(cancel, guardReject, guardValue))
+      thatExec.listen(createListener(cancel, guardReject, guardFn))
 
       return [thisExec, thatExec]
     }, cancelExecutions)
@@ -170,33 +171,32 @@ export class Task<E, A> {
         if (!doneRight) return void (doneLeft = 1, valueLeft = v)
         return resolve([v, valueRight])
       }
-      thisExec.listen({
-        rejected: guardReject,
-        resolved: guardLeft,
-        cancelled: cancel
-      })
-      otherExec.listen({
-        rejected: guardReject,
-        resolved: guardRight,
-        cancelled: cancel
-      })
+      thisExec.listen(createListener(cancel, guardReject, guardLeft))
+      otherExec.listen(createListener(cancel, guardReject, guardRight))
       return [thisExec, otherExec]
     }, cancelExecutions)
   }
 
   run(): ITaskExecution<E, A> {
-    let deferred = new Deferred<E, A>()
-    let resource = this._computation(
+    const deferred = new Deferred<E, A>()
+    const resource = this._computation(
       (error: E) => deferred.reject(error),
       (value: A) => deferred.resolve(value),
       ()         => deferred.cancel()
     )
     // clean up resource
-    deferred.listen({
-      cancelled: () => (asap(this._onCancel, resource), asap(this._cleanup, resource)),
-      resolved:  () => asap(this._cleanup, resource),
-      rejected:  () => asap(this._cleanup, resource)
-    })
+    const cleanUp = () => {
+      if (this._cleanup !== noop) {
+        asap(this._cleanup, resource)
+      }
+    }
+    const onCancel = () => {
+      if (this._onCancel !== noop) {
+        asap(this._onCancel, resource)
+      }
+      cleanUp()
+    }
+    deferred.listen(createListener(onCancel, cleanUp, cleanUp))
     return new TaskExecution(deferred)
   }
 }
@@ -217,11 +217,9 @@ class TaskExecution<E, A> {
   }
 
   listen(pattern: Listener<E, A>): void {
-    this._deferred.listen({
-      cancelled: pattern.cancelled || noop,
-      resolved : pattern.resolved  || noop,
-      rejected : pattern.rejected  || noop
-    })
+    this._deferred.listen(
+      createListener(pattern.cancelled || noop, pattern.rejected || noop, pattern.resolved || noop)
+    )
   }
 
   promise() {
@@ -243,7 +241,7 @@ class Deferred<E, A> {
   }
 
   reject(reason: E) {
-    return this._state instanceof Rejected ? true: this._moveState(new Rejected(reason))
+    return this._state instanceof Rejected ? true : this._moveState(new Rejected(reason))
   }
 
   cancel() {
@@ -302,4 +300,3 @@ function cancelExecutions(executions: Array<TaskExecution<any, any>>) {
     executions[i].cancel()
   }
 }
-
