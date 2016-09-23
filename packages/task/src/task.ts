@@ -71,8 +71,10 @@ export class Task<E, A> {
   map<T>(fn: (a: A) => T): Task<E, T> {
     return new Task((reject: Handler<E>, resolve: Handler<T>, cancel: () => void) => {
       const onResolve = (v: A) => resolve(fn(v))
-      this.run().listen(createListener(cancel, reject, onResolve))
-    })
+      let execution = this.run()
+      execution.listen(createListener(cancel, reject, onResolve))
+      return [execution]
+    }, cancelExecutions)
   }
 
   chain<Er, T>(transform: (a: A) => Task<E, T>): Task<Er | E, T> {
@@ -80,8 +82,10 @@ export class Task<E, A> {
       const onResolve = (v: A) => {
         return transform(v).run().listen(createListener(cancel, reject, resolve))
       }
-      this.run().listen(createListener(cancel, reject, onResolve))
-    })
+      let executions = this.run()
+      executions.listen(createListener(cancel, reject, onResolve))
+      return [executions]
+    }, cancelExecutions)
   }
 
   static chainRec<L, R>(func: ChainRecFn<L, R>, initial: R): Task<L, R> {
@@ -89,6 +93,7 @@ export class Task<E, A> {
       function step(acc: R) {
         let status: number
         let state = nextRec(acc)
+        let executions: Array<ITaskExecution<L, ChainRecResult<R>>> = []
         function onResolve(v: ChainRecResult<R>) {
           if (status === 0) {
             state = v
@@ -101,6 +106,7 @@ export class Task<E, A> {
         while (!state.done) {
           status = 0
           let exec = func(nextRec, doneRec, state.value).run()
+          executions.push(exec)
           exec.listen(createListener(cancel, reject, onResolve))
           if (status === 1) {
             if (state.done) {
@@ -110,12 +116,13 @@ export class Task<E, A> {
             }
           } else {
             status = 2
-            return
+            return executions
           }
         }
+        return executions
       }
-      step(initial)
-    })
+      return step(initial)
+    }, cancelExecutions)
   }
 
   static do(func: GeneratorFunction): Task<any, any> {
