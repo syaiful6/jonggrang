@@ -27,42 +27,28 @@ let ex = Task.of(1)
   .map(x => x + 1)
   .chain(defer)
   .ap(Task.of(x => x + 1))
-  .run();
-
-ex.listen({
-  resolved: noop,
-  rejected: noop,
-  cancelled: noop
-});
+  .fork(noop, noop);
 
 %OptimizeFunctionOnNextCall(Task.of);
 %OptimizeFunctionOnNextCall(m.map);
 %OptimizeFunctionOnNextCall(m.chain);
 %OptimizeFunctionOnNextCall(m.ap);
-%OptimizeFunctionOnNextCall(m.run);
-%OptimizeFunctionOnNextCall(ex.listen);
+%OptimizeFunctionOnNextCall(m.fork);
 
 printStatus(Task.of);
 printStatus(m.map);
 printStatus(m.chain);
 printStatus(m.ap);
-printStatus(m.run);
-printStatus(ex.listen);
+printStatus(m.fork);
 
 Task.of(1)
   .map(x => x + 1)
   .chain(defer)
   .ap(Task.of(x => x + 1))
-  .run()
-  .listen({
-    resolved: noop,
-    rejected: noop,
-    cancelled: noop
-  });
+  .fork(noop, noop)
 
 printStatus(Task.of);
 printStatus(m.map);
 printStatus(m.chain);
 printStatus(m.ap);
-printStatus(m.run);
-printStatus(ex.listen);
+printStatus(m.fork)

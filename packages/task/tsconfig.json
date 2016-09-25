@@ -32,7 +32,6 @@
    "files": [
      "typings/index.d.ts",
      "src/index.ts",
-     "src/interfaces.ts",
-     "src/task.ts"
+     "src/core.ts"
    ]
 }

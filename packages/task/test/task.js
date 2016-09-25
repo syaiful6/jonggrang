@@ -1,7 +1,7 @@
 "use strict";
 
 const jsverify = require('jsverify')
-const _        = require('../lib/task').Task
+const _        = require('../lib/core').Task
 const assert   = require('assert')
 const property = jsverify.property
 const forall   = jsverify.forall
@@ -22,13 +22,10 @@ function onNextTick(v) {
 
 function assertEqual(a, b) {
   return new Promise(done => {
-    const exec = a.and(b).run()
-    exec.listen({
-      resolved: v => {
-        assert.equal(v[0], v[1])
-        done(true)
-      },
-      rejected: failRej
+    const task = a.and(b)
+    task.fork(failRej, v => {
+      assert.equal(v[0], v[1])
+      done(true)
     })
   })
 }
@@ -86,24 +83,16 @@ describe('Task', () => {
     })
     it('should safe with a lot sync task', (done) => {
       const task = _.chainRec(step, MAX_STACK + 2)
-      const exec = task.run()
-      exec.listen({
-        resolved: v => {
-          assert.equal(v, -1)
-          done()
-        },
-        rejected: failRej
+      task.fork(failRej, v => {
+        assert.equal(v, -1)
+        done()
       })
     })
     it('should safe with a lot async task', (done) => {
       const task = _.chainRec(stepAsync, MAX_STACK + 2)
-      const exec = task.run()
-      exec.listen({
-        resolved: v => {
-          assert.equal(v, -1)
-          done()
-        },
-        rejected: failRej
+      task.fork(failRej, v => {
+        assert.equal(v, -1)
+        done()
       })
     })
   })
@@ -114,18 +103,15 @@ describe('Task', () => {
       }), _.of(a))
     })
     it('it correctly handle rejected task', (done) => {
-      let exec = _.do(function* () {
+      let task = _.do(function* () {
         let i = yield rejectOf(2)
         failRej(i)
         return _.of(9)
-      }).run()
-      exec.listen({
-        resolved: failRes,
-        rejected: v => {
-          assert.equal(v, 2)
-          done()
-        }
       })
+      task.fork(v => {
+        assert.equal(v, 2)
+        done()
+      }, failRes)
     })
   })
 })
