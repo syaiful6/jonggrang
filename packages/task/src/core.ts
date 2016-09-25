@@ -216,7 +216,6 @@ export class Task<L, R> {
           for (i = 0; i < cancellers.length; i++) {
             cancellers[i]()
           }
-          cancellers = []
         }
       })
   }
