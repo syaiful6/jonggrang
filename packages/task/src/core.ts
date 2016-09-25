@@ -33,7 +33,11 @@ function doneRec<T>(value: T): ChainRecResult<T> {
   }
 }
 
-function generatorStep(n: any, d: any, last: any) {
+function generatorStep(
+  n: (value: any) => ChainRecResult<any>,
+  d: (value: any) => ChainRecResult<any>,
+  last: { next: (v?: any) => IteratorResult<Task<any, any>>, value: any }
+) {
   let { next } = last
   let { done, value } = next(last.value)
   return done
@@ -179,7 +183,7 @@ export class Task<L, R> {
     })
   }
 
-  static do(func: GeneratorFunction): Task<any, any> {
+  static do(func: () => Iterator<Task<any, any>>): Task<any, any> {
     return new Task((error: Handler<any>, success: Handler<any>) => {
       const gen = func()
       const next = (x: any) => gen.next(x)
