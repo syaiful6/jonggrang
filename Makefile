@@ -29,3 +29,7 @@ compile:
 clean:
 	rm -r -f packages/*/lib
 	rm -r -f packages/*/jsnext
+
+bootstrap:
+	npm install
+	./node_modules/.bin/lerna bootstrap
