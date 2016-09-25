@@ -15,7 +15,7 @@
     "noImplicitReturns": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
-    "outDir": "./type-declaration",
+    "outDir": "./lib",
     "preserveConstEnums": true,
     "pretty": true,
     "removeComments": false,
@@ -29,12 +29,8 @@
     "indentSize": 2,
     "tabSize": 2
   },
-   "files": [
+   "include": [
      "typings/index.d.ts",
-     "src/index.ts",
-     "src/jonggrang.ts",
-     "src/data/task.ts",
-     "src/data/future.ts",
-     "src/util.ts"
+     "src/**/*.ts"
    ]
 }
