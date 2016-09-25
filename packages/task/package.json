@@ -13,8 +13,7 @@
   "typings": "lib/index.d.ts",
   "jsnext:main": "jsnext/index.js",
   "license": "MIT",
-  "dependencies": {
-  },
+  "dependencies": {},
   "files": [
     "lib/",
     "jsnext/"
