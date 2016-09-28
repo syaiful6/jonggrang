@@ -13,7 +13,8 @@
   },
   "files": [
     "../typings/index.d.ts",
-    "./task.ts"
+    "./task.ts",
+    "helpers/util.ts"
   ],
   "exclude": [
     "node_modules"
