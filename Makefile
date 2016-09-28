@@ -22,6 +22,7 @@ lint:
 
 test: compile
 	./bin/test.sh
+	rm -r -f packages/*/test
 
 compile:
 	./bin/compile.sh
