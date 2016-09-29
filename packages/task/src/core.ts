@@ -45,7 +45,8 @@ function generatorStep(
     : value.map((x: any) => n({ value: x, next: next }))
 }
 
-const noop = () => {}
+const noop = () => { }
+const call = (f: Function) => f()
 
 export class Task<L, R> {
   private _computation: Computation<L, R>
@@ -197,13 +198,11 @@ export class Task<L, R> {
       ? Task.of([])
       : new Task((error: Handler<L>, success: Handler<Array<R>>) => {
         let len = arr.length
-        let cancellers: Array<Canceller> = []
         let results: Array<R> = new Array(len)
         let resolved = false
-        let i: number
         const onError = (e: L) => resolved || (resolved = true, error(e))
         function fork(item: Task<L, R>, i: number) {
-          cancellers[i] = item.fork(onError, (v) => {
+          return item.fork(onError, (v) => {
             if (resolved) return
             results[i] = v
             len = len - 1
@@ -213,15 +212,35 @@ export class Task<L, R> {
             }
           })
         }
-        for (i = 0; i < arr.length; i++) {
-          fork(arr[i], i)
-        }
+        let cancellers = arr.map(fork)
         return () => {
-          for (i = 0; i < cancellers.length; i++) {
-            cancellers[i]()
-          }
+          cancellers.forEach(call)
         }
       })
+  }
+
+  /**
+   *
+   *
+   */
+  static race<L, R>(arr: Array<Task<L, R>>): Task<L, R> {
+    return new Task((error: Handler<L>, success: Handler<R>) => {
+      let settled = false
+      const guardReject = (v: L) => {
+        if (settled) return
+        error(v)
+        settled = true
+      }
+      const guardResolve = (v: R) => {
+        if (settled) return
+        success(v)
+        settled = true
+      }
+      let cancellers = arr.map(t => t.fork(guardReject, guardResolve))
+      return () => {
+        cancellers.forEach(call)
+      }
+    })
   }
 
   bimap<TL, TR>(left: (rej: L) => TL, right: (res: R) => TR): Task<TL, TR> {
@@ -259,3 +278,20 @@ export class Task<L, R> {
     }
   }
 }
+
+
+function patchFantasyLandMethod(constructor: any) {
+  // Functor
+  constructor.prototype['fantasy-land/map'] = constructor.prototype.map
+  // Chain
+  constructor.prototype['fantasy-land/chain'] = constructor.prototype.chain
+  // applicative
+  constructor.prototype['fantasy-land/of'] = constructor['fantasy-land/of'] = constructor.of
+  constructor.prototype['fantasy-land/ap'] = constructor.prototype.ap
+  // chainRec
+  constructor.prototype['fantasy-land/chainRec'] = constructor['fantasy-land/chainRec'] = constructor.chainRec
+  // bimap
+  constructor.prototype['fantasy/bimap'] = constructor.prototype.bimap
+}
+
+patchFantasyLandMethod(Task)
