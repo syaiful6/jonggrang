@@ -9,10 +9,10 @@ export function failRej(x: any) {
   throw new Error(`Invalidly entered rejection branch with value ${x}`);
 }
 
-const noop = () => {}
+export const noop = () => {}
 
 // because we run this test on node, process.nextTick is safe to simulate async task
-function onNextTick<T>(v: T) {
+export function onNextTick<T>(v: T) {
   return new Task((rej: Handler<any>, resolve: Handler<T>) => {
     process.nextTick(() => resolve(v))
     return noop
@@ -23,7 +23,7 @@ export function assertEqual(a: Task<any, any>, b: Task<any, any>) {
   return new Promise(done => {
     const task = a.and(b)
     task.fork(failRej, v => {
-      expect(v[0]).to.equal(v[1])
+      expect(v[0]).to.deep.equal(v[1])
       done(true)
     })
   })
