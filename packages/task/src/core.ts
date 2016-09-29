@@ -1,24 +1,52 @@
+/**
+ * A function that computation accept. It just take one argument, the return value
+ * isn't matter, because it used as receiver.
+ */
 export interface Handler<T> {
   (input: T): any
 }
 
+/**
+ * A canceller is a function with no arguments, when it called it return void.
+ */
 export interface Canceller {
   (): void
 }
 
+/**
+ * A Computation is a function that accept 2 arguments. Both arguments are Handler (function),
+ * the left one is for error case and the last one is for success case, and it should
+ * call it with appropriate handler.
+ */
 export interface Computation<L, R> {
   (error: Handler<L>, success: Handler<R>): Canceller
 }
 
+/**
+ * Implementation details for chainRec: it returned by nextRec and doneRec functions
+ * below. The shape is same as IteratorResult.
+ */
 export interface ChainRecResult<T> {
   done: boolean
   value: T
 }
 
+/**
+ * ChainRecFn is a function signature (type) that Task.chainRec expect, it a function
+ * that takes three arguments next, done, value. Next is a function which takes one argument,
+ * and it can be called if the recursion/computation still not complete. Done is similiar to next,
+ * but it for the case you want to stop the recursion, value is previous value/result.
+ * @example
+ *
+ *     const step = (next, done, v) => v < 0 ? Task.of(done(v)) : Task.of(next(v - 1))
+ */
 export interface ChainRecFn<L, R> {
-  (next: (value: R) => ChainRecResult<R>, done: (value: R) => ChainRecResult<R>, v: R): Task<L, ChainRecResult<R>>
+  (next: (value: R) => ChainRecResult<R>, done: (value: R) => ChainRecResult<R>, value: R): Task<L, ChainRecResult<R>>
 }
 
+/**
+ *  A function that passed to first parameter of ChainRecFn
+ */
 function nextRec<T>(value: T): ChainRecResult<T> {
   return {
     done: false,
@@ -26,6 +54,9 @@ function nextRec<T>(value: T): ChainRecResult<T> {
   }
 }
 
+/**
+ * A function that passed to second parameter of ChainRecFn
+ */
 function doneRec<T>(value: T): ChainRecResult<T> {
   return {
     done: true,
@@ -33,6 +64,10 @@ function doneRec<T>(value: T): ChainRecResult<T> {
   }
 }
 
+/**
+ * A ChainRecFn that used to implements Task.do.
+ *
+ */
 function generatorStep(
   n: (value: any) => ChainRecResult<any>,
   d: (value: any) => ChainRecResult<any>,
@@ -48,6 +83,10 @@ function generatorStep(
 const noop = () => { }
 const call = (f: Function) => f()
 
+/**
+ * Task represent values that depend on time similar to Promise. But Task are lazy
+ * and monadic by design, the value will not there until you ask it, by calling .fork method.
+ */
 export class Task<L, R> {
   private _computation: Computation<L, R>
 
@@ -56,8 +95,7 @@ export class Task<L, R> {
   }
 
   /**
-  * Map a successfull value of task using an unary function
-  *
+  * Map a successfull value of task using an unary function.
   */
   map<T>(func: (v: R) => T): Task<L, T> {
     return new Task((error: Handler<L>, success: Handler<T>) => {
@@ -66,7 +104,7 @@ export class Task<L, R> {
   }
 
   /**
-   * Put a value as successful computation
+   * Put a value as successful computation.
    */
   static of<R>(value: R): Task<never, R> {
     return new Task((_: Handler<any>, success: Handler<R>) => {
@@ -76,8 +114,7 @@ export class Task<L, R> {
   }
 
   /**
-   * Put a value as successful computation
-   *
+   * Put a value as successful computation.
    */
   of<R>(value: R): Task<never, R> {
     return Task.of(value)
@@ -111,6 +148,12 @@ export class Task<L, R> {
     })
   }
 
+  /**
+   * Combine this task with the given task, the result task when run, will fork
+   * these task in parallel. If one of these task fail, the result task will fail.
+   * The result is always an array, the first item is successfull value for own,
+   * and the second one is from the given task.
+   */
   and<E, S>(other: Task<E, S>): Task<L | E, [R, S]> {
     return new Task((error: Handler<L | E>, success: Handler<[R, S]>) => {
       let thisVal: R
@@ -134,6 +177,11 @@ export class Task<L, R> {
     })
   }
 
+  /**
+   * Similiar to map. But it accept a function that take one argument and return a Task,
+   * the function will be called with successful value of this task then the returned
+   * Task will be forked for successful value of the returned Task.
+   */
   chain<E, S>(func: (input: R) => Task<E, S>): Task<L | E, S> {
     return new Task((error: Handler<L | E>, success: Handler<S>) => {
       let cancel: Canceller | null = null
@@ -219,10 +267,6 @@ export class Task<L, R> {
       })
   }
 
-  /**
-   *
-   *
-   */
   static race<L, R>(arr: Array<Task<L, R>>): Task<L, R> {
     return new Task((error: Handler<L>, success: Handler<R>) => {
       let settled = false
@@ -278,7 +322,6 @@ export class Task<L, R> {
     }
   }
 }
-
 
 function patchFantasyLandMethod(constructor: any) {
   // Functor
