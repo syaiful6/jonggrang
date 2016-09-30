@@ -43,7 +43,7 @@ describe('Task', () => {
   describe('Applicative', () => {
     it('implement apply interface', () => {
       ['map', 'fantasy-land/map', 'ap', 'fantasy-land/ap', 'of', 'fantasy-land/of'].forEach(m => {
-          expect(typeof taskC[m]).to.be.equal('function')
+        expect(typeof taskC[m]).to.be.equal('function')
       })
     })
     property('identity', 'json', (v: any) => {

@@ -3,7 +3,7 @@
  * isn't matter, because it used as receiver.
  */
 export interface Handler<T> {
-  (input: T): any
+  (input: T): void
 }
 
 /**
