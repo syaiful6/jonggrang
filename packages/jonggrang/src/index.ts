@@ -32,7 +32,7 @@ export type App<ST, AC> = {
 /**
  * The configuration of an app consists of update and initial state.
  *
- * The `update` function describe how to step the state and view the state.
+ * The `update` function describe how to step the state.
  *
  * The `subscriptions` function take a state and return an array of Task, the results
  * will be send to update function.
@@ -92,7 +92,7 @@ export function mapState<T, A, B>(fn: (a: A) => T, eff: EffModel<A, B>): EffMode
 export function mapEffects<T, A, B>(fn: (a: B) => T, eff: EffModel<A, B>): EffModel<A, T> {
   return {
     state: eff.state,
-    effects: eff.effects.map(b => b.fold(fn, fn))
+    effects: eff.effects.map(b => b.bimap(fn, fn))
   }
 }
 
