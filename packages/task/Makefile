@@ -39,7 +39,9 @@ clean:
 	rm -f -r lib
 
 test: compile-cjs
+	sh $(tsc) -p spec
 	sh $(mocha) --reporter spec --ui bdd
+	rm -r -f test
 
 test-opt:
 	node --allow-natives-syntax --trace-opt --trace-deopt --trace-inlining scripts/opt.js

@@ -30,7 +30,7 @@ compile-cjs:
 	sh $(tsc)
 
 compile-jsnext:
-	sh $(tsc) -p config
+	sh $(tsc) -p scripts
 
 compile: compile-cjs compile-jsnext
 
@@ -39,4 +39,6 @@ clean:
 	rm -f -r lib
 
 test: compile-cjs
+	sh $(tsc) -p spec
 	sh $(mocha) --reporter spec --ui bdd
+	rm -r -f test

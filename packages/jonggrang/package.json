@@ -21,6 +21,6 @@
     "jsnext/"
   ],
   "devDependencies": {
-    "jsverify": "^0.7.1"
+    "chai": "^3.5.0"
   }
 }
