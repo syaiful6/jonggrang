@@ -16,5 +16,7 @@ describe('Jonggrang Core', () => {
     let state = app.state()
     action(Increment.create())
     expect(app.state()).to.be.equal(state + 1)
+    action(Decrement.create())
+    expect(app.state()).to.be.equal(state)
   })
 })

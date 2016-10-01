@@ -294,7 +294,7 @@ export class Task<L, R> {
       }
     })
   }
-  
+
   /**
    * Maps both sides of the disjunction.
    */
