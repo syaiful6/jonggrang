@@ -14,7 +14,7 @@
   "jsnext:main": "jsnext/index.js",
   "license": "MIT",
   "dependencies": {
-    "jonggrang.task": "0.0.1"
+    "jonggrang.task": "^0.0.1"
   },
   "files": [
     "lib/",
