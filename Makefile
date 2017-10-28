@@ -20,17 +20,22 @@ help:
 lint:
 	./node_modules/.bin/tslint -c "./tslint.json" $(SRC_DIRS)
 
-test: compile
+test:
 	./bin/test.sh
-	rm -r -f packages/*/test
+
+test-browser:
+	$(bin)/karma start
 
 compile:
 	./bin/compile.sh
 
 clean:
-	rm -r -f packages/*/lib
-	rm -r -f packages/*/jsnext
+	rm -rf packages/*/lib
+	rm -rf packages/*/es6
+
+publish: clean compile
+	./node_modules/.bin/lerna publish --silent
+
 
 bootstrap:
-	npm install
 	./node_modules/.bin/lerna bootstrap

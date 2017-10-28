@@ -6,7 +6,8 @@
 /ideas
 typings
 lib
-jsnext
+es6
+coverage
 
 # dependencies
 node_modules

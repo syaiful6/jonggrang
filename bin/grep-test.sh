@@ -8,6 +8,10 @@ for f in packages/*; do
     continue
   fi
 
+  if [ `basename $f` = 'vnode' ]; then
+    continue
+  fi
+
   if [ -d "$f/test" ]; then
     TEST_DIRS="$f/test $TEST_DIRS"
   fi

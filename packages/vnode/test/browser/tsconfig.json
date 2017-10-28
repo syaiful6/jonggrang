@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "declaration": true,
+    "removeComments": false,
+    "noUnusedLocals": true,
+    "lib": [
+        "dom",
+        "es5",
+        "es2015.core"
+    ]
+  },
+  "files": [
+    "core.ts",
+    "event.ts",
+    "properties.ts"
+  ]
+}

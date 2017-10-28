@@ -1,37 +1,19 @@
 {
-  "compileOnSave": false,
+  "extends": "../../tsconfig.common.json",
   "compilerOptions": {
-    "declaration": true,
     "lib": [
-      "es2015",
-      "dom"
-    ],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noEmitHelpers": false,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": true,
-    "noImplicitThis": false,
-    "noImplicitReturns": true,
-    "noUnusedParameters": true,
-    "noUnusedLocals": true,
-    "outDir": "./lib",
-    "preserveConstEnums": true,
-    "pretty": true,
-    "removeComments": false,
-    "sourceMap": false,
-    "strictNullChecks": true,
-    "target": "es5",
-    "types": [
+      "es5",
+      "es2015.core",
+      "es2015.iterable",
+      "es2015.generator"
     ]
   },
-  "formatCodeOptions": {
-    "indentSize": 2,
-    "tabSize": 2
-  },
-   "files": [
-     "typings/index.d.ts",
-     "src/index.ts",
-     "src/core.ts"
-   ]
+  "files": [
+    "src/index.ts",
+    "src/avar.ts",
+    "src/internal/types.ts",
+    "src/internal/utils.ts",
+    "src/internal/scheduler.ts",
+    "src/internal/interpreter.ts"
+  ]
 }
