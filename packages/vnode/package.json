@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/vnode",
   "description": "An extensible virtual-dom library written in typescript.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Syaiful Bahri"
   },
