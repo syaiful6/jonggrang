@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.common.json",
+  "compilerOptions": {
+    "lib": [
+      "es5",
+      "es2015.core",
+      "es2015.iterable",
+      "es2015.generator"
+    ]
+  },
+  "files": [
+    "src/index.ts",
+    "src/ord.ts",
+    "src/maybe.ts",
+    "src/either.ts"
+  ]
+}
