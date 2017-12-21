@@ -226,7 +226,7 @@ export function h2<A>(attr: any, childs?: any): VElem<A> {
 export function h3<A>(childs: VDom<A>[]): VElem<A>;
 export function h3<A>(attr: Prop<A>[], childs: VDom<A>[]): VElem<A>;
 export function h3<A>(attr: any, childs?: any): VElem<A> {
-  return V.h('form', attr, childs);
+  return V.h('h3', attr, childs);
 }
 
 export function h4<A>(childs: VDom<A>[]): VElem<A>;
@@ -244,7 +244,7 @@ export function h5<A>(attr: any, childs?: any): VElem<A> {
 export function h6<A>(childs: VDom<A>[]): VElem<A>;
 export function h6<A>(attr: Prop<A>[], childs: VDom<A>[]): VElem<A>;
 export function h6<A>(attr: any, childs?: any): VElem<A> {
-  return V.h('form', attr, childs);
+  return V.h('h6', attr, childs);
 }
 
 export function head<A>(childs: VDom<A>[]): VElem<A>;
