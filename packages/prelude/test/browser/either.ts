@@ -15,7 +15,7 @@ describe('Prelude Either', () => {
       expect(e).to.be.deep.equals({ tag: E.EitherType.LEFT, value: 'error' });
     });
 
-    it('equencing of `Either` values and functions that return Either', () => {
+    it('sequencing of `Either` values and functions that return Either', () => {
       function transform(a: string) {
         return E.right(a + 'sequencing');
       }
