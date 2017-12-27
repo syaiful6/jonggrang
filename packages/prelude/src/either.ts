@@ -36,7 +36,19 @@ export function left<A>(value: A): Left<A> {
   return { tag: EitherType.LEFT, value };
 }
 
-export function bimapEither<A, B, C, D>(f: (_: A) => C, g: (_: B) => D, e: Either<A, B>): Either<C, D> {
+/**
+ * Take 2 functions and an `Either` value, transform the contents of a `Left`
+ * with first function, if the value is a `Right` then transform the contents
+ * with second function.
+ * @param f
+ * @param g
+ * @param e
+ */
+export function bimapEither<A, B, C, D>(
+  f: (_: A) => C,
+  g: (_: B) => D,
+  e: Either<A, B>
+): Either<C, D> {
   return e.tag === EitherType.LEFT ? left(f(e.value)) : right(g(e.value));
 }
 
@@ -85,7 +97,7 @@ export function either<A, B, C>(f: (_: A) => C, g: (_: B) => C, e: Either<A, B>)
  * Returns `true` when the `Either` value was constructed with `Left`.
  * @param e
  */
-export function isLeft(e: Either<any, any>): boolean {
+export function isLeft<A>(e: Either<A, any>): e is Left<A> {
   return e.tag === EitherType.LEFT;
 }
 
@@ -93,6 +105,6 @@ export function isLeft(e: Either<any, any>): boolean {
  * Returns `true` when the `Either` value was constructed with `Right`.
  * @param e
  */
-export function isRight(e: Either<any, any>): boolean {
+export function isRight<A>(e: Either<any, A>): e is Right<A> {
   return e.tag === EitherType.RIGHT;
 }

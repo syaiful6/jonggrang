@@ -1,7 +1,7 @@
 /**
  * Fantasy Land Ord
  */
-export type Ord<A> = A & {
+export interface Ord<A> {
   compare(a: A): Ordering;
 }
 
@@ -16,27 +16,27 @@ export type Ordering = 1 | 0 | -1;
  * @param a Ord<A>
  * @param b Ord<A>
  */
-export function compare<A>(a: Ord<A>, b: Ord<A>): Ordering {
+export function compare<A extends Ord<A>>(a: A, b: A): Ordering {
   return a.compare(b);
 }
 
-export function lt<A>(a: Ord<A>, b: Ord<A>): boolean {
+export function lt<A extends Ord<A>>(a: A, b: A): boolean {
   return compare(a, b) === -1;
 }
 
-export function lte<A>(a: Ord<A>, b: Ord<A>): boolean {
+export function lte<A extends Ord<A>>(a: A, b: A): boolean {
   return compare(a, b) <= 0;
 }
 
-export function gt<A>(a: Ord<A>, b: Ord<A>): boolean {
+export function gt<A extends Ord<A>>(a: A, b: A): boolean {
   return compare(a, b) === 1;
 }
 
-export function gte<A>(a: Ord<A>, b: Ord<A>): boolean {
+export function gte<A extends Ord<A>>(a: A, b: A): boolean {
   return compare(a, b) >= 0;
 }
 
-export function min<A>(a: Ord<A>, b: Ord<A>): A {
+export function min<A extends Ord<A>>(a: A, b: A): A {
   switch (compare(a, b)) {
     case 0:
     case -1:
@@ -46,7 +46,7 @@ export function min<A>(a: Ord<A>, b: Ord<A>): A {
   }
 }
 
-export function max<A>(a: Ord<A>, b: Ord<A>): A {
+export function max<A extends Ord<A>>(a: A, b: A): A {
   switch (compare(a, b)) {
     case -1:
       return b;

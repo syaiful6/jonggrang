@@ -6,6 +6,7 @@
     "url": "git+https://github.com/syaiful6/jonggrang.git"
   },
   "devDependencies": {
+    "jsverify": "^0.8.3",
     "karma": "^1.3.0",
     "karma-chrome-launcher": "^2.0.0",
     "karma-firefox-launcher": "^1.0.0",

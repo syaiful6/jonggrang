@@ -36,6 +36,5 @@ clean:
 publish: clean compile
 	./node_modules/.bin/lerna publish --silent
 
-
 bootstrap:
 	./node_modules/.bin/lerna bootstrap

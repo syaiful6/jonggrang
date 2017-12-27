@@ -6,8 +6,6 @@ import { thrower } from './utils';
 export class Scheduler {
   private _size: number;
 
-  private _count: number;
-
   private _ix: number;
 
   private _draining: boolean;
@@ -16,7 +14,6 @@ export class Scheduler {
 
   constructor(private _limit: number) {
     this._size  = 0;
-    this._count = 0;
     this._ix    = 0;
     this._draining = false;
     this._queue = new Array(_limit);

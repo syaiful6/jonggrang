@@ -78,7 +78,7 @@ export function fromMaybe<A>(d: A, m: Maybe<A>): A {
  * Returns `true` when the `Maybe` value was constructed with `Just`.
  * @param m
  */
-export function isJust(m: Maybe<any>): boolean {
+export function isJust<A>(m: Maybe<A>): m is Just<A> {
   return maybe(false, alwaysTrue, m);
 }
 
@@ -86,7 +86,7 @@ export function isJust(m: Maybe<any>): boolean {
  * Returns `true` when the `Maybe` value is `Nothing`.
  * @param m
  */
-export function isNothing(m: Maybe<any>): boolean {
+export function isNothing(m: Maybe<any>): m is Nothing {
   return maybe(true, alwaysFalse, m);
 }
 
