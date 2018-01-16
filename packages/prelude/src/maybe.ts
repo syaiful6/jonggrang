@@ -43,6 +43,11 @@ export function chainMaybe<A, B>(f: (_: A) => Maybe<B>, m: Maybe<A>): Maybe<B> {
   return m.tag === MaybeType.NOTHING ? m : f(m.value);
 }
 
+/**
+ * Take two maybe and return the first Just encountered.
+ * @param m1 Maybe<A>
+ * @param m2 Maybe<A>
+ */
 export function altMaybe<A>(m1: Maybe<A>, m2: Maybe<A>): Maybe<A> {
   return m1.tag === MaybeType.NOTHING ? m2 : m1;
 }

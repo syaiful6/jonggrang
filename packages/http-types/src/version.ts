@@ -14,6 +14,12 @@ export class HttpVersion {
   }
 }
 
+/**
+ * Construct http version
+ * 
+ * @param major number
+ * @param minor number
+ */
 export function httpVersion(major: number, minor: number) {
   return new HttpVersion(major, minor);
 }
