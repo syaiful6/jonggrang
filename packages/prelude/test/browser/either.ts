@@ -5,6 +5,7 @@ import * as jsv from 'jsverify';
 import * as E from '../../src/either';
 import { deepEq } from '../../src/eq';
 import { id } from './utils';
+import { deepEqual } from 'assert';
 
 
 function leftArb<A>(arb: jsv.Arbitrary<A>): jsv.Arbitrary<E.Either<A, any>> {
@@ -43,6 +44,16 @@ describe('Prelude Either', () => {
         )
       )
     );
+
+    it('Left value is untouched', () =>
+      jsv.assert(
+        jsv.forall(
+          leftArb(jsv.json),
+          jsv.fn(jsv.json),
+          (a, f) => deepEq(E.mapEither(f, a), a)
+        )
+      )
+    );
   });
 
   describe('bimapEither', () => {
@@ -67,6 +78,24 @@ describe('Prelude Either', () => {
         )
       )
     )
+  });
+
+  describe('lmapEither', () => {
+    it('map the content of Left', () =>
+      jsv.forall(
+        leftArb(jsv.nat),
+        jsv.fn(jsv.nat),
+        (a, f) => deepEqual(E.lmapEither(f, a), E.left(f(a.value)))
+      )
+    );
+
+    it('Right value is untouched', () =>
+      jsv.forall(
+        rightArb(jsv.nat),
+        jsv.fn(jsv.nat),
+        (a, f) => deepEqual(E.lmapEither(f, a), a)
+      )
+    );
   });
 
   describe('either', () => {

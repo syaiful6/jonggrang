@@ -59,7 +59,16 @@ export function bimapEither<A, B, C, D>(
  * @param e
  */
 export function mapEither<A, B, C>(f: (_: B) => C, e: Either<A, B>): Either<A, C> {
-  return e.tag === EitherType.LEFT ? e : right(f(e.value));
+  return e.tag === EitherType.RIGHT ? right(f(e.value)) : e;
+}
+
+/**
+ * lmapEither allow function to transform the contents of a `Left`.
+ * @param f function
+ * @param e an Either
+ */
+export function lmapEither<A, B, C>(f: (_: A) => C, e: Either<A, B>): Either<C, B> {
+  return e.tag === EitherType.LEFT ? left(f(e.value)) : e;
 }
 
 /**

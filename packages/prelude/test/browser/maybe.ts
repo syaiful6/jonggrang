@@ -95,4 +95,27 @@ describe('Prelude Maybe', () => {
       )
     );
   });
+
+  describe('maybe', () => {
+    it('returns default value if the Maybe is Nothing', () =>
+      jsv.assert(
+        jsv.forall(
+          jsv.nat,
+          jsv.fn(jsv.nat),
+          (a, f) => deepEq(M.maybe(a, f, M.nothing), a)
+        )
+      )
+    );
+
+    it('apply function to value inside Just', () =>
+      jsv.assert(
+        jsv.forall(
+          jsv.nat,
+          jsv.nat,
+          jsv.fn(jsv.nat),
+          (a, b, f) => deepEq(M.maybe(a, f, M.just(b)), f(b))
+        )
+      )
+    );
+  });
 });

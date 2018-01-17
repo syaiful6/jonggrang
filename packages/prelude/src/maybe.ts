@@ -52,6 +52,11 @@ export function altMaybe<A>(m1: Maybe<A>, m2: Maybe<A>): Maybe<A> {
   return m1.tag === MaybeType.NOTHING ? m2 : m1;
 }
 
+/**
+ * Apply a function inside Maybe with another Maybe.
+ * @param fm
+ * @param m 
+ */
 export function applyMaybe<A, B>(fm: Maybe<(_: A) => B>, m: Maybe<A>): Maybe<B> {
   return fm.tag === MaybeType.NOTHING ? fm : mapMaybe(fm.value, m);
 }
@@ -69,6 +74,14 @@ export function maybe<A, B>(d: B, f: (_: A) => B, m: Maybe<A>): B {
 }
 
 /**
+ * Similar to `maybe` but for use in cases where the default value may be
+ * expensive to compute.
+ */
+export function maybe_<A, B>(f: () => B, g: (_: A) => B, m: Maybe<A>): B {
+  return m.tag === MaybeType.NOTHING ? f() : g(m.value);
+}
+
+/**
  * Takes a default value, and a `Maybe` value. If the `Maybe` value is
  * `Nothing` the default value is returned, otherwise the value inside the
  * `Just` is returned.
@@ -80,11 +93,19 @@ export function fromMaybe<A>(d: A, m: Maybe<A>): A {
 }
 
 /**
+ * Similiar to `fromMaybe` but for use in case where default value may be
+ * expensive to compute.
+ */
+export function fromMaybe_<A>(f: () => A, m: Maybe<A>): A {
+  return m.tag === MaybeType.NOTHING ? f() : m.value;
+}
+
+/**
  * Returns `true` when the `Maybe` value was constructed with `Just`.
  * @param m
  */
 export function isJust<A>(m: Maybe<A>): m is Just<A> {
-  return maybe(false, alwaysTrue, m);
+  return m.tag === MaybeType.JUST;
 }
 
 /**
@@ -92,13 +113,5 @@ export function isJust<A>(m: Maybe<A>): m is Just<A> {
  * @param m
  */
 export function isNothing(m: Maybe<any>): m is Nothing {
-  return maybe(true, alwaysFalse, m);
-}
-
-function alwaysTrue() {
-  return true;
-}
-
-function alwaysFalse() {
-  return false;
+  return m.tag === MaybeType.NOTHING;
 }
