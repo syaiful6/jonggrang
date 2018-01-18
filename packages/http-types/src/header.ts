@@ -1,3 +1,5 @@
+import * as M from '@jonggrang/prelude/lib/maybe';
+
 export interface RequestHeaders {
   'accept'?: string;
   'access-control-allow-origin'?: string;
@@ -72,6 +74,21 @@ export type ByteRange = ByteRangeFrom | ByteRangeFromTo | ByteRangeSuffix;
 
 export type ByteRanges = ByteRange[];
 
+export function renderByteRange(b: ByteRange): string {
+  switch (b.tag) {
+    case ByteRangeType.RANGEFROM:
+      return `${b.from}-`;
+    case ByteRangeType.RANGEFROMTO:
+      return `${b.from}-${b.to}`;
+    case ByteRangeType.RANGESUFFIX:
+      return `-${b.suffix}`;
+  }
+}
+
+export function renderByteRanges(b: ByteRanges): string {
+  return 'bytes=' + b.map(renderByteRange).join(',');
+}
+
 export function byteRange(tag: ByteRangeType.RANGEFROM, from: number): ByteRangeFrom;
 export function byteRange(tag: ByteRangeType.RANGESUFFIX, suffix: number): ByteRangeSuffix;
 export function byteRange(tag: ByteRangeType.RANGESUFFIX, from: number, to: number): ByteRangeFromTo;
@@ -81,5 +98,29 @@ export function byteRange(tag: ByteRangeType, from: number, to?: number): any {
     suffix: tag === ByteRangeType.RANGESUFFIX ? from : undefined,
     from: tag === ByteRangeType.RANGESUFFIX ? undefined : from,
     to: to
+  }
+}
+
+export function readInteger(b: string): M.Maybe<[number, string]> {
+  let negate = false;
+  let str = b;
+  if (str === '') {
+    return M.nothing;
+  }
+  if (str[0] === '-') {
+    str = str.substring(1);
+    negate = true;
+  } else if (str[0] === '+') {
+    str = str.substring(1);
+  }
+  const matched = str.match(/\d+/);
+  if (matched === null || matched.length === 0) {
+    return M.nothing;
+  } else {
+    const ix = matched[0];
+    const idx = (matched.index as number) + ix.length;
+    const leftover = str.substring(idx);
+    const pix = parseInt(ix);
+    return M.just([negate ? -pix : pix, leftover] as [number, string]);
   }
 }
