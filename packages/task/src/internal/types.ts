@@ -140,34 +140,8 @@ export interface Supervisor {
   killAll(err: Error, cb: NodeCallback<any, any>): Canceler;
 }
 
-export interface Left<A> {
-  tag: 'LEFT';
-  value: A;
-}
-
-export interface Right<A> {
-  tag: 'RIGHT';
-  value: A;
-}
-
 export interface IntMap<A> {
   [key: string]: A;
-}
-
-export type Either<A, B> = Left<A> | Right<B>;
-
-export function createEither<A>(tag: 'LEFT', value: A): Left<A>;
-export function createEither<B>(tag: 'RIGHT', value: B): Right<B>;
-export function createEither(tag: any, value: any): any {
-  return { tag, value };
-}
-
-export function right<A>(v: A): Either<any, A> {
-  return createEither('RIGHT', v);
-}
-
-export function left<A>(v: A): Either<A, any> {
-  return createEither('LEFT', v);
 }
 
 export function createCoreTask<A>(tag: 'PURE', _1: A): PureTask<A>;

@@ -1,10 +1,12 @@
 import 'mocha';
+import { MaybeType } from '@jonggrang/prelude/lib/maybe';
+
 import * as T from '../../src';
 import * as Q from './utils';
 import * as AV from '../../src/avar';
 
 describe('AVar', () => {
-  it('try read full AVar return Some', done =>
+  it('try read full AVar return Just<A>', done =>
     T.runTask(
       done,
       Q.assertTask(
@@ -12,21 +14,21 @@ describe('AVar', () => {
           .chain(avar => AV.tryReadAVar(avar)
             .chain(val1 => AV.tryReadAVar(avar)
               .map(val2 =>
-                   val1.kind === AV.OptionType.SOME
-                && val2.kind === AV.OptionType.SOME
+                   val1.tag === MaybeType.JUST
+                && val2.tag === MaybeType.JUST
                 && val1.value == val2.value)))
       )
     )
   );
 
-  it('try read empty AVar return None', done =>
+  it('try read empty AVar return Nothing', done =>
     T.runTask(
       done,
       Q.assertTask(
         AV.newEmptyAVar
           .chain(av =>
             AV.tryReadAVar(av)
-              .map(v => v.kind === AV.OptionType.NONE))
+              .map(v => v.tag === MaybeType.NOTHING))
       )
     )
   );
@@ -66,14 +68,14 @@ describe('AVar', () => {
     )
   );
 
-  it('try takeAvar return None when AVar empty', done =>
+  it('try takeAvar return Nothing when AVar empty', done =>
     T.runTask(
       done,
       Q.assertTask(
         AV.newEmptyAVar
           .chain(av =>
             AV.tryTakeAVar(av)
-            .map(opt => opt.kind === AV.OptionType.NONE))
+            .map(opt => opt.tag === MaybeType.NOTHING))
       )
     )
   );

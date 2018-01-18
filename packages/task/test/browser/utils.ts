@@ -2,7 +2,6 @@ import { expect } from 'chai';
 
 import * as T from '../../src';
 
-
 function pair<A, B>(a: A): (b: B) => [A, B] {
   return (b: B) => [a, b]
 }
@@ -34,11 +33,6 @@ export function assertTask(t: T.Task<boolean>): T.Task<void> {
     })
   })
 }
-
-export function isLeft(x: T.Either<any, any>): boolean {
-  return x.tag === 'LEFT';
-}
-
 
 export type Ref<A> = {
   value: A

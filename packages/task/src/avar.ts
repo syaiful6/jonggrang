@@ -1,3 +1,5 @@
+import * as M from '@jonggrang/prelude/lib/maybe';
+
 import { NodeCallback } from './internal/types';
 import { thrower } from './internal/utils';
 import * as T from './index';
@@ -343,45 +345,29 @@ export function swapAVar<A>(avar: AVar<A>, a: A): T.Task<A> {
   return takeAVar(avar).chain(v => putAVar(avar, a).map(_ => v));
 }
 
-export enum OptionType {
-  SOME = 'SOME',
-  NONE = 'NONE'
-};
-
-export interface Some<A> {
-  kind: OptionType.SOME;
-  value: A;
-}
-
-export interface None {
-  kind: OptionType.NONE;
-}
-
-export type Option<A> = Some<A> | None;
-
-export function tryTakeAVar<A>(avar: AVar<A>): T.Task<Option<A>> {
+export function tryTakeAVar<A>(avar: AVar<A>): T.Task<M.Maybe<A>> {
   return T.liftEff(() => {
     const status = avar.status;
     switch (status.kind) {
       case AVarStatus.EMPTY:
       case AVarStatus.KILLED:
-        return { kind: OptionType.NONE } as None;
+        return M.nothing;
       case AVarStatus.FULL:
         avar.status = Sentinel;
         drainAVar(avar);
-        return { kind: OptionType.SOME, value: status.value } as Some<A>;
+        return M.just(status.value);
     }
   });
 }
 
-export function tryReadAVar<A>(avar: AVar<A>): T.Task<Option<A>> {
+export function tryReadAVar<A>(avar: AVar<A>): T.Task<M.Maybe<A>> {
   return T.liftEff(() => {
     const status = avar.status;
     switch (status.kind) {
       case AVarStatus.FULL:
-        return { kind: OptionType.SOME, value: status.value } as Some<A>;
+        return M.just(status.value);
       default:
-        return { kind: OptionType.NONE } as None;
+        return M.nothing;
     }
   });
 }

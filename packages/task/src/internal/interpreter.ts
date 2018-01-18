@@ -1,8 +1,9 @@
+import { EitherType, Either, Left, Right, left, right } from '@jonggrang/prelude/lib/either';
+
 import {
   CoreTask, Pure, Throw, Except, Bind, Bracket, Sync, Async, Fork, Sequential,
-  ParTask, ParMap, left, right, createCoreTask, Task, Supervisor,
-  Computation, Fiber, Canceler, Fn1, IntMap, OnComplete, Either, Left, Right,
-  NodeCallback, Eff, nonCanceler
+  ParTask, ParMap,createCoreTask, Task, Supervisor, Computation, Fiber, Canceler,
+  Fn1, IntMap, OnComplete, NodeCallback, Eff, nonCanceler
 } from './types';
 import { scheduler } from './scheduler';
 import { thrower } from './utils';
@@ -522,12 +523,11 @@ export class TaskFiber<A> implements Fiber<A> {
   }
 
   runRaw(localRunTick: number) {
-    let tmp: any, result: any, attempt: any, canceler: any;
+    let tmp: any, result: any, attempt: any;
     while (true) {
       tmp       = null;
       result    = null;
       attempt   = null;
-      canceler  = null;
       switch (this._status) {
         case StateFiber.STEP_BIND:
           this._status = StateFiber.CONTINUE;
@@ -797,7 +797,7 @@ function isLeft<A>(b: CoreTask<A> | null | Either<Error, A> | Computation<A> | C
   if (typeof (b as any).cancel === 'function') {
     return false;
   }
-  if ((b as any).tag !== 'LEFT') return false;
+  if ((b as any).tag !== EitherType.LEFT) return false;
   return true;
 }
 

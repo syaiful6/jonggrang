@@ -1,5 +1,13 @@
 {
   "compilerOptions": {
+    "lib": [
+      "dom",
+      "es5",
+      "es2015.core",
+      "es2015.promise",
+      "es2015.iterable",
+      "es2015.generator"
+    ],
     "removeComments": false,
     "sourceMap": true,
     "declaration": true,
@@ -16,5 +24,10 @@
   "formatCodeOptions": {
     "indentSize": 2,
     "tabSize": 2
-  }
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
 }

@@ -1,6 +1,6 @@
 import { Machine, StrMap, emptyStrMap } from '../types';
 
-export enum PropType {
+export const enum PropType {
   ATTRIBUTE,
   PROPERTY,
   HANDLER,

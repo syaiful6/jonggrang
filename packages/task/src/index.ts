@@ -1,7 +1,8 @@
+import { Either, left, right, isRight } from '@jonggrang/prelude/lib/either';
+
 import {
-  Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor,
-  Either, right, left, nonCanceler, AsyncTask, SyncTask,
-  Task, ForkTask, BracketTask, GeneralBracket, Parallel
+  Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
+  AsyncTask, SyncTask, Task, ForkTask, BracketTask, GeneralBracket, Parallel
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
 import { SimpleSupervisor } from './internal/scheduler';
@@ -10,7 +11,7 @@ import { id } from './internal/utils';
 
 // re-export
 export {
-  nonCanceler, Canceler, Fiber, Either, Task, Parallel, Supervisor,
+  nonCanceler, Canceler, Fiber, Task, Parallel, Supervisor,
   Computation, NodeCallback
 } from './internal/types';
 
@@ -123,7 +124,7 @@ export function liftEff<A>(f: () => A): Task<A> {
  * @param task
  */
 export function attempt<A>(task: Task<A>): Task<Either<Error, A>> {
-  return rescue(task.map(right), e => pure(left(e)));
+  return rescue(task.map(right) as Task<Either<Error, A>>, e => pure(left(e)));
 }
 
 /**
@@ -201,7 +202,7 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
  */
 export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
   function kont(e: Either<Error, A>) {
-    if (e.tag === 'RIGHT') {
+    if (isRight(e)) {
       return cb(null, e.value);
     }
     return cb(e.value);

@@ -1,9 +1,11 @@
 import 'mocha';
+import * as E from '@jonggrang/prelude/lib/either';
+
 import * as T from '../../src'
 import * as Q from './utils';
 
 const testTry = Q.assertTask(T.attempt(T.Task.of(42)).chain(x => {
-  if (x.tag === "RIGHT" && x.value === 42) {
+  if (x.tag === E.EitherType.RIGHT && x.value === 42) {
     return T.Task.of(true);
   }
   return T.Task.of(false);
@@ -97,7 +99,7 @@ describe('Task.Core', () => {
         done,
         Q.assertTask(
           T.attempt(T.Task.throwError(new Error('nope')))
-          .map(Q.isLeft)
+          .map(E.isLeft)
         )
       );
     });
@@ -172,7 +174,7 @@ describe('Task.Core', () => {
           return T.Task.throwError(new Error('Nope.'))
         }));
         let et = yield T.attempt(T.joinFiber(fib));
-        return T.Task.of(et.tag === 'LEFT');
+        return T.Task.of(et.tag === E.EitherType.LEFT);
       })));
     });
 
@@ -182,7 +184,7 @@ describe('Task.Core', () => {
         Q.assertTask(T.co(function* () {
           let fib = yield T.forkTask(T.Task.throwError(new Error('nope')));
           let et = yield T.attempt(T.joinFiber(fib));
-          return T.Task.of(et.tag === 'LEFT');
+          return T.Task.of(et.tag ===  E.EitherType.LEFT);
         }))
       );
     });
@@ -193,7 +195,7 @@ describe('Task.Core', () => {
         Q.assertTask(
           T.attempt(T.liftEff(() => {
             throw new Error('sync error');
-          })).map(e => e.tag === 'LEFT')
+          })).map(e => e.tag === E.EitherType.LEFT)
         )
       );
     });

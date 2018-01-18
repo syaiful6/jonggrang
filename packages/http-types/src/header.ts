@@ -72,10 +72,10 @@ export type ByteRange = ByteRangeFrom | ByteRangeFromTo | ByteRangeSuffix;
 
 export type ByteRanges = ByteRange[];
 
-function byteRange(tag: ByteRangeType.RANGEFROM, from: number): ByteRangeFrom;
-function byteRange(tag: ByteRangeType.RANGESUFFIX, suffix: number): ByteRangeSuffix;
-function byteRange(tag: ByteRangeType.RANGESUFFIX, from: number, to: number): ByteRangeFromTo;
-function byteRange(tag: ByteRangeType, from: number, to?: number): any {
+export function byteRange(tag: ByteRangeType.RANGEFROM, from: number): ByteRangeFrom;
+export function byteRange(tag: ByteRangeType.RANGESUFFIX, suffix: number): ByteRangeSuffix;
+export function byteRange(tag: ByteRangeType.RANGESUFFIX, from: number, to: number): ByteRangeFromTo;
+export function byteRange(tag: ByteRangeType, from: number, to?: number): any {
   return {
     tag,
     suffix: tag === ByteRangeType.RANGESUFFIX ? from : undefined,

@@ -20,14 +20,14 @@ help:
 lint:
 	./node_modules/.bin/tslint -c "./tslint.json" $(SRC_DIRS)
 
-test:
+test: compile
 	./bin/test.sh
 
 test-browser:
 	$(bin)/karma start
 
-compile:
-	./bin/compile.sh
+compile: clean
+	node bin/build.js
 
 clean:
 	rm -rf packages/*/lib

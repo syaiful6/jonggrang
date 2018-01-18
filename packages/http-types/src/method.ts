@@ -1,4 +1,4 @@
-import { Choice, left, right } from './utils';
+import { Either, left, right } from '@jonggrang/prelude/lib/either';
 
 /**
  * HTTP standard method (as defined by RFC 2616, and PATCH which is defined
@@ -15,7 +15,7 @@ export type HttpMethod
   | 'OPTIONS'
   | 'PATCH';
 
-export function httpMethod(str: string): Choice<string, HttpMethod> {
+export function httpMethod(str: string): Either<string, HttpMethod> {
   switch (str) {
     case 'GET':
     case 'POST':

@@ -13,7 +13,7 @@ export type VDom<A, W>
 /**
  * enum for VDom
  */
-export enum VDomType {
+export const enum VDomType {
   VTEXT,
   VELEM,
   VELEMKEYED,
