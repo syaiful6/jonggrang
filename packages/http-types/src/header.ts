@@ -91,7 +91,7 @@ export function renderByteRanges(b: ByteRanges): string {
 
 export function byteRange(tag: ByteRangeType.RANGEFROM, from: number): ByteRangeFrom;
 export function byteRange(tag: ByteRangeType.RANGESUFFIX, suffix: number): ByteRangeSuffix;
-export function byteRange(tag: ByteRangeType.RANGESUFFIX, from: number, to: number): ByteRangeFromTo;
+export function byteRange(tag: ByteRangeType.RANGEFROMTO, from: number, to: number): ByteRangeFromTo;
 export function byteRange(tag: ByteRangeType, from: number, to?: number): any {
   return {
     tag,
@@ -101,26 +101,40 @@ export function byteRange(tag: ByteRangeType, from: number, to?: number): any {
   }
 }
 
-export function readInteger(b: string): M.Maybe<[number, string]> {
-  let negate = false;
-  let str = b;
-  if (str === '') {
+export function parseByteRanges(bs: string): M.Maybe<ByteRanges> {
+  const ix = bs.indexOf('=');
+  if (ix === -1) {
     return M.nothing;
   }
-  if (str[0] === '-') {
-    str = str.substring(1);
-    negate = true;
-  } else if (str[0] === '+') {
-    str = str.substring(1);
+  const xs = bs.slice(ix + 1).split(',');
+  const ranges: ByteRanges = [];
+  let suffix: number;
+  let start: number;
+  let end: number;
+  let range: string[];
+  for (let i = 0, len = xs.length; i < len; i++) {
+    if (xs[i].charAt(0) === '-') {
+      suffix = parseInt(xs[i].substring(1), 10);
+      if (isNaN(suffix)) {
+        return M.nothing;
+      }
+      ranges.push(byteRange(ByteRangeType.RANGESUFFIX, suffix));
+      continue;
+    }
+    if (xs[i].indexOf('-') === -1) {
+      return M.nothing;
+    }
+    range = xs[i].split('-');
+    start = parseInt(range[0], 10);
+    end = parseInt(range[1], 10);
+    if (isNaN(start)) {
+      return M.nothing;
+    }
+    if (!isNaN(end) && start <= end) {
+      ranges.push(byteRange(ByteRangeType.RANGEFROMTO, start, end));
+    } else {
+      ranges.push(byteRange(ByteRangeType.RANGEFROM, start));
+    }
   }
-  const matched = str.match(/\d+/);
-  if (matched === null || matched.length === 0) {
-    return M.nothing;
-  } else {
-    const ix = matched[0];
-    const idx = (matched.index as number) + ix.length;
-    const leftover = str.substring(idx);
-    const pix = parseInt(ix);
-    return M.just([negate ? -pix : pix, leftover] as [number, string]);
-  }
+  return M.just(ranges);
 }

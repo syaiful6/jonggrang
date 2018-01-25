@@ -55,7 +55,7 @@ describe('Prelude Maybe', () => {
       jsv.assert(
         jsv.forall(
           maybeArb(jsv.nat),
-          t => deepEq(t, M.mapMaybe(id, t))
+          t => deepEq(t, M.mapMaybe(t, id))
         )
       )
     );
@@ -66,7 +66,7 @@ describe('Prelude Maybe', () => {
           maybeArb(jsv.nat),
           jsv.fn(jsv.nat),
           jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(M.mapMaybe(x => f(g(x)), t), M.mapMaybe(f, M.mapMaybe(g, t)))
+          (t, f, g) => deepEq(M.mapMaybe(t, x => f(g(x))), M.mapMaybe(M.mapMaybe(t, g), f))
         )
       )
     });
@@ -90,7 +90,7 @@ describe('Prelude Maybe', () => {
           maybeArb(jsv.nat),
           maybeArb(jsv.nat),
           jsv.fn(jsv.nat),
-          (a, b, f) => deepEq(M.mapMaybe(f, M.altMaybe(a, b)), M.altMaybe(M.mapMaybe(f, a), M.mapMaybe(f, b)))
+          (a, b, f) => deepEq(M.mapMaybe(M.altMaybe(a, b), f), M.altMaybe(M.mapMaybe(a, f), M.mapMaybe(b, f)))
         )
       )
     );

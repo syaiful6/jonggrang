@@ -32,14 +32,14 @@ export function just<A>(a: A): Maybe<A> {
 /**
  * functor instance
  */
-export function mapMaybe<A, B>(f: (_: A) => B, m: Maybe<A>): Maybe<B> {
+export function mapMaybe<A, B>(m: Maybe<A>, f: (_: A) => B): Maybe<B> {
   return m.tag === MaybeType.NOTHING ? m : just(f(m.value));
 }
 
 /**
  * Chain instance
  */
-export function chainMaybe<A, B>(f: (_: A) => Maybe<B>, m: Maybe<A>): Maybe<B> {
+export function chainMaybe<A, B>(m: Maybe<A>, f: (_: A) => Maybe<B>): Maybe<B> {
   return m.tag === MaybeType.NOTHING ? m : f(m.value);
 }
 
@@ -50,15 +50,6 @@ export function chainMaybe<A, B>(f: (_: A) => Maybe<B>, m: Maybe<A>): Maybe<B> {
  */
 export function altMaybe<A>(m1: Maybe<A>, m2: Maybe<A>): Maybe<A> {
   return m1.tag === MaybeType.NOTHING ? m2 : m1;
-}
-
-/**
- * Apply a function inside Maybe with another Maybe.
- * @param fm
- * @param m 
- */
-export function applyMaybe<A, B>(fm: Maybe<(_: A) => B>, m: Maybe<A>): Maybe<B> {
-  return fm.tag === MaybeType.NOTHING ? fm : mapMaybe(fm.value, m);
 }
 
 /**

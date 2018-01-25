@@ -45,9 +45,9 @@ export function left<A>(value: A): Left<A> {
  * @param e
  */
 export function bimapEither<A, B, C, D>(
+  e: Either<A, B>,
   f: (_: A) => C,
   g: (_: B) => D,
-  e: Either<A, B>
 ): Either<C, D> {
   return e.tag === EitherType.LEFT ? left(f(e.value)) : right(g(e.value));
 }
@@ -58,7 +58,7 @@ export function bimapEither<A, B, C, D>(
  * @param f
  * @param e
  */
-export function mapEither<A, B, C>(f: (_: B) => C, e: Either<A, B>): Either<A, C> {
+export function mapEither<A, B, C>(e: Either<A, B>, f: (_: B) => C): Either<A, C> {
   return e.tag === EitherType.RIGHT ? right(f(e.value)) : e;
 }
 
@@ -67,7 +67,7 @@ export function mapEither<A, B, C>(f: (_: B) => C, e: Either<A, B>): Either<A, C
  * @param f function
  * @param e an Either
  */
-export function lmapEither<A, B, C>(f: (_: A) => C, e: Either<A, B>): Either<C, B> {
+export function lmapEither<A, B, C>(e: Either<A, B>, f: (_: A) => C): Either<C, B> {
   return e.tag === EitherType.LEFT ? left(f(e.value)) : e;
 }
 
@@ -76,7 +76,7 @@ export function lmapEither<A, B, C>(f: (_: A) => C, e: Either<A, B>): Either<C, 
  * @param f
  * @param e
  */
-export function chainEither<A, B, C>(f: (_: B) => Either<A, C>, e: Either<A, B>): Either<A, C> {
+export function chainEither<A, B, C>(e: Either<A, B>, f: (_: B) => Either<A, C>): Either<A, C> {
   return e.tag === EitherType.LEFT ? e : f(e.value);
 }
 

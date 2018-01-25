@@ -29,7 +29,7 @@ describe('Prelude Either', () => {
       jsv.assert(
         jsv.forall(
           eitherArb(jsv.nat, jsv.string),
-          t => deepEq(t, E.mapEither(id, t))
+          t => deepEq(t, E.mapEither(t, id))
         )
       )
     );
@@ -40,7 +40,7 @@ describe('Prelude Either', () => {
           eitherArb(jsv.nat, jsv.string),
           jsv.fn(jsv.nat),
           jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(E.mapEither(x => f(g(x)), t), E.mapEither(f, E.mapEither(g, t)))
+          (t, f, g) => deepEq(E.mapEither(t, x => f(g(x))), E.mapEither(E.mapEither(t, g), f))
         )
       )
     );
@@ -50,7 +50,7 @@ describe('Prelude Either', () => {
         jsv.forall(
           leftArb(jsv.json),
           jsv.fn(jsv.json),
-          (a, f) => deepEq(E.mapEither(f, a), a)
+          (a, f) => deepEq(E.mapEither(a, f), a)
         )
       )
     );
@@ -63,7 +63,7 @@ describe('Prelude Either', () => {
           leftArb(jsv.nat),
           jsv.fn(jsv.nat),
           jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(E.bimapEither(f, g, t).value, f(t.value))
+          (t, f, g) => deepEq(E.bimapEither(t, f, g).value, f(t.value))
         )
       )
     );
@@ -74,7 +74,7 @@ describe('Prelude Either', () => {
           rightArb(jsv.nat),
           jsv.fn(jsv.nat),
           jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(E.bimapEither(f, g, t), E.mapEither(g, t))
+          (t, f, g) => deepEq(E.bimapEither(t, f, g), E.mapEither(t, g))
         )
       )
     )
@@ -85,7 +85,7 @@ describe('Prelude Either', () => {
       jsv.forall(
         leftArb(jsv.nat),
         jsv.fn(jsv.nat),
-        (a, f) => deepEqual(E.lmapEither(f, a), E.left(f(a.value)))
+        (a, f) => deepEqual(E.lmapEither(a, f), E.left(f(a.value)))
       )
     );
 
@@ -93,7 +93,7 @@ describe('Prelude Either', () => {
       jsv.forall(
         rightArb(jsv.nat),
         jsv.fn(jsv.nat),
-        (a, f) => deepEqual(E.lmapEither(f, a), a)
+        (a, f) => deepEqual(E.lmapEither(a, f), a)
       )
     );
   });
@@ -129,7 +129,7 @@ describe('Prelude Either', () => {
         ix++;
         return E.right('fail');
       }
-      let e = E.chainEither(transform, E.left('error'));
+      let e = E.chainEither(E.left('error'), transform);
       expect(ix).to.be.equals(0);
       expect(e).to.be.deep.equals({ tag: E.EitherType.LEFT, value: 'error' });
     });
@@ -138,7 +138,7 @@ describe('Prelude Either', () => {
       function transform(a: string) {
         return E.right(a + 'sequencing');
       }
-      let t = E.chainEither(transform, E.right('value'));
+      let t = E.chainEither(E.right('value'), transform);
       expect(t.tag).to.be.equals(E.EitherType.RIGHT);
       expect(t.value).to.be.equals('valuesequencing');
     });
