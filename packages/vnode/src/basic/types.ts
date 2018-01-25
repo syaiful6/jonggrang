@@ -18,9 +18,9 @@ export interface Thunk<A> {
 
 export function createThunk<A, B>(
   ident: any,
+  state: A,
   eq: (a: A, b: A) => boolean,
   render: (a: A) => VDom<B>,
-  state: A,
   mapk: (i: any) => A
 ): Thunk<A> {
   return {
@@ -37,7 +37,7 @@ export function mapVDom<A, B>(f: (a: A) => B, vnode: VDom<A>): VDom<B> {
 }
 
 export function mapThunk<A, B>(f: (a: A) => B, thunk: Thunk<A>): Thunk<B> {
-  return createThunk(thunk.id, thunk.eq, thunk.render, thunk.state, T.o(f, thunk.mapk));
+  return createThunk(thunk.id, thunk.state, thunk.eq, thunk.render, T.o(f, thunk.mapk));
 }
 
 export function runThunk<A>(thunk: Thunk<A>): VDom<A> {

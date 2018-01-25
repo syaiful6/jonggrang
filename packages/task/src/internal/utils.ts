@@ -9,3 +9,5 @@ export function o<A, B, C>(f: (_: B) => C, g: (_: A) => B) {
 export function id<A>(a: A): A {
   return a;
 }
+
+export function doNothing() {}

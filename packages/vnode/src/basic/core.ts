@@ -80,14 +80,14 @@ export function ref<A>(cb: LifeCycleCB<A>): Ref<A> {
   return VProp(PropType.REF, cb);
 }
 
-export function lazy<A, B>(render: (a: A) => VDom<B>, a: A): VWidget<Thunk<B>> {
-  return VTree(VDomType.VWIDGET, thunk1(render, a));
+export function lazy<A, B>(a: A, render: (a: A) => VDom<B>): VWidget<Thunk<B>> {
+  return VTree(VDomType.VWIDGET, thunk1(a, render));
 }
 
-export function lazy2<A, B, I>(render: (a: A, b: B) => VDom<I>, a: A, b: B): VWidget<Thunk<I>> {
-  return VTree(VDomType.VWIDGET, thunk2(render, a, b));
+export function lazy2<A, B, I>(a: A, b: B, render: (a: A, b: B) => VDom<I>): VWidget<Thunk<I>> {
+  return VTree(VDomType.VWIDGET, thunk2(a, b, render));
 }
 
-export function lazy3<A, B, C, I>(render: (a: A, b: B, c: C) => VDom<I>, a: A, b: B, c: C): VWidget<Thunk<I>> {
-  return VTree(VDomType.VWIDGET, thunk3(render, a, b, c));
+export function lazy3<A, B, C, I>(a: A, b: B, c: C, render: (a: A, b: B, c: C) => VDom<I>): VWidget<Thunk<I>> {
+  return VTree(VDomType.VWIDGET, thunk3(a, b, c, render));
 }

@@ -307,10 +307,11 @@ function removeProp<A>(
 }
 
 function propToStr<A>(prop: Prop<A>): string {
-  return prop.tag === PropType.ATTRIBUTE ? `attr/:${prop.value}`
-    : prop.tag === PropType.PROPERTY ? `prop/:${prop.key}`
-      : prop.tag === PropType.HANDLER ? `handler/:${prop.type}`
-        : 'ref';
+  return prop.tag === PropType.ATTRIBUTE && prop.ns !== undefined ? `attr/${prop.ns}:${prop.key}`
+    : prop.tag === PropType.ATTRIBUTE ? `attr/:${prop.key}`
+      : prop.tag === PropType.PROPERTY ? `prop/:${prop.key}`
+        : prop.tag === PropType.HANDLER ? `handler/:${prop.type}`
+          : 'ref';
 }
 
 class EventDict {

@@ -5,7 +5,7 @@ import {
   AsyncTask, SyncTask, Task, ForkTask, BracketTask, GeneralBracket, Parallel
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
-import { SimpleSupervisor } from './internal/scheduler';
+import { SimpleSupervisor, scheduler } from './internal/scheduler';
 import { id } from './internal/utils';
 
 
@@ -106,7 +106,7 @@ export const never: Task<any> = makeTask(_ => nonCanceler);
  */
 export function launchTask<A>(t: Task<A>): Fiber<A> {
   const fiber = makeFiber(t);
-  fiber.run();
+  scheduler.enqueue(() => fiber.run());
   return fiber;
 }
 
@@ -188,7 +188,7 @@ export function supervise<A>(t: Task<A>): Task<A> {
 export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
   return liftEff(() => {
     let fib = new TaskFiber(t, sup);
-    fib.run();
+    scheduler.enqueue(() => fib.run());
     return fib;
   }).chain(joinFiber);
 }

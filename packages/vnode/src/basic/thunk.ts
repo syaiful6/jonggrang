@@ -16,22 +16,22 @@ export { Thunk } from './types';
  */
 export function thunk<A, B>(
   ident: any,
+  state: A,
   eq: (a: A, b: A) => boolean,
-  render: (a: A) => VDom<B>,
-  state: A
+  render: (a: A) => VDom<B>
 ): Thunk<B> {
-  return createThunk(ident, eq, render, state, id);
+  return createThunk(ident, state, eq, render, id);
 }
 
 /**
  * Create a Thunk by using render function as `identifier` of Thunk.
  */
 export function thunked<A, B>(
+  state: A,
   eq: (a: A, b: A) => boolean,
-  render: (a: A) => VDom<B>,
-  state: A
+  render: (a: A) => VDom<B>
 ): Thunk<B> {
-  return thunk(render, eq, render, state);
+  return thunk(render, state, eq, render);
 }
 
 /**
@@ -40,23 +40,16 @@ export function thunked<A, B>(
  * @param render
  * @param a
  */
-export function thunk1<A, B>(render: (a: A) => VDom<B>, a: A): Thunk<B> {
-  return thunked(unsafeERefEq, render, a);
+export function thunk1<A, B>(a: A, render: (a: A) => VDom<B>): Thunk<B> {
+  return thunked(a, unsafeERefEq, render);
 }
 
-export function thunk2<A, B, I>(render: (a: A, b: B) => VDom<I>, a: A, b: B): Thunk<I> {
-  let comp = (a: { _0: A, _1: B }, b: { _0: A, _1: B }) => {
-    return a._0 === b._0 && a._1 === b._1;
-  };
-  return thunk(render, comp, r => render(r._0, r._1), {_0: a, _1: b });
+export function thunk2<A, B, I>(a: A, b: B, render: (a: A, b: B) => VDom<I>): Thunk<I> {
+  return thunk(render, {_0: a, _1: b }, unsafeEqThunk2, r => render(r._0, r._1));
 }
 
-
-export function thunk3<A, B, C, I>(render: (a: A, b: B, c: C) => VDom<I>, a: A, b: B, c: C): Thunk<I> {
-  let comp = (a: { _0: A, _1: B, _2: C }, b: { _0: A, _1: B, _2: C }) => {
-    return a._0 === b._0 && a._1 === b._1 && a._2 === b._2;
-  };
-  return thunk(render, comp, r => render(r._0, r._1, r._2), {_0: a, _1: b, _2: c });
+export function thunk3<A, B, C, I>(a: A, b: B, c: C, render: (a: A, b: B, c: C) => VDom<I>): Thunk<I> {
+  return thunk(render, {_0: a, _1: b, _2: c }, unsafeEqThunk3,r => render(r._0, r._1, r._2));
 }
 
 class ThunkMachine<A> implements Machine<Thunk<A>, Node> {
@@ -106,4 +99,12 @@ export function unsafeEqThunkId(a: any, b: any): boolean {
 
 export function unsafeERefEq(a: any, b: any) {
   return a === b;
+}
+
+function unsafeEqThunk2<A, B>(a: { _0: A, _1: B }, b: { _0: A, _1: B }) {
+  return a._0 === b._0 && a._1 === b._1;
+}
+
+function unsafeEqThunk3<A, B, C>(a: { _0: A, _1: B, _2: C }, b: { _0: A, _1: B, _2: C }) {
+  return a._0 === b._0 && a._1 === b._1 && a._2 === b._2;
 }

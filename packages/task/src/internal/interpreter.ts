@@ -86,7 +86,7 @@ type InterpretTask
   | ApAlt
   | Forked;
 
-enum StateFiber {
+const enum StateFiber {
   SUSPENDED,
   CONTINUE,
   STEP_BIND,
@@ -510,11 +510,7 @@ export class TaskFiber<A> implements Fiber<A> {
 
   run() {
     if (this._status === StateFiber.SUSPENDED) {
-      if (!scheduler.isDraining()) {
-        scheduler.enqueue(() => this.runRaw(this._runTick));
-      } else {
-        this.runRaw(this._runTick);
-      }
+      scheduler.enqueue(() => this.runRaw(this._runTick));
     }
   }
 
@@ -770,13 +766,13 @@ export class TaskFiber<A> implements Fiber<A> {
           // If we have an unhandled exception, and no other fiber has joined
           // then we need to throw the exception in a fresh stack.
           } else if (isLeft(this._step) && this._rethrow) {
-            setTimeout(() => {
+            scheduler.enqueue(() => {
               // Guard on reathrow because a completely synchronous fiber can
               // still have an observer which was added after-the-fact.
               if (this._rethrow) {
                 throw (this._step as Left<Error>).value;
               }
-            }, 0);
+            });
           }
           return;
 
