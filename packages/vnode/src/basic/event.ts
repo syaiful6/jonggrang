@@ -160,24 +160,24 @@ export function onTransitionEnd<A>(hd: HandlerFnOrObject<A>): Handler<A> {
   return on('transitionend', hd);
 }
 
-export function onValueInput<A>(f: (_: string) => A | void): Handler<A> {
+export function onValueInput<A>(f: EventHandler<string, A>): Handler<A> {
   return onInput(o(mapUndef(f), valueInputReader));
 }
 
-export function onValueChange<A>(f: (_: string) => A | void): Handler<A> {
+export function onValueChange<A>(f: EventHandler<string, A>): Handler<A> {
   return onChange(o(mapUndef(f), valueInputReader));
 }
 
-export function onChecked<A>(f: (_: boolean) => A | void): Handler<A> {
+export function onChecked<A>(f: EventHandler<boolean, A>): Handler<A> {
   return onChange(o(mapUndef(f), checkedReader));
 }
 
-function mapUndef<A, B>(f: (_: A) => B) {
+function mapUndef<A, B>(f: EventHandler<A, B>) {
   return (x: A | void) => {
     if (x == null) {
       return x;
     }
-    return f(x);
+    return runEvHandler(f, x);
   }
 }
 
@@ -196,5 +196,13 @@ function checkedReader(ev: Event): boolean | void {
     if (typeof v === 'boolean') {
       return v;
     }
+  }
+}
+
+function runEvHandler<E, A>(handler: EventHandler<E, A> | null, event: E): A | void {
+  if (typeof handler === 'function') {
+    return handler(event);
+  } else if (handler && typeof handler.handleEvent === 'function') {
+    return handler.handleEvent(event);
   }
 }

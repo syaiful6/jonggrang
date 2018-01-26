@@ -329,7 +329,7 @@ class EventDict {
   }
 }
 
-function runEvHandler<A>(handler: HandlerFn<A> | HandlerObject<A> | null, event: Event): A | void {
+function runEvHandler<A>(handler: HandlerFnOrObject<A> | null, event: Event): A | void {
   if (typeof handler === 'function') {
     return handler(event);
   } else if (handler && typeof handler.handleEvent === 'function') {
