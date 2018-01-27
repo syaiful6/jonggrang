@@ -110,8 +110,44 @@ describe('HTTP URI', () => {
       expect(qs).to.be.equals('%C3%B6=%C3%B6');
     });
 
+    it('handles nested object', () => {
+      const qs = renderQuery({a: {b: 1, c: 2}});
+      expect(qs).to.be.equals('a%5Bb%5D=1&a%5Bc%5D=2');
+    });
+
     it('handles deep nested object', () => {
-      const qs = renderQuery({});
-    })
+      const qs = renderQuery({ a: { b: { c: 1, d: 2 }}});
+      expect(qs).to.be.equals('a%5Bb%5D%5Bc%5D=1&a%5Bb%5D%5Bd%5D=2');
+    });
+
+    it('handles nested array', () => {
+      const qs = renderQuery({ a: ['x', 'y']});
+      expect(qs).to.be.equals('a%5B0%5D=x&a%5B1%5D=y');
+    });
+
+    it('handles array w/ dupe values', () => {
+      const qs = renderQuery({a: ['x', 'x']});
+      expect(qs).to.be.equals('a%5B0%5D=x&a%5B1%5D=x');
+    });
+
+    it('handles deep nested array', () => {
+      const qs = renderQuery({ a: [['x', 'y']]});
+      expect(qs).to.be.equals('a%5B0%5D%5B0%5D=x&a%5B0%5D%5B1%5D=y');
+    });
+
+    it('handles deep nested array in object', () => {
+      const qs = renderQuery({ a: { b: ['x', 'y']}});
+      expect(qs).to.be.equals('a%5Bb%5D%5B0%5D=x&a%5Bb%5D%5B1%5D=y');
+    });
+
+    it('handles deep nested object in array', () => {
+      const qs = renderQuery({ a: [{b: 1, c: 2}]});
+      expect(qs).to.be.equals('a%5B0%5D%5Bb%5D=1&a%5B0%5D%5Bc%5D=2');
+    });
+
+    it('handles date', () => {
+      const qs = renderQuery({ a: new Date(0) });
+      expect(qs).to.be.equals('a=' + encodeURIComponent(new Date(0).toString()));
+    });
   });
 });
