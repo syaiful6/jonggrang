@@ -219,4 +219,85 @@ describe('VNode', () => {
       window.document.body.removeChild(elem);
     });
   });
+
+  describe('Thunk', () => {
+    it('can create thunk vnode', () => {
+      function lazyRender(n: number) {
+        return H.h('div', [ H.text(n.toString()) ]);
+      }
+      const vnode1 = H.lazy(2, lazyRender);
+      const machine = buildVDom(defaultSpec, vnode1);
+      const element = machine.result;
+      expect((element as any).tagName).to.be.equals('DIV');
+      const text = element.childNodes[0];
+      expect(text.nodeName).to.be.equals('#text');
+      expect(text.nodeValue).to.be.equals('2');
+    });
+
+    it('does not call render function on data unchanged', () => {
+      let called = 0;
+      function lazyRender(n: number) {
+        called++;
+        return H.h('div', [ H.text(n.toString()) ]);
+      }
+      let machine = buildVDom(defaultSpec, H.lazy(2, lazyRender));
+      machine.step(H.lazy(2, lazyRender));
+      expect(called).to.be.equals(1);
+    });
+
+    it('calls render function once on data change', () => {
+      let called = 0;
+      function render(n: number) {
+        called++;
+        return H.h('div', [ H.text(n.toString()) ]);
+      }
+      let machine = buildVDom(defaultSpec, H.lazy(0, render));
+      machine.step(H.lazy(2, render));
+      expect(called).to.be.equals(2);
+    });
+
+    it('can update thunk vnode when state changed', () => {
+      function lazyRender(n: number) {
+        return H.h('div', [ H.text(n.toString()) ]);
+      }
+      const vnode1 = H.lazy(2, lazyRender);
+      const vnode2 = H.lazy(3, lazyRender);
+      let machine = buildVDom(defaultSpec, vnode1);
+      machine = machine.step(vnode2);
+      const element = machine.result;
+      expect((element as any).tagName).to.be.equals('DIV');
+      const text = element.childNodes[0];
+      expect(text.nodeName).to.be.equals('#text');
+      expect(text.nodeValue).to.be.equals('3');
+    });
+
+    it('can update / render mapped thunk', () => {
+      function render(n: number) {
+        return H.h('div', [ H.text(n.toString()) ]);
+      }
+      const vnode1 = H.h('div', [ H.lazy(2, render) ]);
+      const vnode2 = H.mapVDom(x => ({ tag: 'mapped', value: x}), H.h('div', [ H.lazy(3, render) ]));
+      let machine = buildVDom(defaultSpec, vnode1);
+      machine = machine.step(vnode2);
+      const element = machine.result;
+      expect((element as any).tagName).to.be.equals('DIV');
+      const text = element.childNodes[0].childNodes[0];
+      expect(text.nodeName).to.be.equals('#text');
+      expect(text.nodeValue).to.be.equals('3');
+    });
+
+    it('can removed', () => {
+      function render(n: number) {
+        return H.h('div', [ H.text(n.toString()) ]);
+      }
+      const vnode1 = H.h('div', [ H.lazy(2, render) ]);
+      const vnode2 = H.h('div', [ H.h('section', [])]);
+      let machine = buildVDom(defaultSpec, vnode1);
+      machine = machine.step(vnode2);
+      const element = machine.result;
+      expect((element as any).tagName).to.be.equals('DIV');
+      const ch = element.childNodes[0];
+      expect((ch as any).tagName).to.be.equals('SECTION');
+    });
+  });
 });

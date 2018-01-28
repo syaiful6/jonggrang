@@ -37,6 +37,21 @@ describe('event Listener', () => {
     expect(results[0].value).to.be.equals('clicked');
   });
 
+  it('does not attach new listener', () => {
+    const prop1 = E.onClick(ev => ({ tag: 'click', value: 'prop1'}));
+    const prop2 = E.onClick(ev => ({ tag: 'click', value: 'prop2' }));
+    const build = buildProp(emit);
+    const machine = build(elem, [prop1]);
+    (elem as any).click();
+    machine.step([ prop2 ]);
+    (elem as any).click();
+    expect(results.length).to.be.equals(2);
+    expect(results).to.be.deep.equals([
+      { tag: 'click', value: 'prop1' },
+      { tag: 'click', value: 'prop2' }
+    ])
+  });
+
   it('work with event handler interface', () => {
     // event handler interface is just object with handleEvent method
     const eventHandler = {
@@ -63,19 +78,40 @@ describe('event Listener', () => {
         value: 'clicked'
       }
     };
-    const build = buildProp(emit);
-    const evProp = E.onClick(handleClick);
-    let mapped = mapProp(x => {
+
+    const handleClickObject = {
+      tag: 'click',
+      handleEvent(ev: MouseEvent): TestEvent<string> {
+        return {
+          tag: this.tag,
+          value: 'clicked-object'
+        }
+      }
+    };
+
+    function transformProp(x: TestEvent<string>): TestEvent<string> {
       return {
         tag: x.tag + '-mapped',
         value: x.value + '-mapped'
       }
-    }, evProp);
-    build(elem, [mapped]);
+    }
+
+    const build = buildProp(emit);
+    const evProp = E.onClick(handleClick);
+    let mapped = mapProp(transformProp, evProp);
+    const machine = build(elem, [mapped]);
     (elem as any).click();
     expect(results.length).to.be.equals(1);
     expect(results[0].tag).to.be.equals('click-mapped');
     expect(results[0].value).to.be.equals('clicked-mapped');
+
+    machine.step([
+      mapProp(transformProp, E.onClick(handleClickObject))
+    ]);
+    (elem as any).click();
+    expect(results.length).to.be.equals(2);
+    expect(results[1].tag).to.be.equals('click-mapped');
+    expect(results[1].value).to.be.equals('clicked-object-mapped');
   });
 
   it('doesnt emit if event handler return void or null', () => {
