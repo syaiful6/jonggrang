@@ -23,12 +23,12 @@ export interface Property {
 export interface Handler<A> {
   tag: PropType.HANDLER;
   type: string;
-  listener: HandlerFnOrObject<A>;
+  listener: HandlerFnOrObject<Event, A>;
 }
 
 export interface Ref<A> {
   tag: PropType.REF;
-  cb: LifeCycleCB<A>;
+  cb: HandlerFnOrObject<ElemRef<Element>, A>;
 }
 
 /**
@@ -40,27 +40,23 @@ export type Prop<A>
   | Handler<A>
   | Ref<A>;
 
-export interface LifeCycleCB<A> {
-  (ref: ElemRef<Element>): A | void;
+export interface HandlerFn<E, A> {
+  (e: E): A | void;
 }
 
-export interface HandlerFn<A> {
-  (e: Event): A | void;
+export interface HandlerObject<E, A> {
+  handleEvent(e: E): A | void;
 }
 
-export interface HandlerObject<A> {
-  handleEvent(e: Event): A | void;
-}
-
-export type HandlerFnOrObject<A> = HandlerFn<A> | HandlerObject<A>;
+export type HandlerFnOrObject<E, A> = HandlerFn<E, A> | HandlerObject<E, A>;
 
 export interface ElemRef<A> {
-  kind: 'created' | 'removed';
+  tag: 'created' | 'removed';
   value: A;
 }
 
-export function VProp<A>(tag: PropType.REF, cb: LifeCycleCB<A>): Ref<A>;
-export function VProp<A>(tag: PropType.HANDLER, type: string, lis: HandlerFnOrObject<A>): Handler<A>;
+export function VProp<A>(tag: PropType.REF, cb: HandlerFnOrObject<ElemRef<Element>, A>): Ref<A>;
+export function VProp<A>(tag: PropType.HANDLER, type: string, lis: HandlerFnOrObject<Event, A>): Handler<A>;
 export function VProp(tag: PropType.PROPERTY, key: string, value: any): Property;
 export function VProp(tag: PropType.ATTRIBUTE, ns: string | undefined, key: string, value: string): Attribute;
 export function VProp(tag: PropType, ns: any, key?: any, value?: any): any {
@@ -91,23 +87,9 @@ export function VProp(tag: PropType, ns: any, key?: any, value?: any): any {
 
 export function mapProp<A, B>(f: (a: A) => B, prop: Prop<A>): Prop<B> {
   if (prop.tag === PropType.HANDLER) {
-    const nlistener = (e: Event) => {
-      let t = runEvHandler(prop.listener, e);
-      if (t != null) {
-        return f(t);
-      }
-      return t;
-    };
-    return VProp(PropType.HANDLER, prop.type, nlistener);
+    return VProp(PropType.HANDLER, prop.type, pipeEvHandler(prop.listener, f));
   } else if (prop.tag === PropType.REF) {
-    const lcb: LifeCycleCB<B> = (el) => {
-      let t = prop.cb(el);
-      if (t != null) {
-        return f(t);
-      }
-      return t;
-    };
-    return VProp(PropType.REF, lcb);
+    return VProp(PropType.REF, pipeEvHandler(prop.cb, f));
   } else {
     return prop;
   }
@@ -147,7 +129,7 @@ class PropMachine<A> implements Machine<Prop<A>[], void> {
     if (this.sm['ref'] != null) {
       let prop = this.sm['ref'];
       if (prop && prop.tag === PropType.REF) {
-        let me = prop.cb({ kind: 'removed', value: this.elem });
+        let me = runEvHandler(prop.cb, { tag: 'removed', value: this.elem });
         if (me != null) {
           this.events.emit(me);
         }
@@ -199,7 +181,7 @@ function applyProp<A>(
     }
     return prop;
   } else if (prop.tag === PropType.REF) {
-    let me = prop.cb({ kind: 'created', value: elem });
+    let me = runEvHandler(prop.cb, { tag: 'created', value: elem });
     if (me != null) {
       emit(me);
     }
@@ -315,7 +297,7 @@ function propToStr<A>(prop: Prop<A>): string {
 }
 
 class EventDict {
-  [key: string]: HandlerFnOrObject<any>
+  [key: string]: HandlerFnOrObject<Event, any>
 
   constructor(public emit: (a: any) => void) {
   }
@@ -329,7 +311,30 @@ class EventDict {
   }
 }
 
-function runEvHandler<A>(handler: HandlerFnOrObject<A> | null, event: Event): A | void {
+class PipeEventHandler<E, A, B> {
+  constructor(
+    private listener: HandlerFnOrObject<E, A>,
+    private transform: HandlerFnOrObject<A, B>
+  ) {
+  }
+
+  handleEvent(ev: E): B | void {
+    let t = runEvHandler(this.listener, ev);
+    if (t != null) {
+      return runEvHandler(this.transform, t);
+    }
+    return t;
+  }
+}
+
+export function pipeEvHandler<E, A, B>(
+  f: HandlerFnOrObject<E, A>,
+  g: HandlerFnOrObject<A, B>
+): HandlerFnOrObject<E, B> {
+  return new PipeEventHandler(f, g);
+}
+
+export function runEvHandler<E, A>(handler: HandlerFnOrObject<E, A>, event: E): A | void {
   if (typeof handler === 'function') {
     return handler(event);
   } else if (handler && typeof handler.handleEvent === 'function') {

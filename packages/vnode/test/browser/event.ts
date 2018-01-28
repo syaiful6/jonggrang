@@ -120,7 +120,7 @@ describe('event Listener', () => {
     it('call ref on created', () => {
       function refElem(rf: ElemRef<Element>) {
         return {
-          tag: rf.kind,
+          tag: rf.tag,
           value: rf.value.tagName
         };
       }
@@ -135,7 +135,7 @@ describe('event Listener', () => {
     it('call ref on removed', () => {
       function refElem(rf: ElemRef<Element>) {
         return {
-          tag: rf.kind,
+          tag: rf.tag,
           value: rf.value.tagName
         };
       }
@@ -153,9 +153,9 @@ describe('event Listener', () => {
 
     it('didn\'t emit if ref hook return void', () => {
       function refElem(rf: ElemRef<Element>): TestEvent<string> | void {
-        if (rf.kind === 'removed') {
+        if (rf.tag === 'removed') {
           return {
-            tag: rf.kind,
+            tag: rf.tag,
             value: rf.value.tagName
           };
         }
@@ -173,7 +173,7 @@ describe('event Listener', () => {
     it('work correctly when remove the hook', () => {
       function refElem(rf: ElemRef<Element>) {
         return {
-          tag: rf.kind,
+          tag: rf.tag,
           value: rf.value.tagName
         };
       }
@@ -193,7 +193,7 @@ describe('event Listener', () => {
     it('mapProp work with ref', () => {
       function refElem(rf: ElemRef<Element>): TestEvent<string> {
         return {
-          tag: rf.kind,
+          tag: rf.tag,
           value: rf.value.tagName
         }
       }

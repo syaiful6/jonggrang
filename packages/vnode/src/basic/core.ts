@@ -2,7 +2,7 @@ import { VTree, VText, VDomType, VWidget } from '../types';
 import { VDom, Thunk, VElem, VElemKeyed, Prop, KeyVDom } from './types';
 import { thunk1, thunk2, thunk3 } from './thunk';
 import {
-  VProp, PropType, Property, Attribute, Handler, Ref, HandlerFnOrObject, LifeCycleCB
+  VProp, PropType, Property, Attribute, Handler, Ref, HandlerFnOrObject, ElemRef
 } from '../dom/prop';
 
 /**
@@ -67,7 +67,7 @@ export function attr(k: string, v: string): Attribute {
  * @param eventType
  * @param f
  */
-export function on<A>(eventType: string, f: HandlerFnOrObject<A>): Handler<A> {
+export function on<A>(eventType: string, f: HandlerFnOrObject<Event, A>): Handler<A> {
   return VProp(PropType.HANDLER, eventType, f);
 }
 
@@ -76,7 +76,7 @@ export function on<A>(eventType: string, f: HandlerFnOrObject<A>): Handler<A> {
  * It allow you to be notified when the actual DOM Node was created or removed.
  * @param cb
  */
-export function ref<A>(cb: LifeCycleCB<A>): Ref<A> {
+export function ref<A>(cb: HandlerFnOrObject<ElemRef<Element>, A>): Ref<A> {
   return VProp(PropType.REF, cb);
 }
 
