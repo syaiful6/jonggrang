@@ -69,6 +69,7 @@ export interface VNode<A> {
   events: EventDict | undefined;
   children: Array<VNode<A> | string> | undefined;
   data: VNodeData<A>;
+  instance: VNode<A> | undefined;
 }
 
 export interface Thunk<A> {
@@ -92,7 +93,7 @@ export function vnode<A>(
   text: string | undefined,
   dom: Element | Text | undefined
 ): VNode<A> {
-  return { tag, key, data, children, text, dom, events: undefined };
+  return { tag, key, data, children, text, dom, events: undefined, instance: undefined };
 }
 
 export function runEvHandler<E, A>(handler: HandlerFnOrObject<E, A>, event: E): A | void {
@@ -168,7 +169,11 @@ export function runThunk<A>(thunk: Thunk<A>): VNode<A> {
 }
 
 export function isThunk<A>(v: Thunk<A> | Graft<A> | string): v is Thunk<A> {
-  return typeof v !== 'string' && typeof (v as any).render === 'function';
+  return typeof v === 'object' && typeof (v as any).render === 'function';
+}
+
+export function isGraft<A>(v: Thunk<A> | Graft<A> | string): v is Graft<A> {
+  return typeof v === 'object' && typeof (v as any).f === 'function' && (v as any).vnode != null;
 }
 
 export function o<A, B, C>(f: (_: B) => C, g: (_: A) => B) {
