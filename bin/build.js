@@ -81,7 +81,8 @@ let allPackages = [
   'prelude',
   'vnode',
   'task',
-  'http-types'
+  'http-types',
+  'wai'
 ]
 
 if (readdirSync(PACKAGES_DIRECTORY).length > allPackages.length) {
