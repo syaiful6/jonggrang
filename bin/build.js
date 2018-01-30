@@ -79,9 +79,9 @@ const PACKAGES_DIRECTORY = join(ROOT_DIRECTORY, 'packages')
 
 let allPackages = [
   'prelude',
-  'vnode',
   'task',
-  'http-types'
+  'http-types',
+  'genjer'
 ]
 
 if (readdirSync(PACKAGES_DIRECTORY).length > allPackages.length) {
