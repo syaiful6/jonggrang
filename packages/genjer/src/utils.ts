@@ -13,3 +13,13 @@ export function assign<T>(target: T, ...sources: any[]): any {
   }
   return target;
 }
+
+export function set<K extends string, A, R extends { [I in K]: A}>(k: K, v: A, obj: R): R {
+  let ret = assign({}, obj);
+  (ret as any)[k] = v;
+  return ret;
+}
+
+export function o<A, B, C>(f: (_: B) => C, g: (_: A) => B) {
+  return (x: A) => f(g(x));
+}
