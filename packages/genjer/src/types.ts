@@ -8,3 +8,7 @@ export type Transition<M extends Functor<A>, S, A> = {
   model: S;
   effects: Batch<M, A>;
 }
+
+export type Ref<A> = {
+  ref: A;
+}
