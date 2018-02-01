@@ -71,7 +71,8 @@ export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>): void {
   if (isThunk(v)) {
     v.data = T.set('fn', () => {
       let r:  VNode<A> = (v.data as any).fn.apply(null, (data as any).args);
-      return mutmapVNode(f, r);
+      mutmapVNode(f, r);
+      return r;
     }, data as any);
     return;
   }
@@ -84,7 +85,7 @@ export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>): void {
     for (let key in data.events) {
       nevents[key] = pipeEvHandler(data.events[key], f);
     }
-    v.data = T.set('events', nevents, data as any);
+    (v.data as any).events = nevents;
   }
   v.children = v.children != undefined ? v.children.map(c => {
     if (typeof c === 'string') return c;
