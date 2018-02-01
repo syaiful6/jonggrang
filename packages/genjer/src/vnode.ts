@@ -75,6 +75,10 @@ export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>): void {
     }, data as any);
     return;
   }
+  if (typeof data.cofn === 'function') {
+    data.cofn = T.o(f, data.cofn);
+    return;
+  }
   if (data && data.events) {
     let nevents: ListenerData<B> = {};
     for (let key in data.events) {

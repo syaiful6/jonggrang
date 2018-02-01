@@ -1,10 +1,10 @@
 export interface Functor<A> {
-  map<B>(f: (_: A) => B): Functor<A>;
+  map<B>(f: (_: A) => B): Functor<B>;
 }
 
-export type Batch<F extends Functor<A>, A> = Array<F>;
+export type Batch<F, A> = Array<F & Functor<A>>;
 
-export type Transition<M extends Functor<A>, S, A> = {
+export type Transition<M, S, A> = {
   model: S;
   effects: Batch<M, A>;
 }
