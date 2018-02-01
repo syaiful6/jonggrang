@@ -2,6 +2,7 @@ import { VNode, VNodeData } from './vnode';
 import * as H from 'snabbdom/h';
 import * as T from 'snabbdom/thunk';
 
+export { VNode } from './vnode';
 export type VNodes<A> = Array<VNode<A>>;
 export type VNodeChildElement<A> = VNode<A> | string | number | undefined | null
 export type ArrayOrElement<T> = T | T[];
