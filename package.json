@@ -19,7 +19,7 @@
     "rimraf": "^2.5.4",
     "ts-node": "3.3.0",
     "tslint": "^5.8.0",
-    "typescript": "2.6.1",
+    "typescript": "^2.7.1",
     "uglify-js": "^2.7.1"
   },
   "workspaces": [
