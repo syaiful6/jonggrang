@@ -60,7 +60,7 @@ export function makeAppQueue<M, Q, S, I>(
     }
     function runSubs(int: Loop<E.Either<M, Q>>, subs: Q[]) {
       let ref: Ref<Loop<E.Either<M, Q>>> = { ref: int };
-      return T.forIn(subs, q => {
+      return T.forInPar(subs, q => {
         let k = ref.ref.loop;
         return k(E.right(q)).chain(nq => {
           return T.liftEff(() => {
@@ -91,7 +91,7 @@ export function makeAppQueue<M, Q, S, I>(
             model: next.model
           });
           appChange = { old: state.model, action: action.payload, model: nextState.model };
-          return onChange(appChange).then(T.forIn(next.effects, pushEffect)).map(() => nextState)
+          return onChange(appChange).then(T.forInPar(next.effects, pushEffect)).map(() => nextState)
 
         case AppActionType.RESTORE:
           needsRender = state.needsRender || state.model !== action.payload;
@@ -118,7 +118,7 @@ export function makeAppQueue<M, Q, S, I>(
     return interpreter(
         S.assign({}, self, { push: (e: I) => self.push({ tag: AppActionType.ACTION, payload: e })})
       ).chain(it2 => {
-        return T.forIn(initEff.effects, pushEffect)
+        return T.forInPar(initEff.effects, pushEffect)
           .chain(() => {
             let st: AppState<M, Q, S> = { snabbdom, interpret: it2, needsRender: false, model: initEff.model };
             return T.pure({ update, commit, init: st})

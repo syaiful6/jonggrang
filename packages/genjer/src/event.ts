@@ -1,7 +1,7 @@
 /**
  * DOM event listener utility
  */
-import { HandlerFnOrObject, pipeEvHandler } from './vnode';
+import { HandlerFnOrObject, pipeEvHandler, runEvHandler } from './vnode';
 
 export { HandlerFnOrObject, pipeEvHandler, runEvHandler } from './vnode';
 
@@ -25,6 +25,13 @@ export function onChecked<A>(f: HandlerFnOrObject<boolean, A>): HandlerFnOrObjec
   return pipeEvHandler(checkedReader, f);
 }
 
+export function onKeydown<A>(
+  predicate: (k: string) => boolean,
+  action: HandlerFnOrObject<string, A>
+): HandlerFnOrObject<Event, A> {
+  return new KeyDownOn(predicate, action);
+}
+
 function valueInputReader(ev: Event): string | void {
   if (ev.currentTarget) {
     let v: any = (ev.currentTarget as any).value;
@@ -36,7 +43,7 @@ function valueInputReader(ev: Event): string | void {
 
 function checkedReader(ev: Event): boolean | void {
   if (ev.currentTarget) {
-    let v: any = (ev.currentTarget as any).value;
+    let v: any = (ev.currentTarget as any).checked;
     if (typeof v === 'boolean') {
       return v;
     }
@@ -58,5 +65,18 @@ class Constant<A> {
 
   handleEvent() {
     return this.value;
+  }
+}
+
+class KeyDownOn<A> {
+  constructor(
+    readonly predicate: (_: string) => boolean,
+    readonly action: HandlerFnOrObject<string, A>
+  ) {
+  }
+
+  handleEvent(ev: KeyboardEvent): A | void {
+    const { predicate, action } = this;
+    return predicate(ev.key) ? runEvHandler(action, ev.key) : (void 0);
   }
 }
