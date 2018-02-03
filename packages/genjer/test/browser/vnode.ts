@@ -79,6 +79,7 @@ describe('Genjer VNode', () => {
     expect(results.length).to.be.equals(1);
     expect(results[0]).to.be.deep.equals({ tag: 'click-mapped', value: '10' });
   });
+
   it('Can map thunk', () => {
     function handleClick(): TestEvent<number> {
       return {
@@ -97,7 +98,7 @@ describe('Genjer VNode', () => {
     expect(results[0]).to.be.deep.equals({ tag: 'click-mapped', value: '10' });
   });
 
-  it('can map more than once', () => {
+  it('compose map', () => {
     function handleClick(): TestEvent<number> {
       return {
         tag: 'click',
@@ -111,6 +112,23 @@ describe('Genjer VNode', () => {
     let vnode2 = H.mapVNode(mapClicked, H.mapVNode(addClicked, vnode));
     let dom = patch(elm, vnode2).elm;
     (dom as any).click();
+    expect(results.length).to.be.equals(1);
+    expect(results[0]).to.be.deep.equals({ tag: 'click-mapped', value: '20' });
+  });
+
+  it('compose mapped functions (deep)', () => {
+    function handleClick(): TestEvent<number> {
+      return { tag: 'click', value: 10 };
+    }
+    function addClicked(ev: TestEvent<number>): TestEvent<number> {
+      return { tag: ev.tag, value: ev.value + 10 };
+    }
+    let vnode = H.h('button', { events: { click: handleClick } }, 'btn');
+    let vnode2 = H.h('div', H.mapVNode(addClicked, vnode));
+    let vnode3 = H.mapVNode(mapClicked, vnode2);
+    let dom = patch(elm, vnode3).elm;
+    let btn = (dom as Element).querySelector('button');
+    (btn as any).click();
     expect(results.length).to.be.equals(1);
     expect(results[0]).to.be.deep.equals({ tag: 'click-mapped', value: '20' });
   });
