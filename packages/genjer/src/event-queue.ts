@@ -1,5 +1,5 @@
 import * as T from '@jonggrang/task';
-import { Ref } from './types';
+import * as R from '@jonggrang/ref';
 
 export interface Loop<A> {
   loop: (i: A) => T.Task<Loop<A>>;
@@ -96,43 +96,47 @@ export function withAccumArray<I, O>(
 export function fix<I>(
   proc: EvQueue<I, I>
 ): T.Task<EvInstance<I>> {
-  let queue: Ref<I[]> = { ref: [] };
-  let machine: Ref<Loop<I> | undefined> = { ref: void 0 };
-  function push(i: I): T.Task<void> {
-    return T.liftEff(() => {
-      queue.ref.push(i)
-    });
-  }
-  const run: T.Task<void> = T.liftEff(() => {
-    let m = machine.ref;
-    machine.ref = undefined;
-    return m;
-  }).chain(i => traverse_(loop, i))
-
-  function loop(mc: Loop<I>): T.Task<void> {
-    const q = queue.ref;
-    if (q.length > 0) {
-      let head = q[0],
-        tail = q.slice(1);
-      queue.ref = tail;
-      return mc.loop(head).chain(loop);
-    }
-    return mc.tick()
-      .chain(st => {
-        const q2 = queue.ref;
-        if (q2.length === 0) {
-          machine.ref = st;
-          queue.ref = [];
-          return T.pure(void 0);
-        }
-        return loop(st);
-      })
-  }
-  const inst: EvInstance<I> = { run, push };
-  return proc(inst)
-    .chain(step => {
-      machine.ref = step;
-      return T.pure(inst)
+  return R.newRef<I[]>([])
+    .chain(queue => {
+      return R.newRef<Loop<I> | undefined>(void 0)
+        .chain(machine => {
+          function push(i: I): T.Task<void> {
+            return R.modifyRef(queue, ys => {
+              let xs = ys.slice();
+              xs.push(i);
+              return xs;
+            })
+          }
+          const run: T.Task<void> =
+            R.modifyRef_(machine, x => [void 0, x]).chain(i => traverse_(loop, i));
+          function loop(mc: Loop<I>): T.Task<void> {
+            return R.readRef(queue)
+              .chain(q => {
+                if (q.length > 0) {
+                  let head = q[0],
+                    tail = q.slice(1);
+                  return R.writeRef(queue, tail)
+                    .chain(() => mc.loop(head).chain(loop))
+                }
+                return mc.tick()
+                  .chain(st => {
+                    return R.readRef(queue)
+                      .chain(q2 => {
+                        if (q2.length === 0) {
+                          return R.writeRef(machine, st)
+                            .then(R.writeRef(queue, []))
+                        }
+                        return loop(st);
+                      })
+                  })
+              })
+          }
+          const inst: EvInstance<I> = { run, push };
+          return proc(inst)
+            .chain(step => {
+              return R.writeRef(machine, step).then(T.pure(inst))
+            });
+        })
     });
 }
 

@@ -80,6 +80,8 @@ const PACKAGES_DIRECTORY = join(ROOT_DIRECTORY, 'packages')
 let allPackages = [
   'prelude',
   'task',
+  'avar',
+  'ref',
   'http-types',
   'wai',
   'genjer'

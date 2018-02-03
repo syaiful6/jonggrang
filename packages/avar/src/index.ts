@@ -1,8 +1,9 @@
-import * as M from '@jonggrang/prelude/lib/maybe';
+import * as M from '@jonggrang/prelude';
 
-import { NodeCallback } from './internal/types';
-import { thrower } from './internal/utils';
-import * as T from './index';
+import {
+  NodeCallback, Task, makeTask, thunkCanceller, liftEff,
+  bracket, generalBracket, pure, scheduler
+} from '@jonggrang/task';
 
 export interface MutableQueue<A> {
   head: MutableCell<A> | null;
@@ -293,40 +294,77 @@ function runHandler<A, B>(cb: NodeCallback<A, B>, error: null | Error, v?: A) {
   }
 }
 
-export const newEmptyAVar: T.Task<AVar<any>> = T.liftEff(() => {
+/**
+ * Create a fresh avar.
+ */
+export const newEmptyAVar: Task<AVar<any>> = liftEff(() => {
   return createAVar(Sentinel);
 });
 
-export function newAVar<A>(a: A): T.Task<AVar<A>> {
-  return T.liftEff(() => createAVar(aVarValue(a)));
+/**
+ * Creates a fresh AVar with an initial value.
+ *
+ * @param a The avar value
+ */
+export function newAVar<A>(a: A): Task<AVar<A>> {
+  return liftEff(() => createAVar(aVarValue(a)));
 }
 
-export function putAVar<A>(avar: AVar<A>, value: A): T.Task<void> {
-  return T.makeTask(cb => {
+/**
+ * Sets the value of the AVar. If the AVar is already filled, it will be
+ * queued until the value is emptied. Multiple puts will resolve in order as
+ * the AVar becomes available.
+ *
+ * @param avar AVar<A> The avar target
+ * @param value value to put to the avar
+ */
+export function putAVar<A>(avar: AVar<A>, value: A): Task<void> {
+  return makeTask(cb => {
     const cell = putLast(avar.puts, createAVarAction(AVarAction.PUT, value, cb));
     drainAVar(avar);
-    return T.thunkCanceller(() => deleteCell(cell));
+    return thunkCanceller(() => deleteCell(cell));
   });
 }
 
-export function takeAVar<A>(avar: AVar<A>): T.Task<A> {
-  return T.makeTask(cb => {
+/**
+ * Takes the AVar value, leaving it empty. If the AVar is already empty,
+ * the Task will be resolved when the AVar is filled. Multiple takes will
+ * resolve in order as the AVar fills.
+ *
+ * @param avar AVar<A> to take the content
+ */
+export function takeAVar<A>(avar: AVar<A>): Task<A> {
+  return makeTask(cb => {
     const cell = putLast(avar.takes, createAVarAction(AVarAction.TAKE, cb));
     drainAVar(avar);
-    return T.thunkCanceller(() => deleteCell(cell));
+    return thunkCanceller(() => deleteCell(cell));
   });
 }
 
-export function readAVar<A>(avar: AVar<A>): T.Task<A> {
-  return T.makeTask(cb => {
+/**
+ * Reads the AVar value. Unlike `takeVar`, this will not leave the AVar empty.
+ * If the AVar is empty, this will queue until it is filled. Multiple reads
+ * will resolve at the same time, as soon as possible.
+ *
+ * @param avar AVar<A> to read the content
+ */
+export function readAVar<A>(avar: AVar<A>): Task<A> {
+  return makeTask(cb => {
     const cell = putLast(avar.reads, createAVarAction(AVarAction.READ, cb));
     drainAVar(avar);
-    return T.thunkCanceller(() => deleteCell(cell));
+    return thunkCanceller(() => deleteCell(cell));
   });
 }
 
-export function tryPutAVar<A>(avar: AVar<A>, value: A): T.Task<boolean> {
-  return T.liftEff(() => {
+/**
+ * Attempts to synchronously fill an AVar. If the AVar is already filled,
+ * this will do nothing. Returns true or false depending on if it succeeded.
+ *
+ * @param avar AVar<A>
+ * @param value A
+ */
+export function tryPutAVar<A>(avar: AVar<A>, value: A): Task<boolean> {
+  return liftEff(() => {
     if (avar.status.kind === AVarStatus.EMPTY) {
       avar.status = aVarValue(value);
       drainAVar(avar);
@@ -337,16 +375,70 @@ export function tryPutAVar<A>(avar: AVar<A>, value: A): T.Task<boolean> {
   })
 }
 
-export function withAVar<A, B>(avar: AVar<A>, act: (_: A) => T.Task<B>): T.Task<B> {
-  return T.bracket(takeAVar(avar), v => putAVar(avar, v), act);
+/**
+ * `withAVar` is an exception-safe wrapper for operating on the contents of an `AVar`
+ * this operation will ensure AVar content is put back even if the action fail or killed.
+ * However, it is only atomic if there are no other producers for this AVar.
+ * @param avar
+ * @param act
+ */
+export function withAVar<A, B>(avar: AVar<A>, act: (_: A) => Task<B>): Task<B> {
+  return bracket(takeAVar(avar), v => putAVar(avar, v), act);
 }
 
-export function swapAVar<A>(avar: AVar<A>, a: A): T.Task<A> {
+/**
+ * Take a value from an 'AVar', put a new value into the 'AVar' and
+ * return the value taken. This function is atomic only if there are
+ * no other producers for this 'AVar'.
+ * @param avar
+ * @param a
+ */
+export function swapAVar<A>(avar: AVar<A>, a: A): Task<A> {
   return takeAVar(avar).chain(v => putAVar(avar, a).map(_ => v));
 }
 
-export function tryTakeAVar<A>(avar: AVar<A>): T.Task<M.Maybe<A>> {
-  return T.liftEff(() => {
+/**
+ * An exception-safe wrapper for modifying the contents of an 'AVar'.
+ * Like 'withAVar', 'modifyAVar' will replace the original contents of
+ * the 'AVar' if an exception is raised during the operation. This
+ * function is only atomic if there are no other producers for this `AVar`
+ *
+ * @param avar
+ * @param act
+ */
+export function modifyAVar<A>(avar: AVar<A>, act: (_: A) => Task<A>): Task<void> {
+  return generalBracket(takeAVar(avar),
+    { killed: (_, a) => putAVar(avar, a)
+    , failed: (_, a) => putAVar(avar, a)
+    , completed: () => pure(void 0)
+    },
+    v => act(v).chain(a => putAVar(avar, a))
+  );
+}
+
+/**
+ * A variation of `modifyAVar` that allow the action to choose the return value
+ * of Task rather than only returning void.
+ * @param avar the AVar to modify the content
+ * @param act the action that modify the content of an AVar
+ */
+export function modifyAVar_<A, B>(avar: AVar<A>, act: (_: A) => Task<[A, B]>): Task<B> {
+  return generalBracket(takeAVar(avar),
+    { killed: (_, a) => putAVar(avar, a)
+    , failed: (_, a) => putAVar(avar, a)
+    , completed: () => pure(void 0)
+    },
+    v => act(v).chain(([a, b]) => putAVar(avar, a).then(pure(b)))
+  );
+}
+
+/**
+ * Attempts to synchronously take an AVar value, leaving it empty. If the
+ * AVar is empty, this will return `Nothing`.
+ * @param avar
+ */
+export function tryTakeAVar<A>(avar: AVar<A>): Task<M.Maybe<A>> {
+  return liftEff(() => {
     const status = avar.status;
     switch (status.kind) {
       case AVarStatus.EMPTY:
@@ -360,8 +452,13 @@ export function tryTakeAVar<A>(avar: AVar<A>): T.Task<M.Maybe<A>> {
   });
 }
 
-export function tryReadAVar<A>(avar: AVar<A>): T.Task<M.Maybe<A>> {
-  return T.liftEff(() => {
+/**
+ * Attempts to synchronously read an AVar. If the AVar is empty, this will
+ * return `Nothing`
+ * @param avar
+ */
+export function tryReadAVar<A>(avar: AVar<A>): Task<M.Maybe<A>> {
+  return liftEff(() => {
     const status = avar.status;
     switch (status.kind) {
       case AVarStatus.FULL:
@@ -372,8 +469,14 @@ export function tryReadAVar<A>(avar: AVar<A>): T.Task<M.Maybe<A>> {
   });
 }
 
-export function killAVar(error: Error, avar: AVar<any>): T.Task<void> {
-  return T.liftEff(() => {
+/**
+ * Kills the AVar with an exception. All pending and future actions will
+ * resolve immediately with the provided exception.
+ * @param error
+ * @param avar
+ */
+export function killAVar(error: Error, avar: AVar<any>): Task<void> {
+  return liftEff(() => {
     if (avar.status.kind !== AVarStatus.KILLED) {
       avar.status = { kind: AVarStatus.KILLED, error: error };
       drainAVar(avar);
@@ -381,12 +484,20 @@ export function killAVar(error: Error, avar: AVar<any>): T.Task<void> {
   })
 }
 
-export function isEmptyAVar(avar: AVar<any>): T.Task<boolean> {
+/**
+ * Synchronously checks whether an AVar currently is empty.
+ * @param avar
+ */
+export function isEmptyAVar(avar: AVar<any>): Task<boolean> {
   return status(avar).map(_isEmptyStatus);
 }
 
-export function status<A>(avar: AVar<A>): T.Task<Status<A>> {
-  return T.liftEff(() => avar.status);
+/**
+ * Synchronously checks the status of an AVar
+ * @param avar
+ */
+export function status<A>(avar: AVar<A>): Task<Status<A>> {
+  return liftEff(() => avar.status);
 }
 
 function _isEmptyStatus(st: Status<any>): st is Empty {
@@ -407,4 +518,10 @@ function createAVarAction(op: any, value: any, cb?: any): any {
     default:
       throw new TypeError('Invalid argument for createAVarAction')
   }
+}
+
+function thrower(e: Error) {
+  scheduler.enqueue(() => {
+    throw e
+  })
 }

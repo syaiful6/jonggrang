@@ -1,5 +1,5 @@
 import { EvQueue, Loop, stepper } from './event-queue';
-import * as E from '@jonggrang/prelude/lib/either';
+import * as E from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
 
 export function merge<F, G, I>(

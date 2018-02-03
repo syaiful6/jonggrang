@@ -1,7 +1,7 @@
 import 'mocha';
 import * as E from '@jonggrang/prelude/lib/either';
 
-import * as T from '../../src'
+import * as T from '../../src';
 import * as Q from './utils';
 
 const testTry = Q.assertTask(T.attempt(T.Task.of(42)).chain(x => {

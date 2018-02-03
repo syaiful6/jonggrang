@@ -11,7 +11,7 @@
   },
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
-  "jsnext:main": "es6/index.js",
+  "module": "es6/index.js",
   "license": "MIT",
   "files": [
     "lib/",
@@ -20,6 +20,7 @@
   "dependencies": {
     "@jonggrang/prelude": "^0.1.1",
     "@jonggrang/task": "^0.1.1",
+    "@jonggrang/ref": "^0.1.1",
     "snabbdom": "^0.7.1"
   },
   "devDependencies": {

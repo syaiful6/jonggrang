@@ -1,4 +1,4 @@
-import { EitherType, Either, Left, Right, left, right } from '@jonggrang/prelude/lib/either';
+import { EitherType, Either, Left, Right, left, right } from '@jonggrang/prelude';
 
 import {
   CoreTask, Pure, Throw, Except, Bind, Bracket, Sync, Async, Fork, Sequential,

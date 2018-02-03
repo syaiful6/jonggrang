@@ -1,7 +1,8 @@
 import * as T from '@jonggrang/task';
-import * as E from '@jonggrang/prelude/lib/either';
+import { readRef, writeRef, newRef, modifyRef } from '@jonggrang/ref';
+import * as E from '@jonggrang/prelude';
 import { Loop, EvQueue, withAccum, fix } from './event-queue';
-import { Transition, Batch, Ref } from './types';
+import { Transition, Batch } from './types';
 import { VNode } from './vnode';
 import * as R from './render';
 import * as S from './utils';
@@ -10,7 +11,7 @@ export interface App<F, G, S, A> {
   render: (model: S) => VNode<A>;
   update: (model: S, action: A) => Transition<F, S, A>;
   subs: (model: S) => Batch<G, A>;
-  init: () => Transition<F, S, A>;
+  init: Transition<F, S, A>;
 }
 
 export interface AppInstance<S, A> {
@@ -59,17 +60,18 @@ export function makeAppQueue<M, Q, S, I>(
       return self.push({ tag: AppActionType.INTERPRET, payload: E.left(ef) });
     }
     function runSubs(int: Loop<E.Either<M, Q>>, subs: Q[]) {
-      let ref: Ref<Loop<E.Either<M, Q>>> = { ref: int };
-      return T.forInPar(subs, q => {
-        let k = ref.ref.loop;
-        return k(E.right(q)).chain(nq => {
-          return T.liftEff(() => {
-            ref.ref = nq;
-          })
-        });
-      }).then(T.liftEff(() => ref.ref))
+      return newRef(int).chain(ref => {
+        return T.forInPar(subs, q => {
+          return readRef(ref)
+            .chain(k => k.loop(E.right(q)))
+            .chain(nq => writeRef(ref, nq))
+        }).then(readRef(ref));
+      });
     }
-    function update(state: AppState<M, Q, S>, action: AppAction<M, Q, S, I>): T.Task<AppState<M, Q, S>> {
+    function update(
+      state: AppState<M, Q, S>,
+      action: AppAction<M, Q, S, I>
+    ): T.Task<AppState<M, Q, S>> {
       let next: Transition<M, S, I>,
         needsRender: boolean,
         nextState: AppState<M, Q, S>,
@@ -100,31 +102,48 @@ export function makeAppQueue<M, Q, S, I>(
       }
     }
     function commit(state: AppState<M, Q, S>): T.Task<AppState<M, Q, S>> {
-      if (state.needsRender) {
-        state.snabbdom(state.model);
-      }
-      return runSubs(state.interpret, app.subs(state.model))
+      return T.liftEff(() => {
+        if (state.needsRender) {
+          state.snabbdom(state.model)
+        }
+      }).then(runSubs(state.interpret, app.subs(state.model))
         .chain(tickInterpret =>
           tickInterpret.tick()
-            .map(nextInterpret => ({ snabbdom: state.snabbdom, model: state.model, interpret: nextInterpret, needsRender: false}))
+            .map(nextInterpret =>
+              ({ snabbdom: state.snabbdom
+              , model: state.model
+              , interpret: nextInterpret
+              , needsRender: false})))
         )
     }
     function emit(a: I) {
       T.launchTask(pushAction(a).then(self.run))
     }
-    let snabbdom = renderStep(R.init(emit), app.render, el),
-      initEff = app.init();
-      snabbdom(initEff.model);
-    return interpreter(
+    return T.liftEff(() => {
+      let snab = renderStep(R.init(emit), app.render, el);
+      snab(app.init.model);
+      return snab;
+    }).chain(snabbdom =>
+      interpreter(
         S.assign({}, self, { push: (e: I) => self.push({ tag: AppActionType.ACTION, payload: e })})
       ).chain(it2 => {
-        return T.forInPar(initEff.effects, pushEffect)
+        return T.forInPar(app.init.effects, pushEffect)
           .chain(() => {
-            let st: AppState<M, Q, S> = { snabbdom, interpret: it2, needsRender: false, model: initEff.model };
+            let st: AppState<M, Q, S> =
+              { snabbdom
+              , interpret: it2
+              , needsRender: false
+              , model: app.init.model };
             return T.pure({ update, commit, init: st})
           })
       })
+    )
   })
+}
+
+interface SubscriptionState<S, I> {
+  fresh: number;
+  cbs: Record<string, (_: AppChange<S, I>) => T.Task<void>>;
 }
 
 export function make<M, Q, S, I>(
@@ -132,45 +151,45 @@ export function make<M, Q, S, I>(
   app: App<M, Q, S, I>,
   el: Element
 ): T.Task<AppInstance<S, I>> {
-  let subsRef: { fresh: number, cbs: Record<string, (_: AppChange<S, I>) => T.Task<void>>} = { fresh: 0, cbs: {} };
-  let stateRef: Ref<S> = { ref: app.init().model };
-  function handleChange(ac: AppChange<S, I>): T.Task<void> {
-    return T.liftEff(() => {
-      stateRef.ref = ac.model;
-      let subs: T.Task<void>[] = [];
-      for (let k in subsRef.cbs) {
-        if (Object.prototype.hasOwnProperty.call(subsRef.cbs, k)) {
-          subs.push(subsRef.cbs[k](ac))
+  return newRef<SubscriptionState<S, I>>({ fresh: 0, cbs: {} })
+    .chain(subsRef =>
+      newRef<S>(app.init.model).chain(stateRef => {
+        function handleChange(ac: AppChange<S, I>): T.Task<void> {
+          return writeRef(stateRef, ac.model)
+            .then(readRef(subsRef))
+            .chain(sbs => T.forInPar(S.recordValues(sbs.cbs), cb => cb(ac)))
+            .then(T.pure(void 0))
         }
-      }
-      return subs;
-    }).chain(sbs => {
-      return T.merge(sbs).map(() => {
+        function subscribe_(cb: (_: AppChange<S, I>) => T.Task<void>): T.Task<T.Task<void>> {
+          return readRef(subsRef)
+            .chain(sbs => {
+              let nkey = sbs.fresh.toString();
+              return writeRef(subsRef, S.assign({}, sbs, {
+                fresh: sbs.fresh + 1,
+                sbs: S.assign({}, sbs.cbs, {
+                  [nkey]: cb
+                })
+              })).map(v => remove(nkey))
+            })
+        }
+        function remove(key: string): T.Task<void> {
+          return modifyRef(subsRef, sbs => {
+            let nbs = S.assign({}, sbs);
+            delete nbs.cbs[key];
+            return nbs
+          })
+        }
+        return fix(makeAppQueue(handleChange, interpreter, app, el))
+          .map(queue =>
+            ({ push: (i: I) => queue.push({ tag: AppActionType.ACTION, payload: i }),
+              snapshot: readRef(stateRef),
+              restore: (s: S) => queue.push({ tag: AppActionType.RESTORE, payload: s }),
+              subscribe: subscribe_,
+              run: queue.run
+            })
+          );
       })
-    })
-  }
-  function subscribe_(cb: (_: AppChange<S, I>) => T.Task<void>): T.Task<T.Task<void>> {
-    return T.liftEff(() => {
-      let nkey = subsRef.fresh.toString();
-      subsRef.fresh =  subsRef.fresh + 1;
-      subsRef.cbs[nkey] = cb;
-      return remove(nkey)
-    })
-  }
-  function remove(key: string): T.Task<void> {
-    return T.liftEff(() => {
-      delete subsRef.cbs[key];
-    })
-  }
-  return fix(makeAppQueue(handleChange, interpreter, app, el))
-    .map(queue =>
-      ({ push: (i: I) => queue.push({ tag: AppActionType.ACTION, payload: i }),
-        snapshot: T.liftEff(() => stateRef.ref),
-        restore: (s: S) => queue.push({ tag: AppActionType.RESTORE, payload: s }),
-        subscribe: subscribe_,
-        run: queue.run
-      })
-    );
+    )
 }
 
 const enum RenderStep {

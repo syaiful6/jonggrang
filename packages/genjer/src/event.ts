@@ -3,11 +3,11 @@
  */
 import { HandlerFnOrObject, pipeEvHandler, runEvHandler } from './vnode';
 
-export { HandlerFnOrObject, pipeEvHandler, runEvHandler } from './vnode';
-
-export function input<E, A>(action: (_: E) => A): HandlerFnOrObject<E, A> {
-  return new Input(action);
-}
+export {
+  HandlerFnOrObject,
+  pipeEvHandler as pipe,
+  runEvHandler as run
+} from './vnode';
 
 export function always<A>(value: A): HandlerFnOrObject<any, A> {
   return new Constant(value);
@@ -17,19 +17,15 @@ export function onValueInput<A>(f: HandlerFnOrObject<string, A>): HandlerFnOrObj
   return pipeEvHandler(valueInputReader, f);
 }
 
-export function onValueChange<A>(f: HandlerFnOrObject<string, A>): HandlerFnOrObject<Event, A> {
-  return pipeEvHandler(valueInputReader, f);
-}
-
 export function onChecked<A>(f: HandlerFnOrObject<boolean, A>): HandlerFnOrObject<Event, A> {
   return pipeEvHandler(checkedReader, f);
 }
 
-export function onKeydown<A>(
-  predicate: (k: string) => boolean,
-  action: HandlerFnOrObject<string, A>
+export function onKey<T extends string, A>(
+  predicate: (k: string) => k is T,
+  action: HandlerFnOrObject<T, A>
 ): HandlerFnOrObject<Event, A> {
-  return new KeyDownOn(predicate, action);
+  return new KeyOn(predicate, action);
 }
 
 function valueInputReader(ev: Event): string | void {
@@ -50,15 +46,6 @@ function checkedReader(ev: Event): boolean | void {
   }
 }
 
-class Input<E, I> {
-  constructor(readonly action: (_: E) => I) {
-  }
-
-  handleEvent(e: E): I {
-    return this.action(e);
-  }
-}
-
 class Constant<A> {
   constructor(readonly value: A) {
   }
@@ -68,10 +55,10 @@ class Constant<A> {
   }
 }
 
-class KeyDownOn<A> {
+class KeyOn<T extends string, A> {
   constructor(
-    readonly predicate: (_: string) => boolean,
-    readonly action: HandlerFnOrObject<string, A>
+    readonly predicate: (k: string) => k is T,
+    readonly action: HandlerFnOrObject<T, A>
   ) {
   }
 

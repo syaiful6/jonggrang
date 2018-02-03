@@ -23,3 +23,11 @@ export function set<K extends string, A, R extends { [I in K]: A}>(k: K, v: A, o
 export function o<A, B, C>(f: (_: B) => C, g: (_: A) => B) {
   return (x: A) => f(g(x));
 }
+
+export function recordKeys<S, T extends keyof S>(s: S): T[] {
+  return Object.keys(s) as T[];
+}
+
+export function recordValues<S>(s: S): S[keyof S][] {
+  return recordKeys(s).map(k => s[k]);
+}

@@ -1,9 +1,9 @@
 import 'mocha';
 import { MaybeType } from '@jonggrang/prelude/lib/maybe';
 
-import * as T from '../../src';
+import * as T from '@jonggrang/task';
 import * as Q from './utils';
-import * as AV from '../../src/avar';
+import * as AV from '../../src';
 
 describe('AVar', () => {
   it('try read full AVar return Just<A>', done =>

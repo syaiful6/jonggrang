@@ -1,4 +1,4 @@
-import { Either, left, right, isRight } from '@jonggrang/prelude/lib/either';
+import { Either, left, right, isRight } from '@jonggrang/prelude';
 
 import {
   Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
@@ -14,6 +14,7 @@ export {
   nonCanceler, Canceler, Fiber, Task, Parallel, Supervisor,
   Computation, NodeCallback
 } from './internal/types';
+export { scheduler } from './internal/scheduler';
 
 /**
  * Invokes pending cancelers in a fiber and runs cleanup effects. Blocks
@@ -241,7 +242,14 @@ export function bracket<A, B>(
   }, act);
 }
 
-function generalBracket<A, B>(
+/**
+ * A more general version of `bracket`. Allow you to set up action to be performed
+ * when it `killed`, 'failed` and `completed`.
+ * @param a
+ * @param r
+ * @param g
+ */
+export function generalBracket<A, B>(
   a: Task<A>,
   r: GeneralBracket<A, B>,
   g: Fn1<A, Task<B>>
