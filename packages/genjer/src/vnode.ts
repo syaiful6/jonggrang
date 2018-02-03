@@ -35,11 +35,21 @@ function isThunk(vnode: VNode<any>): boolean {
 
 export function mapVNode<A, B>(f: (_: A) => B, v: VNode<A>): VNode<B> {
   let data = v.data || {};
+  if (isThunk(v)) {
+    const ndata = T.assign({}, v.data, {
+      fn: () => {
+        let r:  VNode<A> = (v.data as any).fn.apply(null, (data as any).args);
+        mutmapVNode(f, r, true);
+        return r;
+      }
+    }) as VNodeData<B>;
+    return T.set('data', ndata, v as any);
+  }
   if (typeof data.cofn === 'function') {
     return V.vnode(v.sel,
       T.assign({}, data as any, {
         cofn: T.o(f, data.cofn),
-        hooks: {
+        hook: {
           init: initMapHook,
           prepatch: prepatchMapHook
         }
@@ -49,7 +59,7 @@ export function mapVNode<A, B>(f: (_: A) => B, v: VNode<A>): VNode<B> {
   return V.vnode(v.sel,
     T.assign({}, data as any, {
       cofn: f,
-      hooks: {
+      hook: {
         init: initMapHook,
         prepatch: prepatchMapHook
       }
@@ -59,24 +69,24 @@ export function mapVNode<A, B>(f: (_: A) => B, v: VNode<A>): VNode<B> {
 
 function initMapHook(vnode: VNode<any>) {
   const cur = vnode.data as VNodeData<any>;
-  if (cur.cofn) mutmapVNode(cur.cofn, vnode);
+  if (typeof cur.cofn === 'function') mutmapVNode(cur.cofn, vnode, true);
 }
 
 function prepatchMapHook(old: VNode<any>, vnode: VNode<any>) {
   initMapHook(vnode);
 }
 
-export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>): void {
+export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>, parent: boolean): void {
   let data = v.data || {};
   if (isThunk(v)) {
     v.data = T.set('fn', () => {
       let r:  VNode<A> = (v.data as any).fn.apply(null, (data as any).args);
-      mutmapVNode(f, r);
+      mutmapVNode(f, r, true);
       return r;
     }, data as any);
     return;
   }
-  if (typeof data.cofn === 'function') {
+  if (typeof data.cofn === 'function' && !parent) {
     data.cofn = T.o(f, data.cofn);
     return;
   }
@@ -89,7 +99,7 @@ export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>): void {
   }
   v.children = v.children != undefined ? v.children.map(c => {
     if (typeof c === 'string') return c;
-    mutmapVNode(f, c);
+    mutmapVNode(f, c, false);
     return c;
   }) : undefined;
 }

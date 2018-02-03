@@ -10,7 +10,6 @@ export function createModuleListener<A>(emit: (_: A) => void): Module {
       oldElm: Element = old.elm as Element,
       elm: Element = (vnode && vnode.elm) as Element,
       name: string;
-
     if (oldOn === on) return;
 
     // remove existing listeners which no longer used

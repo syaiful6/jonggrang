@@ -45,7 +45,7 @@ export function modifyRef_<A, B>(ref: Ref<A>, act: (_: A) => [A, B]): T.Task<B> 
 }
 
 /**
- * like `modifyRef_` but only accept a function that take current value and retur
+ * like `modifyRef_` but only accept a function that take current value and return
  * the modified value.
  * @param ref
  * @param trans

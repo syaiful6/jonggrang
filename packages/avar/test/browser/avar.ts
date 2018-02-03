@@ -1,5 +1,5 @@
 import 'mocha';
-import { MaybeType } from '@jonggrang/prelude/lib/maybe';
+import { MaybeType } from '@jonggrang/prelude';
 
 import * as T from '@jonggrang/task';
 import * as Q from './utils';
@@ -157,6 +157,20 @@ describe('AVar', () => {
             .chain(fib =>
               T.killFiber(new Error('kill withAVar action'), fib))
             .then(AV.takeAVar(av)))
+      )
+    )
+  );
+
+  it('modifiAVar can modify AVar content', done =>
+    T.runTask(
+      done,
+      Q.shouldBe(
+        'foobaz',
+        AV.newAVar('foo')
+          .chain(av =>
+            AV.modifyAVar(av, s => T.pure(s + 'baz'))
+              .then(AV.readAVar(av))
+        )
       )
     )
   );

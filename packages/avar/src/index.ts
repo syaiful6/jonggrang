@@ -21,7 +21,7 @@ export interface MutableCell<A> {
 /**
  * AVar actions.
  */
-export enum AVarAction {
+export const enum AVarAction {
   TAKE,
   PUT,
   READ
@@ -46,7 +46,7 @@ export interface ReadAVar<A> {
 /**
  * AVar status, an AVar can be Empty, Full and Killed.
  */
-export enum AVarStatus {
+export const enum AVarStatus {
   FULL,
   EMPTY,
   KILLED

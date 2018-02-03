@@ -1,5 +1,5 @@
 import 'mocha';
-import * as E from '@jonggrang/prelude/lib/either';
+import * as E from '@jonggrang/prelude';
 
 import * as T from '../../src';
 import * as Q from './utils';
