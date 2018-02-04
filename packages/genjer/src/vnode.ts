@@ -11,6 +11,42 @@ export interface VNodeData<A> extends V.VNodeData {
   cofn?: (_: any) => any; // Coyoneda encoding, use any because we can't properly line up the type
 }
 
+export interface ThunkData<A> extends VNodeData<A> {
+  render: () => VNode<any>;
+  cofn: (_: any) => A;
+  args: any[];
+}
+
+export interface Thunk<A> extends VNode<A> {
+  data: ThunkData<A>;
+}
+
+export interface ThunkFn<A> {
+  (sel: string, fn: Function, args: Array<any>): Thunk<A>;
+  (sel: string, key: any, fn: Function, args: Array<any>): Thunk<A>;
+}
+
+export function thunk<A>(
+  sel: string, fn: Function, args: Array<any>
+): Thunk<A>;
+export function thunk<A>(
+  sel: string, key: any, fn: Function, args: Array<any>
+): Thunk<A>;
+export function thunk<A>(sel: string, key?: any, fn?: any, args?: any): Thunk<A> {
+  if (args === undefined) {
+    args = fn;
+    fn = key;
+    key = undefined;
+  }
+  return V.vnode(sel, {
+    key,
+    cofn: T.id,
+    hook: { init: thunkInit, prepatch: prepatchThunk },
+    render: fn,
+    args: args
+  }, undefined, undefined, undefined) as Thunk<A>;
+}
+
 /**
  * This is for listener modules, defined here to avoid cyclic deps
  */
@@ -28,20 +64,16 @@ export interface ListenerData<A> {
   [key: string]: HandlerFnOrObject<Event, A>;
 }
 
-function isThunk(vnode: VNode<any>): boolean {
+function isThunk(vnode: VNode<any>): vnode is Thunk<any> {
   const data = vnode.data;
-  return data != null && typeof data.fn === 'function';
+  return data != null && typeof data.render === 'function' && typeof data.cofn === 'function';
 }
 
 export function mapVNode<A, B>(f: (_: A) => B, v: VNode<A>): VNode<B> {
   let data = v.data || {};
   if (isThunk(v)) {
     const ndata = T.assign({}, v.data, {
-      fn: () => {
-        let r:  VNode<A> = (v.data as any).fn.apply(null, (data as any).args);
-        mutmapVNode(f, r, true);
-        return r;
-      }
+      cofn: T.o(f, data.cofn as any)
     }) as VNodeData<B>;
     return T.set('data', ndata, v as any);
   }
@@ -76,18 +108,42 @@ function prepatchMapHook(old: VNode<any>, vnode: VNode<any>) {
   initMapHook(vnode);
 }
 
+function runThunk(thunk: Thunk<any>) {
+  const cur = thunk.data as VNodeData<any>;
+  let vnode = (cur.render as any).apply(undefined, cur.args);
+  mutmapVNode(cur.cofn as any, vnode, false);
+  return vnode;
+}
+
+function thunkInit(thunk: VNode<any>) {
+  let vnode = runThunk(thunk as Thunk<any>);
+  copyToThunk(vnode, thunk);
+}
+
+function prepatchThunk(oldVnode: VNode<any>, thunk: VNode<any>) {
+  let i: number, old = oldVnode.data as VNodeData<any>, cur = thunk.data as VNodeData<any>;
+  const oldArgs = old.args, args = cur.args;
+  if (old.render !== cur.render || (oldArgs as any).length !== (args as any).length) {
+    copyToThunk(runThunk(thunk as Thunk<any>), thunk);
+    return;
+  }
+  for (i = 0; i < (args as any).length; ++i) {
+    if ((oldArgs as any)[i] !== (args as any)[i]) {
+      copyToThunk(runThunk(thunk as Thunk<any>), thunk);
+      return;
+    }
+  }
+  copyToThunk(oldVnode, thunk);
+}
+
 export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>, parent: boolean): void {
   let data = v.data || {};
   if (isThunk(v)) {
-    v.data = T.set('fn', () => {
-      let r:  VNode<A> = (v.data as any).fn.apply(null, (data as any).args);
-      mutmapVNode(f, r, true);
-      return r;
-    }, data as any);
+    (v as any).data.cofn = T.o(f, data.cofn as any);
     return;
   }
   if (typeof data.cofn === 'function' && !parent) {
-    data.cofn = T.o(f, data.cofn);
+    (v as any).data.cofn = T.o(f, data.cofn);
     return;
   }
   if (data && data.events) {
@@ -102,6 +158,17 @@ export function mutmapVNode<A, B>(f: (_: A) => B, v: VNode<A>, parent: boolean):
     mutmapVNode(f, c, false);
     return c;
   }) : undefined;
+}
+
+function copyToThunk(vnode: VNode<any>, thunk: VNode<any>): void {
+  thunk.elm = vnode.elm;
+  (vnode.data as VNodeData<any>).render = (thunk.data as VNodeData<any>).render;
+  (vnode.data as VNodeData<any>).args = (thunk.data as VNodeData<any>).args;
+  (vnode.data as VNodeData<any>).cofn = (thunk.data as VNodeData<any>).cofn;
+  thunk.data = vnode.data;
+  thunk.children = vnode.children;
+  thunk.text = vnode.text;
+  thunk.elm = vnode.elm;
 }
 
 export function runEvHandler<E, A>(handler: HandlerFnOrObject<E, A>, event: E): A | void {

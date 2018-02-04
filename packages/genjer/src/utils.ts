@@ -20,6 +20,10 @@ export function set<K extends string, A, R extends { [I in K]: A}>(k: K, v: A, o
   return ret;
 }
 
+export function id<A>(a: A): A {
+  return a;
+}
+
 export function o<A, B, C>(f: (_: B) => C, g: (_: A) => B) {
   return (x: A) => f(g(x));
 }

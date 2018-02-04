@@ -1,6 +1,5 @@
-import { VNode, VNodeData } from './vnode';
+import { VNode, VNodeData, thunk } from './vnode';
 import * as H from 'snabbdom/h';
-import * as T from 'snabbdom/thunk';
 
 export { VNode } from './vnode';
 export type VNodes<A> = Array<VNode<A>>;
@@ -19,26 +18,26 @@ export function h<A>(sel: any, b?: any, c?: any): VNode<A> {
 export function lazy<S, A>(
   sel: string, st: S, fn: (_: S) => VNode<A>, key?: string | undefined
 ): VNode<A> {
-  return T.thunk(sel, key, fn, [st])
+  return thunk(sel, key, fn, [st])
 }
 
 export function lazy2<S, T, A>(
   sel: string, a: S, b: T,
   fn: (a: S, b: T) => VNode<A>, key?: string | undefined
 ): VNode<A> {
-  return T.thunk(sel, key, fn, [a, b]);
+  return thunk(sel, key, fn, [a, b]);
 }
 
 export function lazy3<S, T, U, A>(
   sel: string, a: S, b: T, c: U,
   fn: (a: S, b: T, c: U) => VNode<A>, key?: string | undefined
 ): VNode<A> {
-  return T.thunk(sel, key, fn, [a, b, c]);
+  return thunk(sel, key, fn, [a, b, c]);
 }
 
 export function lazy4<S, T, U, V, A>(
   sel: string, a: S, b: T, c: U, d: V,
   fn: (a: S, b: T, c: U, d: V) => VNode<A>, key?: string | undefined
 ): VNode<A> {
-  return T.thunk(sel, key, fn, [a, b, c, d]);
+  return thunk(sel, key, fn, [a, b, c, d]);
 }
