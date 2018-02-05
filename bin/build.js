@@ -79,6 +79,7 @@ const PACKAGES_DIRECTORY = join(ROOT_DIRECTORY, 'packages')
 
 let allPackages = [
   'prelude',
+  'strmap',
   'task',
   'avar',
   'ref',
