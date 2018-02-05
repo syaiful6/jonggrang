@@ -167,6 +167,20 @@ export function pure<A>(a: A): Task<A> {
 }
 
 /**
+ * convert task to parallel task applicative
+ */
+export function parallel<A>(t: Task<A>): Parallel<A> {
+  return t.parallel();
+}
+
+/**
+ * convert parallel task to monadic Task
+ */
+export function sequential<A>(p: Parallel<A>): Task<A> {
+  return p.sequential();
+}
+
+/**
  * Race tasks.
  */
 export function race<A>(xs: Task<A>[]): Task<A> {

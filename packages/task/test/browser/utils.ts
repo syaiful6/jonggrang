@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 
 import * as T from '../../src';
+import { either, left } from '@jonggrang/prelude';
 
 function pair<A, B>(a: A): (b: B) => [A, B] {
   return (b: B) => [a, b]
@@ -32,6 +33,16 @@ export function assertTask(t: T.Task<boolean>): T.Task<void> {
       expect(b).to.be.equal(true)
     })
   })
+}
+
+export function withTimeout<A>(timeout: number, t: T.Task<A>): T.Task<A> {
+  return T.sequential(
+    T.parallel(
+      T.attempt(t)
+    ).alt(
+      T.parallel(
+        T.delay(timeout)).map(() => left(new Error('Timed out')))
+  )).chain(e => either(T.raise, T.pure, e))
 }
 
 export type Ref<A> = {

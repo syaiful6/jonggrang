@@ -164,6 +164,25 @@ describe('Task.Core', () => {
     it('merge parallel array of Tasks', (done) => {
       T.runTask(done, Q.shouldBe([42, 99], T.mergePar([T.Task.of(42), T.Task.of(99)])));
     });
+
+    it('parallel/throw', done =>
+      T.runTask(
+        done,
+        Q.assertTask(Q.withTimeout(100, T.co(function* () {
+          let ref = yield Q.newRef('');
+          const action = (n: number, s: string) =>
+            T.delay(n).then(Q.modifyRef(ref, x => x + s)).then(T.pure(s));
+
+          let r1 = yield T.attempt(T.sequential(
+            T.parallel(action(10, 'foo').then(T.raise(new Error('nope'))))
+              .map((a: string) => (b: string) => ({a, b}))
+              .ap(T.parallel(T.never))
+          ));
+          let r2 = yield Q.readRef(ref);
+          return T.pure(E.isLeft(r1) && r2 === 'foo');
+        })))
+      )
+    )
   });
 
   describe('Error handling & Joining forked Task', () => {

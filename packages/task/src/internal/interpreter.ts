@@ -247,23 +247,26 @@ class ParComputation<A> implements Computation<A> {
         case 'APAPPLY':
           lhs = (head._1 as any)._3;
           rhs = (head._2 as any)._3;
-          if (lhs === TEMPTY || rhs === TEMPTY) {
-            return;
-          }
-          if (isLeft(lhs)) {
-            if (isLeft(rhs)) {
-              if (fail === lhs) {
-                fail = rhs;
-              }
-            } else {
-              fail = lhs;
-            }
-            step    = null;
-            head._3 = fail as Left<Error>;
-          } else if (isLeft(rhs)) {
-            step    = null;
-            fail    = rhs;
+          if (fail) {
             head._3 = fail;
+            tmp     = true;
+            kid     = this._killId++;
+            this._kills[kid] = this.kill(new Error("[Paraller] Early exit"), fail === lhs ? head._2 : head._1, () => {
+              delete this._kills[kid as any];
+              if (tmp) {
+                tmp = false;
+              } else if (tail === null) {
+                this.join(step, null, null);
+              } else {
+                this.join(step, tail._1, (tail as any)._2);
+              }
+            });
+            if (tmp) {
+              tmp = false;
+              return;
+            }
+          } else if (lhs === TEMPTY || rhs === TEMPTY) {
+            return;
           } else {
             step    = right(lhs.value(rhs.value));
             head._3 = step;
