@@ -20,7 +20,9 @@
   "dependencies": {
     "@jonggrang/prelude": "^0.1.1",
     "@jonggrang/http-types": "^0.1.1",
-    "@jonggrang/task": "^0.1.1"
+    "@jonggrang/task": "^0.1.1",
+    "@jonggrang/avar": "^0.1.1",
+    "@jonggrang/ref": "^0.1.1"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
