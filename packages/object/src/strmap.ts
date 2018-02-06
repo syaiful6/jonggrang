@@ -70,6 +70,17 @@ export function remove<K extends string, V>(k: K, m: StrMap<K, V>): StrMap<K, V>
 }
 
 /**
+ * Drops the given keys from a map.
+ */
+export function drop<K extends string, V>(ks: K[], m: StrMap<K, V>): StrMap<K, V> {
+  let rec = thawStrMap(m);
+  for (let i = 0, len = ks.length; i < len; i++) {
+    delete rec[ks[i]];
+  }
+  return rec;
+}
+
+/**
  * Delete a key and value from a map, returning the value
  * as well as the subsequent map
  */

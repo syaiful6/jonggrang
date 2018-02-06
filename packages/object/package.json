@@ -1,6 +1,6 @@
 {
-  "name": "@jonggrang/strmap",
-  "description": "Well-typed functions for objects",
+  "name": "@jonggrang/object",
+  "description": "Utility functions for working with Javascript object",
   "version": "0.1.1",
   "author": {
     "name": "Syaiful Bahri"
