@@ -2,14 +2,29 @@ import * as H from '@jonggrang/http-types';
 import { Task } from '@jonggrang/task';
 
 export interface Request {
-  method: H.HttpMethod; // http method, such as GET
-  headers: H.RequestHeaders; // Request headers
-  httpVersion: H.HttpVersion; // HTTP version such as 1.1
+  // http method, such as GET
+  method: H.HttpMethod;
+  // Request headers
+  headers: H.RequestHeaders;
+  // HTTP version such as 1.1
+  httpVersion: H.HttpVersion;
+  // Extra path information sent by the client.
   rawPathInfo: string;
+  // If no query string was specified, this should be empty.
+  // This value. Will include the leading question mark.
   rawQueryString: string;
+  // Was this request made over an SSL connection?
+  isSecure: boolean;
+  // Parsed query string information.
   query: H.Query;
+  // Path info in individual pieces - the URL without a hostname/port and
+  //  without a query string, split on forward slashes.
   pathInfo: string[];
+  // Get the next chunk of the body. Returns 'B.empty' when the
+  // body is fully consumed.
   body: Task<Buffer>;
+  // A location for arbitrary data to be shared by applications and middleware.
+  vault: Record<string, any>;
 }
 
 export type Response

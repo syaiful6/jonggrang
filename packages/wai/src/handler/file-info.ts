@@ -37,7 +37,9 @@ export function withFileInfoCache<A>(
   delay: number,
   action: (getInfo: (path: string) => T.Task<FileInfo>) => T.Task<A>
 ): T.Task<A> {
-  return delay === 0 ? action(getFileInfo) : T.bracket(initialize(delay), terminate, s => action(getAndRegisterInfo(s)))
+  return delay === 0
+    ? action(getFileInfo)
+    : T.bracket(initialize(delay), terminate, s => action(getAndRegisterInfo(s)))
 }
 
 export function getFileInfo(path: string): T.Task<FileInfo> {

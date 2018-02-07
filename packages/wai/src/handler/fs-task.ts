@@ -22,3 +22,10 @@ export function fdOpen(
     return T.nonCanceler;
   });
 }
+
+export function fdClose(fd: number): T.Task<void> {
+  return T.makeTask(cb => {
+    FS.close(fd, cb);
+    return T.nonCanceler;
+  })
+}
