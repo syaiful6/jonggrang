@@ -1,7 +1,7 @@
 import * as M from '@jonggrang/prelude';
 
 import {
-  NodeCallback, Task, makeTask, thunkCanceller, liftEff,
+  NodeCallback, Task, makeTask, liftEff,
   bracket, generalBracket, pure, scheduler
 } from '@jonggrang/task';
 
@@ -319,11 +319,7 @@ export function newAVar<A>(a: A): Task<AVar<A>> {
  * @param value value to put to the avar
  */
 export function putAVar<A>(avar: AVar<A>, value: A): Task<void> {
-  return makeTask(cb => {
-    const cell = putLast(avar.puts, createAVarAction(AVarAction.PUT, value, cb));
-    drainAVar(avar);
-    return thunkCanceller(() => deleteCell(cell));
-  });
+  return makeTask(new AVarPut(avar, value));
 }
 
 /**
@@ -334,11 +330,7 @@ export function putAVar<A>(avar: AVar<A>, value: A): Task<void> {
  * @param avar AVar<A> to take the content
  */
 export function takeAVar<A>(avar: AVar<A>): Task<A> {
-  return makeTask(cb => {
-    const cell = putLast(avar.takes, createAVarAction(AVarAction.TAKE, cb));
-    drainAVar(avar);
-    return thunkCanceller(() => deleteCell(cell));
-  });
+  return makeTask(new AVarTake(avar));
 }
 
 /**
@@ -349,11 +341,7 @@ export function takeAVar<A>(avar: AVar<A>): Task<A> {
  * @param avar AVar<A> to read the content
  */
 export function readAVar<A>(avar: AVar<A>): Task<A> {
-  return makeTask(cb => {
-    const cell = putLast(avar.reads, createAVarAction(AVarAction.READ, cb));
-    drainAVar(avar);
-    return thunkCanceller(() => deleteCell(cell));
-  });
+  return makeTask(new AVarRead(avar));
 }
 
 /**
@@ -524,4 +512,67 @@ function thrower(e: Error) {
   scheduler.enqueue(() => {
     throw e
   })
+}
+
+class AVarTake<A> {
+  private cell: MutableCell<TakeAVar<A>> | undefined;
+  constructor(private avar: AVar<A>) {
+  }
+
+  handle(cb: NodeCallback<A, void>) {
+    this.cell = putLast(this.avar.takes, createAVarAction(AVarAction.TAKE, cb));
+    drainAVar(this.avar);
+  }
+
+  cancel() {
+    return liftEff(() => {
+      const cell = this.cell;
+      if (cell != null) {
+        deleteCell(cell);
+        this.cell = void 0;
+      }
+    })
+  }
+}
+
+class AVarRead<A> {
+  private cell: MutableCell<ReadAVar<A>> | undefined;
+  constructor(private avar: AVar<A>) {
+  }
+
+  handle(cb: NodeCallback<A, void>) {
+    this.cell = putLast(this.avar.reads, createAVarAction(AVarAction.READ, cb));
+    drainAVar(this.avar);
+  }
+
+  cancel() {
+    return liftEff(() => {
+      const cell = this.cell;
+      if (cell != null) {
+        deleteCell(cell);
+        this.cell = void 0;
+      }
+    })
+  }
+}
+
+class AVarPut<A> {
+  private cell: MutableCell<PutAVar<A>> | undefined;
+  constructor(private avar: AVar<A>, private value: A) {
+  }
+
+  handle(cb: NodeCallback<void, void>) {
+    this.cell = putLast(this.avar.puts, createAVarAction(AVarAction.PUT, this.value, cb));
+    drainAVar(this.avar);
+  }
+
+  cancel() {
+    return liftEff(() => {
+      const cell = this.cell;
+      if (cell != null) {
+        deleteCell(cell);
+        this.cell = void 0;
+      }
+    })
+  }
 }
