@@ -112,7 +112,7 @@ export function update<K extends string, V>(
 }
 
 /**
- *
+ * compute union of two StrMap, prefer first StrMap in case conflict happen.
  */
 export function union<K extends string, V>(
   m1: StrMap<K, V>,
