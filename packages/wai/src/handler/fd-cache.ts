@@ -1,6 +1,10 @@
 import * as T from '@jonggrang/task';
+import * as P from '@jonggrang/prelude';
 import * as RV from '@jonggrang/ref';
+import * as SM from '@jonggrang/object';
+
 import * as FS from './fs-task';
+import { Reaper } from './reaper';
 
 export const enum Status {
   ACTIVE,
@@ -45,4 +49,23 @@ export function newFdEntry(path: string): T.Task<FdEntry> {
   return openFile(path).chain(fd =>
     newActiveStatus.map(status =>
       fdEntry(path, fd, status)));
+}
+
+type FdCache = SM.StrMap<string, FdEntry>;
+
+type MutableFdCache = Reaper<FdCache, [string, FdEntry]>;
+
+function fdCache(reaper: MutableFdCache): T.Task<FdCache> {
+  return reaper.read;
+}
+
+function look(mfc: MutableFdCache, path: string): T.Task<P.Maybe<FdEntry>> {
+  return fdCache(mfc)
+    .map(fc => validateEntry(SM.lookup(path, fc), path))
+}
+
+function validateEntry(fd: P.Maybe<FdEntry>, path: string): P.Maybe<FdEntry> {
+  return P.chainMaybe(fd, fdE => {
+    return fdE.path === path ? P.just(fdE) : P.nothing;
+  })
 }
