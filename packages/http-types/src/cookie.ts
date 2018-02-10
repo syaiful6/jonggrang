@@ -20,6 +20,12 @@ export function createCookie(name: string, value: string,
   return { name, value, expires, path, domain, secure, httpOnly, sameSite };
 }
 
+/**
+ * create `Cookie` with key value pair. Path will be set to `/`, HttpOnly is
+ * set to true, and Secure set to false.
+ * @param name string The cookie name
+ * @param value string The cookie value
+ */
 export function createCookieKV(name: string, value: string): Cookie {
   return createCookie(name, value, undefined, '/', undefined, false, true, undefined);
 }
@@ -91,7 +97,7 @@ export function parseCookies(str: string): Cookie[] {
     if (val.charCodeAt(0) === 34) {
       val = val.slice(1, -1);
     }
-    cookies.push(createCookieKV(key, decodeURIComponent(val)));
+    cookies.push(createCookieKV(key, tryDecodeUriComponent(val)));
   }
   return cookies;
 }
@@ -152,4 +158,12 @@ function checkInvalidHeaderChar(val: string): boolean {
       return true;
   }
   return false;
+}
+
+function tryDecodeUriComponent(s: string) {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
 }
