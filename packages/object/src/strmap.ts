@@ -36,6 +36,19 @@ export function fromPairs<K extends string, V>(xs: Array<[K, V]>): StrMap<K, V> 
 }
 
 /**
+ *
+ */
+export function toPairs<K extends string, V>(ms: StrMap<K, V>): Array<[K, V]> {
+  let results: Array<[K, V]> = [];
+  for (let k in ms) {
+    if (Object.prototype.hasOwnProperty.call(ms, k)) {
+      results.push([k, ms[k]]);
+    }
+  }
+  return results;
+}
+
+/**
  * Lookup the value for a key in a map
  * @param k key
  * @param m StrMap
