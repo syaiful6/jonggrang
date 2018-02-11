@@ -1,4 +1,6 @@
 import * as T from '@jonggrang/task';
+import { isEmpty } from '@jonggrang/object';
+import { smInsertTuple } from './utils';
 import { Reaper, mkReaper } from './reaper';
 import * as FS from './fs-task';
 
@@ -84,10 +86,10 @@ function negative(fic: FileInfoCache, path: string): T.Task<FileInfo> {
 function initialize(delay: number): T.Task<FileInfoCache> {
   return mkReaper({
     delay,
-    isNull,
+    isNull: isEmpty,
     empty: {},
     action: override,
-    cons: insert,
+    cons: smInsertTuple,
   })
 }
 
@@ -95,26 +97,6 @@ function createEntry(tag: EntryType.NEGATIVE): Entry;
 function createEntry(tag: EntryType.POSITIVE, finfo: FileInfo): Entry;
 function createEntry(tag: EntryType, finfo?: FileInfo): Entry {
   return { tag, finfo } as any;
-}
-
-function isNull<K extends string, A>(s: Record<K, A>): boolean {
-  for (let k in s) {
-    if (Object.prototype.hasOwnProperty.call(s, k)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function insert<K extends string, A>(item: [K, A], s: Record<K, A>): Record<K, A> {
-  let copy: Record<K, A> = {} as Record<K, A>;
-  for (let k in s) {
-    if (Object.prototype.hasOwnProperty.call(s, k)) {
-      copy[k] = s[k];
-    }
-  }
-  copy[item[0]] = item[1];
-  return copy;
 }
 
 function override(): T.Task<(c: Cache) => Cache> {

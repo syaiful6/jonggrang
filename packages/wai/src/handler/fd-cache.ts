@@ -4,7 +4,8 @@ import * as RV from '@jonggrang/ref';
 import * as SM from '@jonggrang/object';
 
 import * as FS from './fs-task';
-import { Reaper } from './reaper';
+import { Reaper, mkReaper } from './reaper';
+import { smInsertTuple } from './utils';
 
 export const enum Status {
   ACTIVE,
@@ -67,6 +68,16 @@ function look(mfc: MutableFdCache, path: string): T.Task<P.Maybe<FdEntry>> {
 
 function validateEntry(fd: FdEntry, path: string): P.Maybe<FdEntry> {
   return fd.path === path ? P.just(fd) : P.nothing;
+}
+
+function initialize(delay: number): T.Task<MutableFdCache> {
+  return mkReaper({
+    delay,
+    isNull: SM.isEmpty,
+    empty: {},
+    action: clean,
+    cons: smInsertTuple
+  })
 }
 
 function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
