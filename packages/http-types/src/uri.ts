@@ -31,15 +31,16 @@ export function parseQuery(str: string): Query {
       levels.pop();
     }
     for (let j = 0, len2 = levels.length; j < len2; j++) {
-      let level: any = levels[j], nextLevel: any = levels[j + 1];
-      let isNumber = nextLevel == "" || !isNaN(parseInt(nextLevel, 10));
-      let isValue = j === levels.length - 1;
+      let level: any = levels[j];
       if (level === "") {
         let key = levels.slice(0, j).join();
         if (counters[key] == null) counters[key] = 0;
         level = counters[key]++;
       }
       if (cursor[level] == null) {
+        let nextLevel: any = levels[j + 1];
+        let isNumber = nextLevel == "" || !isNaN(parseInt(nextLevel, 10));
+        let isValue = j === levels.length - 1;
         cursor[level] = isValue ? value : isNumber ? [] : {}
       }
       cursor = cursor[level];
