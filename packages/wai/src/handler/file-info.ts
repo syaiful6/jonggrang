@@ -22,18 +22,18 @@ export class FileInfo {
   }
 }
 
-export const enum EntryType {
+const enum EntryType {
   NEGATIVE,
   POSITIVE
 }
 
-export type Entry
+type Entry
   = { tag: EntryType.NEGATIVE }
   | { tag: EntryType.POSITIVE, finfo: FileInfo };
 
-export type Cache = Record<string, Entry>;
+type Cache = Record<string, Entry>;
 
-export type FileInfoCache = Reaper<Cache, [string, Entry]>;
+type FileInfoCache = Reaper<Cache, [string, Entry]>;
 
 export function withFileInfoCache<A>(
   delay: number,

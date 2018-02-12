@@ -2,6 +2,8 @@ import * as T from '@jonggrang/task';
 import * as AV from '@jonggrang/avar';
 import * as R from '@jonggrang/ref';
 
+import { identity } from './utils';
+
 export interface Settings<W, I> {
   action: (workload: W) => T.Task<(workload: W) => W>;
   delay: number;
@@ -126,8 +128,4 @@ function stopReaper<W>(
 
 function killReaper(tidRef: R.Ref<T.Fiber<void> | undefined>): T.Task<void> {
   return R.readRef(tidRef).chain(fib => fib == null ? T.pure(void 0) : T.killFiber(new Error('kill reaper'), fib))
-}
-
-function identity<A>(a: A) {
-  return a;
 }

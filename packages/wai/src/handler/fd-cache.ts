@@ -5,36 +5,61 @@ import * as SM from '@jonggrang/object';
 
 import * as FS from './fs-task';
 import { Reaper, mkReaper } from './reaper';
-import { smInsertTuple } from './utils';
+import { smInsertTuple, identity } from './utils';
 
-export const enum Status {
+/**
+ * An action to activate a Fd cache entry.
+ */
+export type Refresh = T.Task<void>;
+
+/**
+ * this is interface for function that take filepath and return a tuple of Maybe Fd and Refresh
+ * action
+ */
+export interface GetFd {
+  (path: string): T.Task<[P.Maybe<number>, Refresh]>;
+}
+
+/**
+ * Creating 'MutableFdCache' and executing the action in the second
+ * argument. The first argument is a cache duration in second.
+ * @param duration number
+ * @param action
+ */
+export function withFdCache<A>(duration: number, action: (_: GetFd) => T.Task<A>): T.Task<A> {
+  return duration === 0
+    ? action(getFdNothing)
+    : T.bracket(initialize(duration), terminate, mfc => action(getFd(mfc)));
+}
+
+const enum Status {
   ACTIVE,
   INACTIVE
 }
 
-export type MutableStatus = RV.Ref<Status>;
+type MutableStatus = RV.Ref<Status>;
 
-export function status(ms: MutableStatus): T.Task<Status> {
+function status(ms: MutableStatus): T.Task<Status> {
   return RV.readRef(ms);
 }
 
-export const newActiveStatus: T.Task<MutableStatus> = RV.newRef(Status.ACTIVE);
+const newActiveStatus: T.Task<MutableStatus> = RV.newRef(Status.ACTIVE);
 
-export function refresh(ms: MutableStatus): T.Task<void> {
+function refresh(ms: MutableStatus): T.Task<void> {
   return RV.writeRef(ms, Status.ACTIVE);
 }
 
-export function inactive(ms: MutableStatus): T.Task<void> {
+function inactive(ms: MutableStatus): T.Task<void> {
   return RV.writeRef(ms, Status.INACTIVE);
 }
 
-export interface FdEntry {
+interface FdEntry {
   readonly path: string;
   readonly fd: number;
   readonly status: MutableStatus;
 }
 
-export function fdEntry(path: string, fd: number, status: MutableStatus): FdEntry {
+function fdEntry(path: string, fd: number, status: MutableStatus): FdEntry {
   return { path, fd, status };
 }
 
@@ -46,7 +71,7 @@ export function closeFile(fd: FS.Fd) {
   return FS.fdClose(fd);
 }
 
-export function newFdEntry(path: string): T.Task<FdEntry> {
+function newFdEntry(path: string): T.Task<FdEntry> {
   return openFile(path).chain(fd =>
     newActiveStatus.map(status =>
       fdEntry(path, fd, status)));
@@ -81,7 +106,7 @@ function initialize(delay: number): T.Task<MutableFdCache> {
 }
 
 function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
-  return traverseStrMap(old, prune).map(x => filterMap(y => y, x))
+  return traverseStrMap(old, prune).map(x => filterMap(x, identity))
     .chain(newMap => T.pure((xs: FdCache) => SM.union(newMap, xs)))
 }
 
@@ -101,8 +126,8 @@ function prune(fd: FdEntry): T.Task<P.Maybe<FdEntry>> {
 }
 
 function filterMap<K extends string, V, W>(
-  f: (_: V) => P.Maybe<W>,
-  ms: SM.StrMap<K, V>
+  ms: SM.StrMap<K, V>,
+  f: (_: V) => P.Maybe<W>
 ): SM.StrMap<K, W> {
   return SM.toPairs(ms).reduceRight((acc, pair) => {
     return SM.alter(_ => f(pair[1]), pair[0], acc);
@@ -124,19 +149,20 @@ function traverseStrMap<K extends string, A, B>(
   }, T.pure({} as SM.StrMap<K, B>))
 }
 
-function foldStrMap<K extends string, A, B>(
-  f: (b: B, a: A) => B,
-  i: B,
-  ta: SM.StrMap<K, A>
-): B {
-  let acc = i;
-  function g(k: string, z: B) {
-    return f(z, ta[k]);
+function getFd(mfc: MutableFdCache): (path: string) => T.Task<[P.Maybe<number>, Refresh]> {
+  return path => look(mfc, path).chain(m => maybeGetFd(mfc, path, m));
+}
+
+function getFdNothing(): T.Task<[P.Maybe<number>, Refresh]> {
+  return T.pure([P.nothing, T.pure(void 0)] as [P.Maybe<number>, Refresh]);
+}
+
+function maybeGetFd(mfd: MutableFdCache, path: string, mentry: P.Maybe<FdEntry>): T.Task<[P.Maybe<number>, Refresh]> {
+  if (P.isNothing(mentry)) {
+    return newFdEntry(path)
+      .chain(entry => mfd.add([path, entry])
+        .then(T.pure([P.just(entry.fd), refresh(entry.status)] as [P.Maybe<number>, Refresh])))
   }
-  for (let kx in ta) {
-    if (Object.prototype.hasOwnProperty.call(ta, kx)) {
-      acc = g(kx, acc);
-    }
-  }
-  return acc;
+  let fdEntry = mentry.value;
+  return refresh(fdEntry.status).then(T.pure([P.just(fdEntry.fd), refresh(fdEntry.status)] as [P.Maybe<number>, Refresh]));
 }
