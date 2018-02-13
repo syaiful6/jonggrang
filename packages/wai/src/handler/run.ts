@@ -60,6 +60,7 @@ function shutdownServer(
 ): T.Task<void> {
   return destroAllConnections(state.connections)
     .chain(() => closeServer(state.server))
+    .then(exitProcess())
 }
 
 function registerRequestHandler(
@@ -256,6 +257,12 @@ function closeServer(server: Server | HServer | null): T.Task<void> {
     });
     return T.nonCanceler;
   })
+}
+
+function exitProcess() {
+  return T.liftEff(() => {
+    process.exit(0);
+  });
 }
 
 function listenConnectionSocket(state: ServerState) {

@@ -39,7 +39,7 @@ export function mkReaper<W, I>(
             ({ add: addItem(lock, settings, stateRef, tidRef)
              , read: readState(stateRef, settings.empty)
              , stop: stopReaper(lock, stateRef, settings.empty)
-             , kill: killReaper(tidRef)
+             , kill: killReaper(lock, tidRef)
             })
           )
       )
@@ -87,7 +87,7 @@ function reaper<W, I>(
     if (s.tag === StateType.NOREAPER) {
       throw new Error('unexpected NoReaper (1)');
     }
-    return [{ tag: StateType.NOREAPER }, s.workload ];
+    return [{ tag: StateType.WORKLOAD, workload: settings.empty }, s.workload ];
   }
   function check(merge: (_: W) => W, s: State<W>): [State<W>, T.Task<void>] {
     if (s.tag === StateType.NOREAPER) {
@@ -121,11 +121,17 @@ function stopReaper<W>(
     R.modifyRef_(s, mx =>
       mx.tag === StateType.NOREAPER
         ? [{ tag: StateType.NOREAPER } as State<W>, empty ]
-        : [{ tag: StateType.NOREAPER } as State<W>, mx.workload ]
+        : [{ tag: StateType.WORKLOAD, workload: empty } as State<W>, mx.workload ]
     )
   );
 }
 
-function killReaper(tidRef: R.Ref<T.Fiber<void> | undefined>): T.Task<void> {
-  return R.readRef(tidRef).chain(fib => fib == null ? T.pure(void 0) : T.killFiber(new Error('kill reaper'), fib))
+function killReaper(
+  lock: AV.AVar<void>,
+  tidRef: R.Ref<T.Fiber<void> | undefined>
+): T.Task<void> {
+  return AV.withAVar(lock, () =>
+    R.readRef(tidRef).chain(fib =>
+      fib == null ? T.pure(void 0) : T.killFiber(new Error('kill reaper'), fib))
+  );
 }

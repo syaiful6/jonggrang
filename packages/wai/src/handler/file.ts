@@ -138,9 +138,9 @@ function parseHttpDate(s: string): P.Maybe<Date> {
 }
 
 function rspFileInfo(tag: RspFileInfoType.WITHOUTBODY, status: H.Status): RspFileInfo;
-function rspFileInfo(tag: RspFileInfoType.WITHBODY, status: H.Status, headers: H.ResponseHeaders, offset: number, length: number): RspFileInfo;
-function rspFileInfo(tag: RspFileInfoType, status: H.Status, headers?: H.ResponseHeaders, offset?: number, length?: number): RspFileInfo {
-  return { tag, status, headers, offset, length } as RspFileInfo;
+function rspFileInfo(tag: RspFileInfoType.WITHBODY, status: H.Status, header: H.ResponseHeaders, offset: number, length: number): RspFileInfo;
+function rspFileInfo(tag: RspFileInfoType, status: H.Status, header?: H.ResponseHeaders, offset?: number, length?: number): RspFileInfo {
+  return { tag, status, header, offset, length } as RspFileInfo;
 }
 
 function contentRangeHeader(beg: number, end: number, total: number): string {

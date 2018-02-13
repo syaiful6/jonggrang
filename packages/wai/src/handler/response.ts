@@ -18,7 +18,7 @@ export function sendResponse(
 ): T.Task<void> {
   if (hasBody(resp.status)) {
     return sendRsp(conn, ii, req.httpVersion, resp.status,
-      resp.headers, rspFromResponse(resp, req.method)
+      resp.headers, rspFromResponse(resp, req.method, req.headers)
     ).chain(([st, mlen]) =>
       P.isNothing(st) ? T.pure(void 0) : settings.logger(req, st.value, mlen)
     );
@@ -63,7 +63,7 @@ function sendRsp(
         .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
 
     case RspType.RSPFILE:
-      if (rsp.part != undefined) {
+      if (rsp.part != null) {
         const part = rsp.part;
         return sendRspFile2XX(conn, ii, ver, status, addContentHeadersForFilePart(headers, part),
           rsp.path, part.offset, part.byteCount, rsp.isHead);
@@ -74,10 +74,14 @@ function sendRsp(
             return sendRspFile404(conn, ii, ver, headers)
           }
           const rspFile = conditionalRequest(efinfo.value, headers, rsp.header);
-          if (rspFile.tag === RspFileInfoType.WITHBODY) {
-            return sendRspFile2XX(conn, ii, ver, rspFile.status, rspFile.header, rsp.path, rspFile.offset, rspFile.length, rsp.isHead)
+          switch (rspFile.tag) {
+            case  RspFileInfoType.WITHBODY:
+              return sendRspFile2XX(conn, ii, ver, rspFile.status, rspFile.header, rsp.path,
+                rspFile.offset, rspFile.length, rsp.isHead);
+
+            case RspFileInfoType.WITHOUTBODY:
+              return sendRsp(conn, ii, ver, rspFile.status, headers, { tag: RspType.RSPNOBODY });
           }
-          return sendRsp(conn, ii, ver, rspFile.status, headers, { tag: RspType.RSPNOBODY });
         });
 
     default:
@@ -123,15 +127,16 @@ function hasBody(code: H.Status): boolean {
   return code !== 204 && code !== 304 && code >= 200;
 }
 
-function rspFromResponse(resp: Response, method: H.HttpMethod): Rsp {
+function rspFromResponse(resp: Response, method: H.HttpMethod, header: H.RequestHeaders): Rsp {
   const isHead = method === 'HEAD';
   switch (resp.tag) {
     case ResponseType.RESPONSEFILE:
       return {
+        isHead,
+        header,
         tag: RspType.RSPFILE,
         path: resp.path,
-        part: resp.part,
-        isHead: isHead
+        part: resp.part
       } as Rsp;
 
     case ResponseType.RESPONSEBUFFER:

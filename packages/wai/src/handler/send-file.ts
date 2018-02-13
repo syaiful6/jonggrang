@@ -57,13 +57,13 @@ function fdcreateReadStream(fd: number, range: FileRange) {
       start: range.start,
       end: range.end,
       flags: 'r',
-      autoClose: true
+      autoClose: false
     });
   }
   return FS.createReadStream('', {
     fd,
     flags: 'r',
-    autoClose: true
+    autoClose: false
   });
 }
 
