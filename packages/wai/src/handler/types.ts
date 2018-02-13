@@ -12,13 +12,15 @@ export interface FileId {
   fd: P.Maybe<number>
 }
 
+export function fileId(path: string, fd: P.Maybe<number>): FileId {
+  return { path, fd };
+}
+
 export interface SendFile {
   (fid: FileId, start: number, end: number, hook: T.Task<void>): T.Task<void>
 }
 
 export type Recv = T.Task<Buffer>;
-
-export type RecvBuf = (buf: Buffer, size: number) => T.Task<void>;
 
 export interface WriteHead {
   (st: H.Status, headers: H.ResponseHeaders): T.Task<void>;
@@ -27,15 +29,22 @@ export interface WriteHead {
 export interface Connection {
   readonly sendMany: (bs: Buffer[]) => T.Task<void>;
   readonly sendAll: (buf: Buffer) => T.Task<void>;
+  readonly close: T.Task<void>;
   readonly writeHead: WriteHead;
   readonly sendFile: SendFile;
   readonly recv: Recv;
-  readonly recvBuf: RecvBuf;
 }
 
 export interface InternalInfo {
   readonly getFinfo: (path: string) => T.Task<FileInfo>;
   readonly getFd: GetFd;
+}
+
+export function internalInfo(
+  getFinfo: (path: string) => T.Task<FileInfo>,
+  getFd: GetFd
+): InternalInfo {
+  return { getFinfo, getFd };
 }
 
 export interface Logger {

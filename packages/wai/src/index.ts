@@ -1,10 +1,12 @@
+import * as H from '@jonggrang/http-types';
+import { Task, pure } from '@jonggrang/task';
+
 import {
   Request, ResponseType, FilePath, FilePart, Response, StreamingBody, Middleware
 } from './type';
-import * as H from '@jonggrang/http-types';
-import { Task } from '@jonggrang/task';
-
+import { Buffer } from 'buffer';
 export * from './type';
+
 
 /**
  * Create response file
@@ -84,6 +86,19 @@ export function ifRequest(
   return (app) =>
   <A>(req: Request, send: (r: Response) => Task<A>) =>
     pred(req) ? middle(app)(req, send) : app(req, send);
+}
+
+export const defaultRequest: Request = {
+  method: 'GET',
+  headers: {},
+  httpVersion: H.httpVersion(1, 0),
+  rawPathInfo: '',
+  rawQueryString: '',
+  isSecure: false,
+  query: {},
+  pathInfo: [],
+  body: pure(Buffer.allocUnsafe(0)),
+  vault: {}
 }
 
 function createResponse(

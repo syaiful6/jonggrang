@@ -1,5 +1,7 @@
-import * as T from '@jonggrang/task';
 import * as FS from 'fs';
+
+import * as T from '@jonggrang/task';
+
 
 export function stat(path: string): T.Task<FS.Stats> {
   return T.makeTask(cb => {

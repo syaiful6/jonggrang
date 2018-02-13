@@ -3,6 +3,7 @@ import * as H from '@jonggrang/http-types';
 import * as SM from '@jonggrang/object';
 
 import { FileInfo } from './file-info';
+import { FilePart } from '../index';
 
 
 export const enum RspFileInfoType {
@@ -44,6 +45,10 @@ export function conditionalRequest(
   let hs = addContentHeaders(hs0, condition.offset, condition.length, finfo.size);
   hs['last-modified'] = finfo.date;
   return rspFileInfo(RspFileInfoType.WITHBODY, condition.status, hs, condition.offset, condition.length);
+}
+
+export function addContentHeadersForFilePart(hs: H.ResponseHeaders, fp: FilePart) {
+  return addContentHeaders(hs, fp.offset, fp.byteCount, fp.size);
 }
 
 function ifModified(h: H.RequestHeaders, size: number, d: Date): P.Maybe<RspFileInfo> {
