@@ -43,7 +43,7 @@ export function conditionalRequest(
   const condition = P.fromMaybe(unConditional(hm, finfo.size), mcondition);
   if (condition.tag === RspFileInfoType.WITHOUTBODY) return condition;
   let hs = addContentHeaders(hs0, condition.offset, condition.length, finfo.size);
-  hs['last-modified'] = finfo.date;
+  hs['Last-Modified'] = finfo.date;
   return rspFileInfo(RspFileInfoType.WITHBODY, condition.status, hs, condition.offset, condition.length);
 }
 
@@ -55,7 +55,7 @@ function ifModified(h: H.RequestHeaders, size: number, d: Date): P.Maybe<RspFile
   return P.mapMaybe(ifMofiedSince_(h), date =>
     date.getTime() !== d.getTime()
       ? unConditional(h, size)
-      : rspFileInfo(RspFileInfoType.WITHOUTBODY, H.httpStatus(304))
+      : rspFileInfo(RspFileInfoType.WITHOUTBODY, 304)
   )
 }
 
@@ -63,7 +63,7 @@ function ifUnmodifiedSince(h: H.RequestHeaders, size: number, date1: Date): P.Ma
   return P.mapMaybe(ifUnmodifiedSince_(h), date2 =>
     date1.getTime() === date2.getTime()
       ? unConditional(h, size)
-      : rspFileInfo(RspFileInfoType.WITHOUTBODY, H.httpStatus(416))
+      : rspFileInfo(RspFileInfoType.WITHOUTBODY, 416)
   );
 }
 
@@ -71,7 +71,7 @@ function ifRange(h: H.RequestHeaders, size: number, mtime: Date): P.Maybe<RspFil
   return P.chainMaybe(ifRange_(h), date =>
     h['range'] == null ? P.nothing
       : date.getTime() === mtime.getTime() ? P.just(parseRange(h['range'] as string, size))
-        : P.just(rspFileInfo(RspFileInfoType.WITHBODY, H.httpStatus(200), {}, 0, size))
+        : P.just(rspFileInfo(RspFileInfoType.WITHBODY, 200, {}, 0, size))
   );
 }
 
@@ -79,21 +79,21 @@ function unConditional(h: H.RequestHeaders, size: number): RspFileInfo {
   if (h['range'] != null) {
     return parseRange(h['range'] as string, size);
   }
-  return rspFileInfo(RspFileInfoType.WITHBODY, H.httpStatus(200), {}, 0, size);
+  return rspFileInfo(RspFileInfoType.WITHBODY, 200, {}, 0, size);
 }
 
 function parseRange(rng: string, size: number): RspFileInfo {
   const parsed = H.parseByteRanges(rng);
   if (parsed.tag === P.MaybeType.NOTHING) {
-    return rspFileInfo(RspFileInfoType.WITHOUTBODY, H.httpStatus(416))
+    return rspFileInfo(RspFileInfoType.WITHOUTBODY, 416)
   }
   const rngs = parsed.value;
   if (rngs.length === 0) {
-    return rspFileInfo(RspFileInfoType.WITHOUTBODY, H.httpStatus(416))
+    return rspFileInfo(RspFileInfoType.WITHOUTBODY, 416)
   }
   const [beg, end] = checkRange(rngs[0], size);
   const len = end - beg + 1;
-  const st = beg == 0 && end == size - 1 ? H.httpStatus(200) : H.httpStatus(206);
+  const st = beg == 0 && end == size - 1 ? 200 : 206;
   return rspFileInfo(RspFileInfoType.WITHBODY, st, {}, beg, len);
 }
 
@@ -149,10 +149,10 @@ function contentRangeHeader(beg: number, end: number, total: number): string {
 
 function addContentHeaders(hs: H.ResponseHeaders, off: number, len: number, size: number): H.ResponseHeaders {
   const hs2 = SM.assign({}, hs, {
-    'content-length': len,
-    'accept-ranges': 'bytes'
+    'Content-Length': len,
+    'Accept-Ranges': 'bytes'
   });
   if (len === size) return hs2;
-  hs2['content-ranges'] = contentRangeHeader(off, off + len - 1, size);
+  hs2['Content-Ranges'] = contentRangeHeader(off, off + len - 1, size);
   return hs2;
 }

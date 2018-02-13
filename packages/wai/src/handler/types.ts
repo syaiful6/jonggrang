@@ -5,6 +5,7 @@ import * as H from '@jonggrang/http-types';
 import { Request, Response, responseBuffer } from '../index';
 import { FileInfo } from './file-info';
 import { GetFd } from './fd-cache';
+import { ListenOptions } from 'net';
 
 
 export interface FileId {
@@ -51,10 +52,15 @@ export interface Logger {
   (req: Request, status: H.Status, clen: P.Maybe<number>): T.Task<void>;
 }
 
+export interface ListenOpts extends ListenOptions {
+  permission?: number;
+}
+
 export interface Settings {
   readonly fdCacheDuration: number;
   readonly finfoCacheDuration: number;
   readonly logger: Logger;
+  readonly listenOpts: ListenOpts;
   readonly onException: (mreq: P.Maybe<Request>, err: Error) => T.Task<void>;
   readonly onExceptionResponse: (err: Error) => T.Task<Response>;
 }
@@ -74,7 +80,7 @@ export function defaultOnException(mreq: P.Maybe<Request>, err: Error): T.Task<v
 
 export function onExceptionResponse(): T.Task<Response> {
   return T.pure(responseBuffer(
-    H.httpStatus(500),
+    500,
     { 'content-type': 'text/plain; charset=utf-8' },
     Buffer.from('Something went wrong', 'utf8')
   ));

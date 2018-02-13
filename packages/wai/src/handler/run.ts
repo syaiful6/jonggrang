@@ -15,6 +15,8 @@ import { createSendFile } from './send-file';
 import * as Z from './types';
 import { writeSock, endSock } from './utils';
 import * as W from '../index';
+import * as FT from './fs-task';
+import { Socket } from 'net';
 
 
 export function runSettingsServer(
@@ -29,50 +31,111 @@ export function runSettingsServer(
   );
 }
 
-function runServer(
+interface RequestHandler {
+  (req: IncomingMessage, res: ServerResponse): void;
+}
+
+interface ServerState {
+  listener: RequestHandler;
+  server: Server | HServer | null;
+  connectionId: number;
+  connections: Record<string, Socket>;
+}
+
+export function runServer(
   settings: Z.Settings,
   server: Server | HServer,
   app: W.Application,
   ii: Z.InternalInfo
 ): T.Task<void> {
   return T.bracket(
-    T.pure(createServerListener(settings, app, ii)),
-    listener => removeListenerCb(server, listener),
-    listener => connectAndTrapSignal(server, listener)
+    T.pure(createServerState(settings, app, ii, server)),
+    shutdownServer,
+    state => connectAndTrapSignal(state, settings)
   )
 }
 
-function removeListenerCb(
-  server: Server | HServer,
-  cb: (request: IncomingMessage, response: ServerResponse) => void
+function shutdownServer(
+  state: ServerState
+): T.Task<void> {
+  return destroAllConnections(state.connections)
+    .chain(() => closeServer(state.server))
+}
+
+function registerRequestHandler(
+  state: ServerState
 ): T.Task<void> {
   return T.liftEff(() => {
-    server.removeListener('request', cb);
-  })
+    const server = state.server as Server | HServer;;
+    server.on('request', state.listener);
+    server.on('connection', listenConnectionSocket(state))
+  });
 }
 
 function listenConnection(
-  server: Server | HServer,
-  cb: (request: IncomingMessage, response: ServerResponse) => void
-): T.Task<void> {
+  state: ServerState,
+  sett: Z.Settings
+) {
+  const listenOpts = sett.listenOpts;
+  const server = state.server as Server | HServer;
+  if (listenOpts.path) {
+    return bindConnectionUnix(listenOpts.path, listenOpts.permission || '660', listenOpts, server);
+  }
   return T.liftEff(() => {
-    server.on('request', cb);
+    server.listen(listenOpts);
+  });
+}
+
+function bindConnectionUnix(
+  path: string,
+  permission: number | string,
+  listenOpts: Z.ListenOpts,
+  server: Server | HServer
+): T.Task<void> {
+  return T.apathize(FT.unlink(path))
+    .chain(() => {
+      return T.liftEff(() => {
+        server.listen(listenOpts);
+      })
+    }).chain(() => {
+      return T.forkTask(FT.chmod(path, permission))
+    }).map(() => {});
+}
+
+function waitListening(state: ServerState): T.Task<void> {
+  return T.makeTask(cb => {
+    const server = state.server as Server | HServer;
+    server.on('error', (err: Error) => {
+      cb(err, void 0);
+    });
+    server.on('listening', () => {
+      console.log('...started');
+      cb(null, void 0);
+    });
+    return T.nonCanceler;
   });
 }
 
 function connectAndTrapSignal(
-  server: Server | HServer,
-  cb: (request: IncomingMessage, response: ServerResponse) => void
+  state: ServerState,
+  settings: Z.Settings
 ): T.Task<void> {
-  return listenConnection(server, cb)
+  return T.mergePar([
+    registerRequestHandler(state),
+    listenConnection(state, settings),
+    waitListening(state)
+  ]).chain(() => {
+    return T.race([waitSigInt(), waitSigTerm()])
+  });
 }
 
-function createServerListener(
+function createServerState(
   settings: Z.Settings,
   app: W.Application,
-  ii: Z.InternalInfo
-): (request: IncomingMessage, response: ServerResponse) => void {
-  return function listener(req, resp) {
+  ii: Z.InternalInfo,
+  server: Server | HServer,
+): ServerState {
+  function listener(req: IncomingMessage, resp: ServerResponse) {
     T.launchTask(
       T.attempt(handleRequest(settings, app, ii, req, resp))
         .chain(result => {
@@ -83,6 +146,31 @@ function createServerListener(
         })
     )
   }
+  return { listener, server, connectionId: 0, connections: {} };
+}
+
+function waitSigInt(): T.Task<void> {
+  return T.makeTask(cb => {
+    function handler() {
+      cb(null, void 0)
+    }
+    process.removeAllListeners('SIGINT').on('SIGINT', handler);
+    return T.thunkCanceller(() => {
+      process.removeListener('SIGINT', handler);
+    });
+  });
+}
+
+function waitSigTerm(): T.Task<void> {
+  return T.makeTask(cb => {
+    function handler() {
+      cb(null, void 0)
+    }
+    process.removeAllListeners('SIGTERM').on('SIGTERM', handler);
+    return T.thunkCanceller(() => {
+      process.removeListener('SIGTERM', handler);
+    })
+  })
 }
 
 function handleRequest(
@@ -129,7 +217,7 @@ export function httpConnection(
   const sendAll = (buf: Buffer) => writeSock(response, buf);
   const writeHead: Z.WriteHead = (st: H.Status, headers: H.ResponseHeaders) => {
     return T.liftEff(() => {
-      response.writeHead(st.code, st.reasonPhrase, headers);
+      response.writeHead(st, headers);
     });
   };
   return {
@@ -144,6 +232,41 @@ export function httpConnection(
 
 export function recvRequest(req: IncomingMessage, recv: Z.Recv): W.Request {
   return new WaiRequest(req, recv);
+}
+
+function destroAllConnections(sockets: Record<string, Socket>): T.Task<void> {
+  return T.liftEff(() => {
+    Object.keys(sockets).forEach(key => {
+      const sock = sockets[key];
+      if (sock) {
+        sock.destroy();
+      }
+    })
+  });
+}
+
+function closeServer(server: Server | HServer | null): T.Task<void> {
+  return T.makeTask(cb => {
+    if (server == null) {
+      process.nextTick(() => cb(null, void 0));
+      return T.nonCanceler;
+    }
+    server.close(() => {
+      cb(null, void 0);
+    });
+    return T.nonCanceler;
+  })
+}
+
+function listenConnectionSocket(state: ServerState) {
+  return function listener(socket: Socket) {
+    state.connectionId += 1;
+    (socket as any).__waiConId__ = state.connectionId;
+    socket.once('close', () => {
+      delete state.connections[(socket as any).__waiConId__];
+    });
+    state.connections[(socket as any).__waiConId__] = socket;
+  }
 }
 
 class WaiRequest implements W.Request {

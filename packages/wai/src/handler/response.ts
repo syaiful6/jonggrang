@@ -115,12 +115,11 @@ function sendRspFile404(
   h: H.ResponseHeaders
 ): T.Task<[P.Maybe<H.Status>, P.Maybe<number>]> {
   const buffer = Buffer.from('File not found', 'utf8');
-  const headers = SM.set('content-type', 'text/plain; charset=utf-8', h as any);
-  return sendRsp(conn, ii, ver, H.httpStatus(404), headers, { buffer, tag: RspType.RSPBUFFER })
+  const headers = SM.set('Content-Type', 'text/plain; charset=utf-8', h as any);
+  return sendRsp(conn, ii, ver, 404, headers, { buffer, tag: RspType.RSPBUFFER })
 }
 
-function hasBody(st: H.Status): boolean {
-  const code = st.code;
+function hasBody(code: H.Status): boolean {
   return code !== 204 && code !== 304 && code >= 200;
 }
 
@@ -132,7 +131,7 @@ function rspFromResponse(resp: Response, method: H.HttpMethod): Rsp {
         tag: RspType.RSPFILE,
         path: resp.path,
         part: resp.part,
-        isHead: method === 'HEAD'
+        isHead: isHead
       } as Rsp;
 
     case ResponseType.RESPONSEBUFFER:
