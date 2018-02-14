@@ -46,3 +46,42 @@ export function char(c: string) {
 export const whiteSpace: Parser<string> = PC.many(
   satisfy(c => c == '\n' || c == '\r' || c == ' ' || c == '\t'),
 ).map(xs => xs.join(''));
+
+export const skipSpaces: Parser<void> = whiteSpace.map(() => {});
+
+export function oneOf(xs: string[]): Parser<string> {
+  return satisfy(x => xs.indexOf(x) !== -1);
+}
+
+export function noneOf(xs: string[]): Parser<string> {
+  return satisfy(x => xs.indexOf(x) === -1);
+}
+
+export const lowerCaseChar: Parser<string> = attempt(
+  anyChar.chain(c => {
+    const co = c.charCodeAt(0);
+    return co >= 97 && co <= 122
+      ? Parser.of(c)
+      : fail(`Expected a lower case character but found ${c}`);
+  })
+);
+
+export const upperCaseChar: Parser<string> = attempt(
+  anyChar.chain(c => {
+    const co = c.charCodeAt(0);
+    return co >= 65 && co <= 90
+      ? Parser.of(c)
+      : fail(`Expected a upper case character but found ${c}`);
+  })
+)
+
+export const anyLetter: Parser<string> = PC.withError(
+  lowerCaseChar.alt(upperCaseChar),
+  'Expected a letter'
+);
+
+export const alphaNum: Parser<string> = PC.withError(
+  anyLetter.alt(anyDigit),
+  'Expected a letter or a number'
+);
+

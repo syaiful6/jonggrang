@@ -51,26 +51,22 @@ export function addContentHeadersForFilePart(hs: H.ResponseHeaders, fp: FilePart
   return addContentHeaders(hs, fp.offset, fp.byteCount, fp.size);
 }
 
-function ifModified(h: H.RequestHeaders, size: number, d: Date): P.Maybe<RspFileInfo> {
+function ifModified(h: H.RequestHeaders, size: number, d: H.HttpDate): P.Maybe<RspFileInfo> {
   return P.mapMaybe(ifMofiedSince_(h), date =>
-    date.getTime() !== d.getTime()
-      ? unConditional(h, size)
-      : rspFileInfo(RspFileInfoType.WITHOUTBODY, 304)
+    date.equals(d) ? rspFileInfo(RspFileInfoType.WITHOUTBODY, 304) : unConditional(h, size)
   )
 }
 
-function ifUnmodifiedSince(h: H.RequestHeaders, size: number, date1: Date): P.Maybe<RspFileInfo> {
+function ifUnmodifiedSince(h: H.RequestHeaders, size: number, date1: H.HttpDate): P.Maybe<RspFileInfo> {
   return P.mapMaybe(ifUnmodifiedSince_(h), date2 =>
-    date1.getTime() === date2.getTime()
-      ? unConditional(h, size)
-      : rspFileInfo(RspFileInfoType.WITHOUTBODY, 416)
+    date1.equals(date2) ? unConditional(h, size) : rspFileInfo(RspFileInfoType.WITHOUTBODY, 416)
   );
 }
 
-function ifRange(h: H.RequestHeaders, size: number, mtime: Date): P.Maybe<RspFileInfo> {
+function ifRange(h: H.RequestHeaders, size: number, mtime: H.HttpDate): P.Maybe<RspFileInfo> {
   return P.chainMaybe(ifRange_(h), date =>
     h['range'] == null ? P.nothing
-      : date.getTime() === mtime.getTime() ? P.just(parseRange(h['range'] as string, size))
+      : date.equals(mtime) ? P.just(parseRange(h['range'] as string, size))
         : P.just(rspFileInfo(RspFileInfoType.WITHBODY, 200, {}, 0, size))
   );
 }
@@ -110,31 +106,26 @@ function checkRange(rng: H.ByteRange, size: number): [number, number] {
   throw new TypeError('first argument to checkRange must be Http ByteRange');
 }
 
-function ifMofiedSince_(headers: H.RequestHeaders): P.Maybe<Date> {
+function ifMofiedSince_(headers: H.RequestHeaders): P.Maybe<H.HttpDate> {
   return parseHttpHeader('if-modified-since', headers as any);
 }
 
-function ifUnmodifiedSince_(headers: H.RequestHeaders): P.Maybe<Date> {
+function ifUnmodifiedSince_(headers: H.RequestHeaders): P.Maybe<H.HttpDate> {
   return parseHttpHeader('if-unmodified-since', headers);
 }
 
-function ifRange_(headers: H.RequestHeaders): P.Maybe<Date> {
+function ifRange_(headers: H.RequestHeaders): P.Maybe<H.HttpDate> {
   return parseHttpHeader('if-range', headers);
 }
 
 function parseHttpHeader(
   key: string,
   headers: any
-): P.Maybe<Date> {
+): P.Maybe<H.HttpDate> {
   if (headers[key] != null) {
-    return parseHttpDate(headers[key]);
+    return H.parseHTTPDate(headers[key]);
   }
   return P.nothing;
-}
-
-function parseHttpDate(s: string): P.Maybe<Date> {
-  let mdate = Date.parse(s);
-  return isNaN(mdate) ? P.nothing : P.just(new Date(mdate));
 }
 
 function rspFileInfo(tag: RspFileInfoType.WITHOUTBODY, status: H.Status): RspFileInfo;

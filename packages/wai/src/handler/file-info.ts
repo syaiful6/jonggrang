@@ -1,5 +1,6 @@
 import * as T from '@jonggrang/task';
 import { isEmpty } from '@jonggrang/object';
+import * as H from '@jonggrang/http-types';
 
 import { smInsertTuple } from './utils';
 import { Reaper, mkReaper } from './reaper';
@@ -10,7 +11,7 @@ export class FileInfo {
   constructor(
     readonly name: string,
     readonly size: number,
-    readonly time: Date,
+    readonly time: H.HttpDate,
     readonly date: string
   ) {
   }
@@ -50,8 +51,8 @@ export function getFileInfo(path: string): T.Task<FileInfo> {
   return FS.stat(path)
     .chain(stat => {
       if (stat.isFile()) {
-        let time = stat.mtime;
-        let date = time.toUTCString();
+        let time = H.fromDate(stat.mtime);
+        let date = H.formatHttpDate(time);
         return T.pure(new FileInfo(path, stat.size, time, date))
       }
       return T.raise(new Error(`getInfo: ${path}  isn't a file`));

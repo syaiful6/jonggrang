@@ -1,9 +1,26 @@
 import * as P from '@jonggrang/prelude';
 
+
+/**
+ * A position in an input string.
+ */
 export type Pos = number;
 
+/**
+ * Strings are represented as a string with an index from the
+ * start of the string.
+ *
+ * `{ str: s, pos: n }` is interpreted as the substring of `s`
+ * starting at index n.
+ *
+ * This allows us to avoid repeatedly finding substrings
+ * every time we match a character.
+ */
 export type PosStr = { str: string; pos: Pos };
 
+/**
+ * The type of parsing errors.
+ */
 export class ParseError extends Error {
   constructor(msg: string) {
     super(msg);
@@ -14,16 +31,26 @@ export class ParseError extends Error {
   }
 }
 
+/**
+ * The result of running `ParserFn`
+ */
 export type ParseResult<A> = P.Either<{ pos: Pos; error: ParseError }, { result: A; suffix: PosStr }>;
 
+/**
+ * A parser is represented as a function which takes a pair of
+ * continuations for failure and success.
+ */
 export type ParserFn<A> = (input: PosStr) => ParseResult<A>;
 
+/**
+ * A wrapper around `ParserFn`
+ */
 export class Parser<A> {
   constructor(readonly fn: ParserFn<A>) {
   }
 
   map<B>(f: (_: A) => B): Parser<B> {
-    return new Parser(input =>
+    return defParser(input =>
       P.mapEither(this.fn(input), ({ result, suffix }) => ({ suffix, result: f(result) }))
     )
   }
@@ -33,7 +60,7 @@ export class Parser<A> {
   }
 
   apply<B, C>(this: Parser<(_: B) => C>, other: Parser<B>): Parser<C> {
-    return new Parser(input =>
+    return defParser(input =>
       P.chainEither(this.fn(input), ({ result: f, suffix: s1 }) =>
         P.mapEither(other.fn(s1), ({ result: x, suffix: s2}) =>
           ({ result: f(x), suffix: s2 })
@@ -51,7 +78,7 @@ export class Parser<A> {
   }
 
   static of<B>(a: B): Parser<B> {
-    return new Parser(input => P.right({ result: a, suffix: input }))
+    return defParser(input => P.right({ result: a, suffix: input }))
   }
 
   static ['fantasy-land/of']<B>(a: B): Parser<B> {
@@ -59,7 +86,7 @@ export class Parser<A> {
   }
 
   alt(other: Parser<A>): Parser<A> {
-    return new Parser(s => {
+    return defParser(s => {
       const ret = this.fn(s);
       if (P.isLeft(ret)) {
         return ret.value.pos === s.pos ? other.fn(s) : ret;
@@ -73,7 +100,7 @@ export class Parser<A> {
   }
 
   chain<B>(f: (a: A) => Parser<B>): Parser<B> {
-    return new Parser(s =>
+    return defParser(s =>
       P.chainEither(this.fn(s), ({ result, suffix }) =>
         f(result).fn(suffix)
       )
@@ -111,8 +138,18 @@ export class Parser<A> {
   }
 }
 
+/**
+ * Fail with the specified message.
+ */
 export function fail(msg: string): Parser<any> {
-  return new Parser(({ pos }) => P.left({ pos, error: new ParseError(msg) }));
+  return defParser(({ pos }) => P.left({ pos, error: new ParseError(msg) }));
+}
+
+/**
+ * Put a value into parse
+ */
+export function pure<B>(b: B): Parser<B> {
+  return Parser.of(b);
 }
 
 /**
@@ -121,14 +158,7 @@ export function fail(msg: string): Parser<any> {
  * @param p
  */
 export function attempt<A>(p: Parser<A>): Parser<A> {
-  return new Parser(input => P.lmapEither(p.fn(input), err => ({ pos: input.pos, error: err.error })))
-}
-
-/**
- * unwrap parserFn from parser
- */
-export function unParser<A>(p: Parser<A>): ParserFn<A> {
-  return p.fn;
+  return defParser(input => P.lmapEither(p.fn(input), err => ({ pos: input.pos, error: err.error })))
 }
 
 /**
@@ -195,17 +225,19 @@ export function tailRecParser<A, B>(
 }
 
 export function co(fn: () => Iterator<Parser<any>>): Parser<any> {
-  let gen: null | Iterator<Parser<any>> = null;
-  function go(i: any): Parser<P.Either<any, any>> {
-    if (gen == null) {
-      gen = fn();
+  return Parser.defer(() => {
+    let gen: null | Iterator<Parser<any>> = null;
+    function go(i: any): Parser<P.Either<any, any>> {
+      if (gen == null) {
+        gen = fn();
+      }
+      let { done, value } = gen.next(i);
+      if (done) {
+        gen = null;
+        return value.map(P.right);
+      }
+      return value.map(P.left);
     }
-    let { done, value } = gen.next(i);
-    if (done) {
-      gen = null;
-      return value.map(P.right);
-    }
-    return value.map(P.left);
-  }
-  return tailRecParser(null, go);
+    return tailRecParser(null, go);
+  });
 }
