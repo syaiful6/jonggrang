@@ -83,6 +83,7 @@ let allPackages = [
   'task',
   'avar',
   'ref',
+  'parsing',
   'http-types',
   'wai',
   'genjer'

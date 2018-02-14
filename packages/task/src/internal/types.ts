@@ -1,3 +1,5 @@
+import * as P from '@jonggrang/prelude';
+
 export type Fn1<A, B> = {
   (a: A): B
 };
@@ -170,35 +172,8 @@ export function nonCanceler(e: Error): CoreTask<void> {
   return createCoreTask('PURE', void 0);
 }
 
-// Iteration
-export type IterationDone<A> = {
-  done: true;
-  value: A;
-};
-
-export type IterationNext<A> = {
-  done: false;
-  value: A;
-};
-
-export type Iteration<A> = IterationNext<A> | IterationDone<A>;
-
-export interface ChainRecFn<A> {
-  (n: (_: A) => IterationNext<A>, d: (_: A) => IterationDone<A>, v: A): Task<Iteration<A>>;
-}
-
-function nextIter<A>(a: A): IterationNext<A> {
-  return {
-    done: false,
-    value: a
-  };
-}
-
-function breakIter<A>(a: A): IterationDone<A> {
-  return {
-    done: true,
-    value: a
-  };
+export interface ChainRecFn<A, B> {
+  (n: (_: A) => P.Either<A, B>, d: (_: B) => P.Either<A, B>, v: A): Task<P.Either<A, B>>;
 }
 
 export class Task<A> {
@@ -268,10 +243,10 @@ export class Task<A> {
     return this.chain(_ => next);
   }
 
-  static chainRec<B>(fn: ChainRecFn<B>, i: B): Task<B> {
-    function go(a: B): Task<B> {
-      return fn(nextIter, breakIter, a).chain(res => {
-        if (res.done) {
+  static chainRec<B, C>(fn: ChainRecFn<B, C>, i: B): Task<C> {
+    function go(a: B): Task<C> {
+      return fn(P.left, P.right, a).chain(res => {
+        if (P.isRight(res)) {
           return Task.of(res.value);
         }
         return go(res.value);
@@ -280,7 +255,7 @@ export class Task<A> {
     return go(i);
   }
 
-  static ['fantasy-land/chainRec']<B>(fn: ChainRecFn<B>, i: B): Task<B> {
+  static ['fantasy-land/chainRec']<B, C>(fn: ChainRecFn<B, C>, i: B): Task<C> {
     return Task.chainRec(fn, i);
   }
 
