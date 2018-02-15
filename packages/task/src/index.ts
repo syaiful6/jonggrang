@@ -16,6 +16,7 @@ export {
 } from './internal/types';
 export { scheduler } from './internal/scheduler';
 
+
 /**
  * Invokes pending cancelers in a fiber and runs cleanup effects. Blocks
  * until the fiber has fully exited.
@@ -167,6 +168,22 @@ export function pure<A>(a: A): Task<A> {
 }
 
 /**
+ * Attaches a custom `Canceler` to an action. If the computation is canceled,
+ * then the custom `Canceler` will be run afterwards.
+ */
+export function cancelWith<A>(t: Task<A>, canceller: (err: Error) => Task<void>): Task<A> {
+  return generalBracket(
+    pure(void 0),
+    { killed: (error) => canceller(error)
+    , completed: () => pure(void 0)
+    , failed: () => pure(void 0)
+    },
+    () => t
+  );
+}
+
+
+/**
  * convert task to parallel task applicative
  */
 export function parallel<A>(t: Task<A>): Parallel<A> {
@@ -190,7 +207,9 @@ export function race<A>(xs: Task<A>[]): Task<A> {
 }
 
 /**
- *
+ * Creates a new supervision context for some `Aff`, guaranteeing fiber
+ * cleanup when the parent completes. Any pending fibers forked within
+ * the context will be killed and have their cancelers run.
  * @param t
  */
 export function supervise<A>(t: Task<A>): Task<A> {

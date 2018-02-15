@@ -251,5 +251,14 @@ describe('Task.Core', () => {
         ])
       ))
     });
+  });
+
+  describe('co fn', () => {
+    it('can run more than once', (done) => {
+      T.runTask(
+        done,
+        Q.shouldBe(true, tsGen.then(tsGen).then(tsGen))
+      )
+    })
   })
 });
