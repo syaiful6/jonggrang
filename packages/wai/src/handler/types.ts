@@ -62,7 +62,7 @@ export interface Settings {
   readonly logger: Logger;
   readonly listenOpts: ListenOpts;
   readonly onException: (mreq: P.Maybe<Request>, err: Error) => T.Task<void>;
-  readonly onExceptionResponse: (err: Error) => T.Task<Response>;
+  readonly onExceptionResponse: (err: Error) => Response;
 }
 
 export function defaultOnException(mreq: P.Maybe<Request>, err: Error): T.Task<void> {
@@ -78,10 +78,10 @@ export function defaultOnException(mreq: P.Maybe<Request>, err: Error): T.Task<v
   })
 }
 
-export function onExceptionResponse(): T.Task<Response> {
-  return T.pure(responseBuffer(
+export function onExceptionResponse(): Response {
+  return responseBuffer(
     500,
     { 'content-type': 'text/plain; charset=utf-8' },
     Buffer.from('Something went wrong', 'utf8')
-  ));
+  );
 }

@@ -58,9 +58,10 @@ export function runServer(
 function shutdownServer(
   state: ServerState
 ): T.Task<void> {
-  return destroAllConnections(state.connections)
-    .chain(() => closeServer(state.server))
-    .then(exitProcess())
+  return T.mergePar([
+    destroAllConnections(state.connections),
+    closeServer(state.server)
+  ]).then(exitProcess());
 }
 
 function registerRequestHandler(
@@ -200,8 +201,8 @@ function serveConnection(
       sendResponse(settings, conn, ii, request, conn.recv, response)
     ),
     err =>
-      settings.onExceptionResponse(err)
-        .chain(res => sendResponse(settings, conn, ii, W.defaultRequest, T.pure(Buffer.allocUnsafe(0)), res))
+      sendResponse(settings, conn, ii, W.defaultRequest,
+        T.pure(Buffer.allocUnsafe(0)), settings.onExceptionResponse(err))
   );
 }
 
