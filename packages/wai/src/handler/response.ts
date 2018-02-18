@@ -55,6 +55,7 @@ function sendRsp(
 
     case RspType.RSPBUFFER:
       return conn.writeHead(status, headers)
+        .chain(() => conn.sendAll(rsp.buffer))
         .then(T.pure([P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]));
 
     case RspType.RSPSTREAM:
