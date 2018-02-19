@@ -199,39 +199,8 @@ export function alter<A>(f: (m: P.Maybe<A>) => P.Maybe<A>, k: number, t: IntMap<
 }
 
 export function unionWithKey<A>(f: (k: number, v1: A, v2: A) => A, t1: IntMap<A>, t2: IntMap<A>): IntMap<A> {
-  function go(left: IntMap<A>, right: IntMap<A>): IntMap<A> {
-    if (left.tag === IntMapType.NIL) return right;
-    if (right.tag === IntMapType.NIL) return left;
-    if (left.tag === IntMapType.TIP) {
-      return insertWithKey(f, left.key, left.value, right);
-    }
-    if (right.tag === IntMapType.TIP) {
-      return insertWithKey((k, a, b) => f(k, b, a), right.key, right.value, left);
-    }
-    if (left.mask === right.mask && left.prefix === right.prefix) {
-      // the prefixes are identical, we'll union symmetrically
-      return BinIM(left.prefix, left.mask, go(left.left, right.left), go(left.right, right.right))
-    }
-    if (I.maskLonger(left.mask, right.mask) && I.matchPrefix(left.prefix, left.mask, right.prefix)) {
-      // the left mask is longer and the right prefix is a subsequence of the left
-      // thus, the right tree is more specific and should be union with some
-      // subtree of the left tree
-      if (I.branchLeft(left.mask, right.prefix)) {
-        return BinIM(left.prefix, left.mask, go(left.left, right), left.right);
-      }
-      return BinIM(left.prefix, left.mask, left.left, go(left.right, right));
-    }
-    if (I.maskLonger(right.mask, left.mask) && I.matchPrefix(right.prefix, right.mask, left.prefix)) {
-      // opposite of last case
-      if (I.branchLeft(right.mask, left.prefix)) {
-        return BinIM(right.prefix, right.mask, go(left, right.left), right.right);
-      }
-      return BinIM(right.prefix, right.mask, right.left, go(left, right.left))
-    }
-    // the prefixes disagree entirely, we'll make a new branch point
-    return join(left.prefix, left.mask, left, right.prefix, right.mask, right);
-  }
-  return go(t1, t2);
+  const op = new UnionWithKeyOp(f);
+  return op.run(t1, t2);
 }
 
 export function link<A>(k1: number, t1: IntMap<A>, k2: number, t2: IntMap<A>): IntMap<A> {
@@ -421,5 +390,84 @@ class AlterOp<A> {
       default:
         throw new TypeError('Invalid IntMap invariant detected in alter function');
     }
+  }
+}
+
+class UnionWithKeyOp<A> {
+  constructor(private f: (k: number, v1: A, v2: A) => A) {
+  }
+
+  run(left: IntMap<A>, right: IntMap<A>): IntMap<A> {
+    const { f } = this;
+    if (left.tag === IntMapType.NIL) return right;
+    if (right.tag === IntMapType.NIL) return left;
+    if (left.tag === IntMapType.TIP) {
+      return insertWithKey(f, left.key, left.value, right);
+    }
+    if (right.tag === IntMapType.TIP) {
+      return insertWithKey((k, a, b) => f(k, b, a), right.key, right.value, left);
+    }
+    if (left.mask === right.mask && left.prefix === right.prefix) {
+      // the prefixes are identical, we'll union symmetrically
+      return BinIM(left.prefix, left.mask, this.run(left.left, right.left), this.run(left.right, right.right))
+    }
+    if (I.maskLonger(left.mask, right.mask) && I.matchPrefix(left.prefix, left.mask, right.prefix)) {
+      // the left mask is longer and the right prefix is a subsequence of the left
+      // thus, the right tree is more specific and should be union with some
+      // subtree of the left tree
+      if (I.branchLeft(left.mask, right.prefix)) {
+        return BinIM(left.prefix, left.mask, this.run(left.left, right), left.right);
+      }
+      return BinIM(left.prefix, left.mask, left.left, this.run(left.right, right));
+    }
+    if (I.maskLonger(right.mask, left.mask) && I.matchPrefix(right.prefix, right.mask, left.prefix)) {
+      // opposite of last case
+      if (I.branchLeft(right.mask, left.prefix)) {
+        return BinIM(right.prefix, right.mask, this.run(left, right.left), right.right);
+      }
+      return BinIM(right.prefix, right.mask, right.left, this.run(left, right.left))
+    }
+    // the prefixes disagree entirely, we'll make a new branch point
+    return join(left.prefix, left.mask, left, right.prefix, right.mask, right);
+  }
+}
+
+class MergeWithKeyOp<A, B, C> {
+  constructor(
+    private br: (p: I.Prefix, m: I.Mask, l: IntMap<C>, r: IntMap<C>) => IntMap<C>,
+    private f: (t1: IntMap<A>, t2: IntMap<B>) => IntMap<C>,
+    private g1: (ta: IntMap<A>) => IntMap<C>,
+    private g2: (tb: IntMap<B>) => IntMap<C>
+  ) {
+  }
+
+  run(t1: IntMap<A>, t2: IntMap<B>): IntMap<C> {
+    const { br, f, g1, g2 } = this;
+    if (t1.tag === IntMapType.BIN && t2.tag === IntMapType.BIN) {
+      if (I.maskLonger(t1.mask, t2.mask)) {
+        if (!I.matchPrefix(t1.prefix, t2.prefix, t2.mask)) {
+          return this.maybeLink(t1.prefix, g1(t1), t2.prefix, g2(t2))
+        }
+        if (I.branchLeft(t2.mask, t1.prefix)) {
+          return br(t2.prefix, t2.mask, this.run(t1, t2.left), g2(t2.right));
+        }
+        return br(t2.prefix, t2.mask, g2(t2.left), this.run(t1, t2.right));
+      }
+      if (I.maskLonger(t2.mask, t2.mask)) {
+        if (!I.matchPrefix(t2.prefix, t1.prefix, t1.mask)) {
+          return this.maybeLink(t1.prefix, g1(t1), t2.prefix, g2(t2));
+        }
+        if (I.branchLeft(t1.mask, t2.prefix)) {
+          return br(t1.prefix, t1.mask, this.run(t1.left, t2), g1(t1.right));
+        }
+        return br(t1.prefix, t1.mask, g1(t1.left), this.run(t1.right, t2));
+      }
+    }
+  }
+
+  maybeLink<D>(p1: I.Prefix, t1: IntMap<D>, p2: I.Prefix, t2: IntMap<D>) {
+    if (t1.tag === IntMapType.NIL) return t2;
+    if (t2.tag === IntMapType.NIL) return t1;
+    return link(p1, t1, p2, t2);
   }
 }
