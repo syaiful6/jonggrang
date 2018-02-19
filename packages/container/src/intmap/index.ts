@@ -198,8 +198,58 @@ export function alter<A>(f: (m: P.Maybe<A>) => P.Maybe<A>, k: number, t: IntMap<
   return op.run(t);
 }
 
+export function difference<A, B>(t1: IntMap<A>, t2: IntMap<B>): IntMap<A> {
+  return mergeWithKey(combineDiff, id, alwaysEmpty, t1, t2);
+}
+
+export function differenceWith<A, B>(
+  combine: (a: A, b: B) => P.Maybe<A>,
+  t1: IntMap<A>,
+  t2: IntMap<B>
+): IntMap<A> {
+  return differenceWithKey((_, a, b) => combine(a, b), t1, t2);
+}
+
+export function differenceWithKey<A, B>(
+  f: (k: number, a: A, b: B) => P.Maybe<A>,
+  t1: IntMap<A>,
+  t2: IntMap<B>
+): IntMap<A> {
+  return mergeWithKey(f, id, alwaysEmpty, t1, t2);
+}
+
 export function unionWithKey<A>(f: (k: number, v1: A, v2: A) => A, t1: IntMap<A>, t2: IntMap<A>): IntMap<A> {
   const op = new UnionWithKeyOp(f);
+  return op.run(t1, t2);
+}
+
+export function mergeWithKey<A, B, C>(
+  f: (k: number, a: A, b: B) => P.Maybe<C>,
+  g1: (t1: IntMap<A>) => IntMap<C>,
+  g2: (t2: IntMap<B>) => IntMap<C>,
+  t1: IntMap<A>,
+  t2: IntMap<B>
+): IntMap<C> {
+  function combine(t1x: IntMap<A>, t2x: IntMap<B>): IntMap<C> {
+    if (t1x.tag === IntMapType.TIP && t2x.tag === IntMapType.TIP) {
+      const ma = f(t1x.key, t1x.value, t2x.value);
+      if (P.isJust(ma)) return TipIM(t1x.key, ma.value);
+      return empty;
+    }
+    return empty;
+  }
+  return mergeWithKey_(BinNE, combine, g1, g2, t1, t2);
+}
+
+export function mergeWithKey_<A, B, C>(
+  br: (p: I.Prefix, m: I.Mask, l: IntMap<C>, r: IntMap<C>) => IntMap<C>,
+  f: (t1: IntMap<A>, t2: IntMap<B>) => IntMap<C>,
+  g1: (ta: IntMap<A>) => IntMap<C>,
+  g2: (tb: IntMap<B>) => IntMap<C>,
+  t1: IntMap<A>,
+  t2: IntMap<B>
+): IntMap<C> {
+  const op = new MergeWithKeyOp(br, f, g1, g2);
   return op.run(t1, t2);
 }
 
@@ -245,6 +295,18 @@ function BinNE<A>(p: I.Prefix, m: I.Mask, t1: IntMap<A>, t2: IntMap<A>): IntMap<
 
 function splatInsert<A>(_: any, _v: any, v2: A): A {
   return v2;
+}
+
+function combineDiff(): P.Nothing {
+  return P.nothing;
+}
+
+function id<A>(a: A) {
+  return a;
+}
+
+function alwaysEmpty(t2: IntMap<any>): IntMap<any> {
+  return empty;
 }
 
 class InsertWithKey<A> {
@@ -442,7 +504,7 @@ class MergeWithKeyOp<A, B, C> {
   }
 
   run(t1: IntMap<A>, t2: IntMap<B>): IntMap<C> {
-    const { br, f, g1, g2 } = this;
+    const { br, g1, g2 } = this;
     if (t1.tag === IntMapType.BIN && t2.tag === IntMapType.BIN) {
       if (I.maskLonger(t1.mask, t2.mask)) {
         if (!I.matchPrefix(t1.prefix, t2.prefix, t2.mask)) {
@@ -462,7 +524,73 @@ class MergeWithKeyOp<A, B, C> {
         }
         return br(t1.prefix, t1.mask, g1(t1.left), this.run(t1.right, t2));
       }
+      if (t1.prefix === t2.prefix) {
+        return br(t1.prefix, t2.mask, this.run(t1.left, t2.left), this.run(t1.left, t2.left));
+      }
+      return this.maybeLink(t1.prefix, g1(t1), t2.prefix, g2(t2));
     }
+    if (t1.tag === IntMapType.BIN && t2.tag === IntMapType.TIP) {
+      return this.mergeBrLf(t2, t2.key, t1);
+    }
+    if (t1.tag === IntMapType.BIN && t2.tag === IntMapType.NIL) {
+      return g1(t1);
+    }
+    if (t1.tag === IntMapType.TIP) {
+      return this.mergeLf(t1, t1.key, t2)
+    }
+    if (t1.tag === IntMapType.NIL) {
+      return g2(t2);
+    }
+    throw new TypeError('invalid IntMap invariant detected in merge');
+  }
+
+  mergeLf(t1: IntMap<A>, k1: number, t2: IntMap<B>): IntMap<C> {
+    const { br, f, g1, g2 } = this;
+    switch (t2.tag) {
+      case IntMapType.BIN:
+        if (!I.matchPrefix(t2.prefix, t2.mask, k1)) {
+          return this.maybeLink(k1, g1(t1), t2.prefix, g2(t2))
+        }
+        if (I.branchLeft(t2.mask, k1)) {
+          return br(t2.prefix, t2.mask, this.mergeLf(t1, k1, t2.left), g2(t2.right))
+        }
+        return br(t2.prefix, t2.mask, g2(t2.left), this.mergeLf(t1, k1, t2.right));
+
+      case IntMapType.TIP:
+        if (t2.key === k1) {
+          return f(t1, t2);
+        }
+        return this.maybeLink(k1, g1(t1), t2.key, g2(t2));
+
+      case IntMapType.NIL:
+        return g1(t1);
+
+      default:
+        throw new TypeError('invalid IntMap invariant detected in mergeLf');
+    }
+  }
+
+  mergeBrLf(t2: IntMap<B>, k2: number, t1: IntMap<A>): IntMap<C> {
+    const { br, f, g1, g2 } = this;
+    if (t1.tag === IntMapType.BIN) {
+      if (!I.matchPrefix(t1.prefix, t1.mask, k2)) {
+        return this.maybeLink(t1.prefix, g1(t1), k2, g2(t2));
+      }
+      if (I.branchLeft(t1.mask, k2)) {
+        return br(t1.prefix, t1.mask, this.mergeBrLf(t2, k2, t1.left), g1(t1.right));
+      }
+      return br(t1.prefix, t1.mask, g1(t1.left), this.mergeBrLf(t2, k2, t1.right))
+    }
+    if (t1.tag === IntMapType.TIP) {
+      if (t1.key === k2) {
+        return f(t1, t2);
+      }
+      return this.maybeLink(t1.key, g1(t1), k2, g2(t2));
+    }
+    if (t1.tag === IntMapType.NIL) {
+      return g2(t2);
+    }
+    throw new TypeError('invalid invariant IntMap detected in mergeBrLf')
   }
 
   maybeLink<D>(p1: I.Prefix, t1: IntMap<D>, p2: I.Prefix, t2: IntMap<D>) {

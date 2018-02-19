@@ -93,4 +93,12 @@ describe('Container IntMap', () => {
       })
     )
   );
+
+  it('remove then lookup misses', () =>
+    jsv.assert(
+      jsv.forall(jsv.array(instructionArb(jsv.number)), jsv.integer, (xs, k) =>
+        P.isNothing(IM.lookup(k, IM.remove(k, runInstruction(xs, IM.empty))))
+      )
+    )
+  );
 })
