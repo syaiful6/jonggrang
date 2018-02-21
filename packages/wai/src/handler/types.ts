@@ -65,6 +65,18 @@ export interface Settings {
   readonly onExceptionResponse: (err: Error) => Response;
 }
 
+export const defaultSettings: Settings = {
+  fdCacheDuration: 0,
+  finfoCacheDuration: 0,
+  logger: () => T.pure(void 0),
+  listenOpts: {
+    host: '127.0.0.1',
+    port: 3000
+  },
+  onException: defaultOnException,
+  onExceptionResponse: onExceptionResponse
+};
+
 export function defaultOnException(mreq: P.Maybe<Request>, err: Error): T.Task<void> {
   return T.liftEff(() => {
     if (P.isJust(mreq)) {

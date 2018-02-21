@@ -13,11 +13,50 @@ import { recvStream } from './recv';
 import { sendResponse } from './response'
 import { createSendFile } from './send-file';
 import * as Z from './types';
-import { writeSock, endSock } from './utils';
+import { writeSock, endSock, identity } from './utils';
 import * as W from '../index';
 import * as FT from './fs-task';
 import { Socket } from 'net';
 
+/**
+ * Run app with default settings
+ */
+export function run(server: Server | HServer, app: W.Application): T.Task<void> {
+  return runWith(server, identity, app);
+}
+
+/**
+ * Run app with provided server, function that take default settings and return
+ * new settings to use.
+ */
+export function runWith(
+  server: Server | HServer,
+  modifier: (d: Z.Settings) => Z.Settings,
+  app: W.Application
+): T.Task<void> {
+  return runSettingsServer(modifier(Z.defaultSettings), server, app);
+}
+
+/**
+ * Like runSettingsServer, but instead take a Task that return `W.Application`
+ */
+export function withApplicationSettings(
+  server: Server | HServer,
+  modifier: (d: Z.Settings) => Z.Settings,
+  createApp: T.Task<W.Application>
+): T.Task<void> {
+  return createApp.chain(app => runSettingsServer(modifier(Z.defaultSettings), server, app));
+}
+
+/**
+ * A variant of `withApplicationSettings` that use defaultSetting
+ */
+export function withApplication(
+  server: Server | HServer,
+  createApp: T.Task<W.Application>
+) {
+  return withApplicationSettings(server, identity, createApp);
+}
 
 /**
  * This install shutdown handle for the given server and handle
