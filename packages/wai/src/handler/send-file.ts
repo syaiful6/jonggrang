@@ -31,11 +31,11 @@ export function sendFileFd<W extends Writable>(ws: W, fd: number, range: FileRan
 }
 
 export function sendFilePath<W extends Writable>(ws: W, path: string, range: FileRange, hook: T.Task<void>): T.Task<void> {
-  const stream = pathCreatedReadStream(path, range);
+  const stream = pathCreateReadStream(path, range);
   return pipeStream(ws, stream).then(hook);
 }
 
-function pathCreatedReadStream(path: string, range: FileRange) {
+function pathCreateReadStream(path: string, range: FileRange) {
   if (range.tag === FileRangeType.PARTOFFILE) {
     return FS.createReadStream(path, {
       start: range.start,

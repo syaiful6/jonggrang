@@ -19,6 +19,11 @@ import * as FT from './fs-task';
 import { Socket } from 'net';
 
 
+/**
+ * This install shutdown handle for the given server and handle
+ * the request with provided `application`. When server close
+ * all live connections are gracefully shut down.
+ */
 export function runSettingsServer(
   settings: Z.Settings,
   server: Server | HServer,
@@ -31,10 +36,33 @@ export function runSettingsServer(
   );
 }
 
-interface RequestHandler {
+/**
+ * This convert `application` to `RequestHandler` that can be used
+ * as request handler of HTTP Server.
+ */
+export function withRequestHandler<A>(
+  settings: Z.Settings,
+  app: W.Application,
+  action: (handler: RequestHandler) => T.Task<A>
+): T.Task<A> {
+  return withFdCache(settings.fdCacheDuration * 1000, getFd =>
+    withFileInfoCache(settings.finfoCacheDuration * 1000, getFinfo =>
+      action(createRequestHandler(settings, app, Z.internalInfo(getFileInfo, getFd)))
+    )
+  );
+}
+
+/**
+ * The request handler function
+ */
+export interface RequestHandler {
   (req: IncomingMessage, res: ServerResponse): void;
 }
 
+/**
+ * Internal state structure when running application with `runServer`
+ * or `runSettingsServer`
+ */
 interface ServerState {
   listener: RequestHandler;
   server: Server | HServer | null;
@@ -137,18 +165,23 @@ function createServerState(
   ii: Z.InternalInfo,
   server: Server | HServer,
 ): ServerState {
-  function listener(req: IncomingMessage, resp: ServerResponse) {
+  return { server, listener: createRequestHandler(settings, app, ii), connectionId: 0, connections: {} };
+}
+
+function createRequestHandler(
+  settings: Z.Settings,
+  app: W.Application,
+  ii: Z.InternalInfo
+): RequestHandler {
+  return function requestHandler(req: IncomingMessage, resp: ServerResponse) {
     T.launchTask(
-      T.attempt(handleRequest(settings, app, ii, req, resp))
-        .chain(result => {
-          if (P.isLeft(result)) {
-            return settings.onException(P.nothing, result.value);
-          }
-          return T.pure(void 0)
-        })
+      T.rescue(
+        handleRequest(settings, app, ii, req, resp),
+        err =>
+          settings.onException(P.nothing, err)
+      )
     )
   }
-  return { listener, server, connectionId: 0, connections: {} };
 }
 
 function waitSigInt(): T.Task<void> {
