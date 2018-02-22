@@ -38,6 +38,20 @@ function instructionArb<V>(arb: jsv.Arbitrary<V>): jsv.Arbitrary<Instruction<V>>
   })
 }
 
+function intMapGen<V>(arb: jsv.Arbitrary<V>): (n: number) => IM.IntMap<V> {
+  return function (n: number) {
+    let arbs = jsv.array(instructionArb(arb));
+    let instruct = arbs.generator(n);
+    return runInstruction(instruct, IM.empty);
+  }
+}
+
+function intMapArb<V>(arb: jsv.Arbitrary<V>): jsv.Arbitrary<IM.IntMap<V>> {
+  return jsv.bless({
+    generator: jsv.generator.bless(intMapGen(arb))
+  })
+}
+
 function runInstruction<V>(
   xs: Instruction<V>[],
   m: IM.IntMap<V>
@@ -87,8 +101,8 @@ describe('Container IntMap', () => {
 
   it('can random lookup', () =>
     jsv.assert(
-      jsv.forall(jsv.array(instructionArb(jsv.number)), jsv.integer, jsv.number, (insts, k, v) => {
-        const t = IM.insert(k, v, runInstruction(insts, IM.empty));
+      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) => {
+        const t = IM.insert(k, v, im);
         return P.maybe(false, v1 => v === v1, IM.lookup(k, t));
       })
     )
@@ -96,8 +110,37 @@ describe('Container IntMap', () => {
 
   it('remove then lookup misses', () =>
     jsv.assert(
-      jsv.forall(jsv.array(instructionArb(jsv.number)), jsv.integer, (xs, k) =>
-        P.isNothing(IM.lookup(k, IM.remove(k, runInstruction(xs, IM.empty))))
+      jsv.forall(intMapArb(jsv.number), jsv.integer, (im, k) =>
+        P.isNothing(IM.lookup(k, IM.remove(k, im)))
+      )
+    )
+  );
+
+  it('alter can be used to insert', () =>
+    jsv.assert(
+      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) =>
+        P.maybe(
+          false,
+          v2 => v === v2,
+          IM.lookup(
+            k,
+            IM.alter(
+              m => P.maybe(P.just(v), P.just, m) as P.Maybe<number>,
+              k,
+              IM.remove(k, im)
+            )
+          )
+        )
+      )
+    )
+  );
+
+  it('alter can be used to deleting', () =>
+    jsv.assert(
+      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) =>
+        P.isNothing(
+          IM.lookup(k, IM.alter(() => P.nothing, k, IM.insert(k, v, im)))
+        )
       )
     )
   );
