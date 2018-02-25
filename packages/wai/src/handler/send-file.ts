@@ -110,6 +110,7 @@ function cleanUpListener<T extends Stream>(s: PipeState, st: T) {
 
   s.onError = null;
   s.onSucces = null;
+  s.resolved = true;
 }
 
 export function fileRange(tag: FileRangeType.ENTIREFILE): FileRange;

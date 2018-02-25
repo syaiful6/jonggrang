@@ -18,11 +18,12 @@ import * as W from '../index';
 import * as FT from './fs-task';
 import { Socket } from 'net';
 
+
 /**
  * Run app with default settings
  */
 export function run(server: Server | HServer, app: W.Application): T.Task<void> {
-  return runWith(server, identity, app);
+  return runWith(server, app, identity);
 }
 
 /**
@@ -31,8 +32,8 @@ export function run(server: Server | HServer, app: W.Application): T.Task<void> 
  */
 export function runWith(
   server: Server | HServer,
-  modifier: (d: Z.Settings) => Z.Settings,
-  app: W.Application
+  app: W.Application,
+  modifier: (d: Z.Settings) => Z.Settings
 ): T.Task<void> {
   return runSettingsServer(modifier(Z.defaultSettings), server, app);
 }
@@ -42,8 +43,8 @@ export function runWith(
  */
 export function withApplicationSettings(
   server: Server | HServer,
-  modifier: (d: Z.Settings) => Z.Settings,
-  createApp: T.Task<W.Application>
+  createApp: T.Task<W.Application>,
+  modifier: (d: Z.Settings) => Z.Settings
 ): T.Task<void> {
   return createApp.chain(app => runSettingsServer(modifier(Z.defaultSettings), server, app));
 }
@@ -55,7 +56,7 @@ export function withApplication(
   server: Server | HServer,
   createApp: T.Task<W.Application>
 ) {
-  return withApplicationSettings(server, identity, createApp);
+  return withApplicationSettings(server, createApp, identity);
 }
 
 /**

@@ -28,10 +28,11 @@ export interface Request {
   readonly vault: Record<string, any>;
 }
 
-export type Response
-  = ResponseFile
-  | ResponseBuffer
-  | ResponseStream;
+export interface Response {
+  status: H.Status;
+  headers: H.ResponseHeaders;
+  content: HttpContent;
+}
 
 export interface FilePart {
   offset: number;
@@ -39,35 +40,34 @@ export interface FilePart {
   size: number;
 }
 
-export const enum ResponseType {
-  RESPONSEFILE,
-  RESPONSEBUFFER,
-  RESPONSESTREAM
+export const enum ContentType {
+  FILE,
+  BUFFER,
+  STREAM
 }
+
+export interface ContentFile {
+  tag: ContentType.FILE;
+  path: string;
+  part?: FilePart;
+}
+
+export interface ContentBuffer {
+  tag: ContentType.BUFFER;
+  buffer: Buffer;
+}
+
+export interface ContentStream {
+  tag: ContentType.STREAM;
+  stream: StreamingBody;
+}
+
+export type HttpContent
+  = ContentFile
+  | ContentBuffer
+  | ContentStream;
 
 export type FilePath = string;
-
-export interface ResponseFile {
-  readonly tag: ResponseType.RESPONSEFILE;
-  readonly status: H.Status;
-  readonly headers: H.ResponseHeaders;
-  readonly path: FilePath;
-  readonly part?: FilePart;
-}
-
-export interface ResponseBuffer {
-  readonly tag: ResponseType.RESPONSEBUFFER;
-  readonly status: H.Status;
-  readonly headers: H.ResponseHeaders;
-  readonly buffer: Buffer;
-}
-
-export interface ResponseStream {
-  readonly tag: ResponseType.RESPONSESTREAM;
-  readonly status: H.Status;
-  readonly headers: H.ResponseHeaders;
-  readonly body: StreamingBody;
-}
 
 export interface StreamingBody {
   (send: (b: Buffer) => Task<void>, flush: Task<void>): Task<void>;

@@ -3,7 +3,7 @@ import * as H from '@jonggrang/http-types';
 import * as T from '@jonggrang/task';
 import * as SM from '@jonggrang/object';
 
-import { Request, Response, FilePart, StreamingBody, ResponseType } from '../index';
+import { Request, Response, FilePart, StreamingBody, ContentType, HttpContent } from '../index';
 import { addContentHeadersForFilePart, conditionalRequest, RspFileInfoType } from './file';
 import * as Z from './types';
 
@@ -18,7 +18,7 @@ export function sendResponse(
 ): T.Task<void> {
   if (hasBody(resp.status)) {
     return sendRsp(conn, ii, req.httpVersion, resp.status,
-      resp.headers, rspFromResponse(resp, req.method, req.headers)
+      resp.headers, rspFromResponse(resp.content, req.method, req.headers)
     ).chain(([st, mlen]) =>
       P.isNothing(st) ? T.pure(void 0) : settings.logger(req, st.value, mlen)
     );
@@ -128,34 +128,34 @@ function hasBody(code: H.Status): boolean {
   return code !== 204 && code !== 304 && code >= 200;
 }
 
-function rspFromResponse(resp: Response, method: H.HttpMethod, header: H.RequestHeaders): Rsp {
+function rspFromResponse(body: HttpContent, method: H.HttpMethod, header: H.RequestHeaders): Rsp {
   const isHead = method === 'HEAD';
-  switch (resp.tag) {
-    case ResponseType.RESPONSEFILE:
+  switch (body.tag) {
+    case ContentType.FILE:
       return {
         isHead,
         header,
         tag: RspType.RSPFILE,
-        path: resp.path,
-        part: resp.part
+        path: body.path,
+        part: body.part
       } as Rsp;
 
-    case ResponseType.RESPONSEBUFFER:
+    case ContentType.BUFFER:
       if (isHead) {
         return { tag: RspType.RSPNOBODY };
       }
       return {
         tag: RspType.RSPBUFFER,
-        buffer: resp.buffer
+        buffer: body.buffer
       };
 
-    case ResponseType.RESPONSESTREAM:
+    case ContentType.STREAM:
       if (isHead) {
         return { tag: RspType.RSPNOBODY };
       }
       return {
         tag: RspType.RSPSTREAM,
-        body: resp.body
+        body: body.stream
       }
 
     default:
