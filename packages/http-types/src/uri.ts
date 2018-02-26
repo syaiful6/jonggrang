@@ -79,5 +79,12 @@ function buildQuery(key: string, value: any, xs: string[]) {
 }
 
 function normalizePath(paths: string[]) {
-  return paths.length > 0 && paths[0] === '' ? paths.slice(1) : paths;
+  let start = 0, end = paths.length;
+  if (paths.length > 0 && paths[0] === '') {
+    start = 1;
+  }
+  if (paths[paths.length - 1] === '') {
+    end = paths.length - 1;
+  }
+  return paths.slice(start, end);
 }
