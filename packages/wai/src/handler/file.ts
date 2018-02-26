@@ -40,7 +40,7 @@ export function conditionalRequest(
     if (P.isJust(ium)) return ium;
     return ifRange(hm, finfo.size, finfo.time);
   })();
-  const condition = P.fromMaybe(unConditional(hm, finfo.size), mcondition);
+  const condition = P.fromMaybe_(() => unConditional(hm, finfo.size), mcondition);
   if (condition.tag === RspFileInfoType.WITHOUTBODY) return condition;
   let hs = addContentHeaders(hs0, condition.offset, condition.length, finfo.size);
   hs['Last-Modified'] = finfo.date;

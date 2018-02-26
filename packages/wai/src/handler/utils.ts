@@ -14,17 +14,16 @@ export function identity<A>(a: A): A {
 export function writeSock<W extends Writable>(writable: W, buf: Buffer): T.Task<void> {
   return T.makeTask(cb => {
     if (!writable.write(buf)) {
-      writable.once('drain', () => cb(null, void 0));
+      writable.once('drain', cb);
     } else {
-      process.nextTick(() => cb(null, void 0));
+      process.nextTick(cb);
     }
     return T.nonCanceler;
   });
 }
 
 export function endSock<W extends Writable>(writable: W): T.Task<void> {
-  return T.makeTask(cb => {
-    writable.end(() => cb(null, void 0));
-    return T.nonCanceler;
-  })
+  return T.liftEff(() => {
+    writable.end();
+  });
 }

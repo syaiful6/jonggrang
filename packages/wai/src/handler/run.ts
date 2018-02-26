@@ -4,7 +4,6 @@ import { Buffer } from 'buffer';
 
 import * as T from '@jonggrang/task';
 import * as H from '@jonggrang/http-types';
-import * as RV from '@jonggrang/ref';
 import * as P from '@jonggrang/prelude';
 
 import { withFileInfoCache, getFileInfo } from './file-info';
@@ -255,14 +254,11 @@ function handleRequest(
   request: IncomingMessage,
   response: ServerResponse
 ) {
-  return RV.newRef(false)
-    .chain(ref =>
-      T.bracket(
-        T.pure(httpConnection(request, response)),
-        conn => cleanupConn(ref, conn, ii),
-        conn => serveConnection(recvRequest(request, conn.recv), conn, ii, settings, app)
-      )
-    )
+  return T.bracket(
+    T.pure(httpConnection(request, response)),
+    conn => conn.close,
+    conn => serveConnection(recvRequest(request, conn.recv), conn, ii, settings, app)
+  )
 }
 
 function serveConnection(
@@ -279,11 +275,6 @@ function serveConnection(
   );
 }
 
-function cleanupConn(ref: RV.Ref<boolean>, conn: Z.Connection, ii: Z.InternalInfo): T.Task<void> {
-  return RV.modifyRef_(ref, x => [true, x])
-    .chain(isClosed => isClosed === false ? conn.close : T.pure(void 0))
-}
-
 export function httpConnection(
   req: IncomingMessage,
   response: ServerResponse
@@ -295,14 +286,23 @@ export function httpConnection(
       response.writeHead(st, headers);
     });
   };
-  return {
+  const conn = {
     sendMany,
     sendAll,
     writeHead,
-    close: endSock(response),
-    sendFile: createSendFile(response),
-    recv: recvStream(req, 16384)
+    close: endSock(response)
   };
+  Object.defineProperty(conn, 'recv', {
+    get: function () {
+      return recvStream(req, 16384);
+    }
+  });
+  Object.defineProperty(conn, 'sendFile', {
+    get: function () {
+      return createSendFile(response)
+    }
+  })
+  return conn as Z.Connection;
 }
 
 export function recvRequest(req: IncomingMessage, recv: Z.Recv): W.Request {
