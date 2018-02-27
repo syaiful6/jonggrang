@@ -18,7 +18,8 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/prelude": "^0.1.1"
+    "@jonggrang/prelude": "^0.1.1",
+    "@jonggrang/http-types": "^0.1.1"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
