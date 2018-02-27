@@ -108,7 +108,7 @@ function initialize(delay: number): T.Task<MutableFdCache> {
 
 function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
   return traverseStrMap(old, prune).map(x => filterMap(x, identity))
-    .chain(newMap => T.pure((xs: FdCache) => SM.union(newMap, xs)))
+    .chain(newMap => T.pure((xs: FdCache) => SM.union(xs, newMap)))
 }
 
 function terminate(md: MutableFdCache): T.Task<void> {

@@ -10,7 +10,7 @@ import { withFileInfoCache, getFileInfo } from './file-info';
 import { withFdCache } from './fd-cache';
 import { recvStream } from './recv';
 import { sendResponse } from './response'
-import { createSendFile } from './send-file';
+import * as SF from './send-file';
 import * as Z from './types';
 import { writeSock, endSock, identity } from './utils';
 import * as W from '../index';
@@ -279,30 +279,7 @@ export function httpConnection(
   req: IncomingMessage,
   response: ServerResponse
 ): Z.Connection {
-  const sendMany = (bs: Buffer[]) => T.forIn(bs, buf => writeSock(response, buf)).map(() => {});
-  const sendAll = (buf: Buffer) => writeSock(response, buf);
-  const writeHead: Z.WriteHead = (st: H.Status, headers: H.ResponseHeaders) => {
-    return T.liftEff(() => {
-      response.writeHead(st, headers);
-    });
-  };
-  const conn = {
-    sendMany,
-    sendAll,
-    writeHead,
-    close: endSock(response)
-  };
-  Object.defineProperty(conn, 'recv', {
-    get: function () {
-      return recvStream(req, 16384);
-    }
-  });
-  Object.defineProperty(conn, 'sendFile', {
-    get: function () {
-      return createSendFile(response)
-    }
-  })
-  return conn as Z.Connection;
+  return new Conn(req, response);
 }
 
 export function recvRequest(req: IncomingMessage, recv: Z.Recv): W.Request {
@@ -347,6 +324,37 @@ function listenConnectionSocket(state: ServerState) {
       delete state.connections[(socket as any).__waiConId__];
     });
     state.connections[(socket as any).__waiConId__] = socket;
+  }
+}
+
+class Conn {
+  constructor(private req: IncomingMessage, private response: ServerResponse) {
+  }
+
+  sendAll(buf: Buffer) {
+    return writeSock(this.response, buf);
+  }
+
+  sendMany(bs: Buffer[]) {
+    return T.forIn(bs, buf => writeSock(this.response, buf)).map(() => {})
+  }
+
+  writeHead(st: H.Status, headers: H.ResponseHeaders) {
+    return T.liftEff(() => {
+      this.response.writeHead(st, headers);
+    });
+  }
+
+  sendFile(fid: Z.FileId, start: number, end: number, hook: T.Task<void>) {
+    return SF.sendFile(this.response, fid, start, end, hook);
+  }
+
+  get recv() {
+    return recvStream(this.req, 16384);
+  }
+
+  get close() {
+    return endSock(this.response);
   }
 }
 

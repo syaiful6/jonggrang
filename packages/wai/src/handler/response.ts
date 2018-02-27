@@ -60,7 +60,7 @@ function sendRsp(
 
     case RspType.RSPSTREAM:
       return conn.writeHead(status, headers)
-        .chain(_ => rsp.body(conn.sendAll, conn.sendAll(Buffer.from([]))))
+        .chain(_ => rsp.body(buff => conn.sendAll(buff), conn.sendAll(Buffer.from([]))))
         .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
 
     case RspType.RSPFILE:
@@ -119,7 +119,7 @@ function sendRspFile404(
   ver: H.HttpVersion,
   h: H.ResponseHeaders
 ): T.Task<[P.Maybe<H.Status>, P.Maybe<number>]> {
-  const buffer = Buffer.from('File not found', 'utf8');
+  const buffer = Buffer.from('File not found', 'ascii');
   const headers = SM.set('Content-Type', 'text/plain; charset=utf-8', h as any);
   return sendRsp(conn, ii, ver, 404, headers, { buffer, tag: RspType.RSPBUFFER })
 }
