@@ -13,17 +13,16 @@ export function sendResponse(
   conn: Z.Connection,
   ii: Z.InternalInfo,
   req: Request,
-  src: T.Task<Buffer>,
   resp: Response
 ): T.Task<void> {
   if (hasBody(resp.status)) {
-    return sendRsp(conn, ii, req.httpVersion, resp.status,
-      resp.headers, rspFromResponse(resp.content, req.method, req.headers)
+    return sendRsp(conn, ii, resp.status,
+      resp.headers, rspFromResponse(resp.content, req.method as H.HttpMethod, req.headers)
     ).chain(([st, mlen]) =>
       P.isNothing(st) ? T.pure(void 0) : settings.logger(req, st.value, mlen)
     );
   }
-  return sendRsp(conn, ii, req.httpVersion, resp.status, resp.headers, { tag: RspType.RSPNOBODY })
+  return sendRsp(conn, ii, resp.status, resp.headers, { tag: RspType.RSPNOBODY })
     .chain(() => settings.logger(req, resp.status, P.nothing))
 }
 
@@ -43,7 +42,6 @@ type Rsp
 function sendRsp(
   conn: Z.Connection,
   ii: Z.InternalInfo,
-  ver: H.HttpVersion,
   status: H.Status,
   headers: H.ResponseHeaders,
   rsp: Rsp
@@ -66,22 +64,22 @@ function sendRsp(
     case RspType.RSPFILE:
       if (rsp.part != null) {
         const part = rsp.part;
-        return sendRspFile2XX(conn, ii, ver, status, addContentHeadersForFilePart(headers, part),
+        return sendRspFile2XX(conn, ii, status, addContentHeadersForFilePart(headers, part),
           rsp.path, part.offset, part.byteCount, rsp.isHead);
       }
       return T.attempt(ii.getFinfo(rsp.path))
         .chain(efinfo => {
           if (P.isLeft(efinfo)) {
-            return sendRspFile404(conn, ii, ver, headers)
+            return sendRspFile404(conn, ii, headers)
           }
           const rspFile = conditionalRequest(efinfo.value, headers, rsp.header);
           switch (rspFile.tag) {
             case  RspFileInfoType.WITHBODY:
-              return sendRspFile2XX(conn, ii, ver, rspFile.status, rspFile.header, rsp.path,
+              return sendRspFile2XX(conn, ii, rspFile.status, rspFile.header, rsp.path,
                 rspFile.offset, rspFile.length, rsp.isHead);
 
             case RspFileInfoType.WITHOUTBODY:
-              return sendRsp(conn, ii, ver, rspFile.status, headers, { tag: RspType.RSPNOBODY });
+              return sendRsp(conn, ii, rspFile.status, headers, { tag: RspType.RSPNOBODY });
           }
         });
 
@@ -93,7 +91,6 @@ function sendRsp(
 function sendRspFile2XX(
   conn: Z.Connection,
   ii: Z.InternalInfo,
-  ver: H.HttpVersion,
   status: H.Status,
   headers: H.ResponseHeaders,
   path: string,
@@ -102,7 +99,7 @@ function sendRspFile2XX(
   isHead: boolean
 ): T.Task<[P.Maybe<H.Status>, P.Maybe<number>]> {
   if (isHead) {
-    return sendRsp(conn, ii, ver, status, headers, { tag: RspType.RSPNOBODY });
+    return sendRsp(conn, ii, status, headers, { tag: RspType.RSPNOBODY });
   }
   return ii.getFd(path)
     .chain(([mfd, fresher]) => {
@@ -116,12 +113,11 @@ function sendRspFile2XX(
 function sendRspFile404(
   conn: Z.Connection,
   ii: Z.InternalInfo,
-  ver: H.HttpVersion,
   h: H.ResponseHeaders
 ): T.Task<[P.Maybe<H.Status>, P.Maybe<number>]> {
   const buffer = Buffer.from('File not found', 'ascii');
   const headers = SM.set('Content-Type', 'text/plain; charset=utf-8', h as any);
-  return sendRsp(conn, ii, ver, 404, headers, { buffer, tag: RspType.RSPBUFFER })
+  return sendRsp(conn, ii, 404, headers, { buffer, tag: RspType.RSPBUFFER })
 }
 
 function hasBody(code: H.Status): boolean {

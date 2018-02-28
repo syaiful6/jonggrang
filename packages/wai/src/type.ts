@@ -1,32 +1,9 @@
+import { IncomingMessage } from 'http';
+
 import * as H from '@jonggrang/http-types';
 import { Task } from '@jonggrang/task';
 
-
-export interface Request {
-  // http method, such as GET
-  readonly method: H.HttpMethod;
-  // Request headers
-  readonly headers: H.RequestHeaders;
-  // HTTP version such as 1.1
-  readonly httpVersion: H.HttpVersion;
-  // Extra path information sent by the client.
-  readonly rawPathInfo: string;
-  // If no query string was specified, this should be empty.
-  // This value. Will include the leading question mark.
-  readonly rawQueryString: string;
-  // Was this request made over an SSL connection?
-  readonly isSecure: boolean;
-  // Parsed query string information.
-  readonly query: H.Query;
-  // Path info in individual pieces - the URL without a hostname/port and
-  //  without a query string, split on forward slashes.
-  readonly pathInfo: string[];
-  // Get the next chunk of the body. Returns 'B.empty' when the
-  // body is fully consumed.
-  readonly body: Task<Buffer>;
-  // A location for arbitrary data to be shared by applications and middleware.
-  readonly vault: Record<string, any>;
-}
+export type Request = IncomingMessage;
 
 export interface Response {
   status: H.Status;

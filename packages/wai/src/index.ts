@@ -1,11 +1,10 @@
 import * as H from '@jonggrang/http-types';
-import { Task, pure } from '@jonggrang/task';
+import { Task } from '@jonggrang/task';
 
 import {
   Request, ContentType, HttpContent, ContentFile, ContentBuffer, ContentStream,
   FilePath, FilePart, Response, StreamingBody, Middleware
 } from './type';
-import { Buffer } from 'buffer';
 export * from './type';
 export * from './handler/types';
 export * from './handler/run';
@@ -82,19 +81,6 @@ export function ifRequest(
   return (app) =>
   <A>(req: Request, send: (r: Response) => Task<A>) =>
     pred(req) ? middle(app)(req, send) : app(req, send);
-}
-
-export const defaultRequest: Request = {
-  method: 'GET',
-  headers: {},
-  httpVersion: H.httpVersion(1, 0),
-  rawPathInfo: '',
-  rawQueryString: '',
-  isSecure: false,
-  query: {},
-  pathInfo: [],
-  body: pure(Buffer.allocUnsafe(0)),
-  vault: {}
 }
 
 export function createResponse(

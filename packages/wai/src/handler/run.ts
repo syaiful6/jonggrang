@@ -1,6 +1,5 @@
 import { IncomingMessage, ServerResponse, Server } from 'http';
 import { Server as HServer } from 'https';
-import { Buffer } from 'buffer';
 
 import * as T from '@jonggrang/task';
 import * as H from '@jonggrang/http-types';
@@ -8,7 +7,6 @@ import * as P from '@jonggrang/prelude';
 
 import { withFileInfoCache, getFileInfo } from './file-info';
 import { withFdCache } from './fd-cache';
-import { recvStream } from './recv';
 import { sendResponse } from './response'
 import * as SF from './send-file';
 import * as Z from './types';
@@ -254,11 +252,8 @@ function handleRequest(
   request: IncomingMessage,
   response: ServerResponse
 ) {
-  return T.bracket(
-    T.pure(httpConnection(request, response)),
-    conn => conn.close,
-    conn => serveConnection(recvRequest(request, conn.recv), conn, ii, settings, app)
-  )
+  const conn = httpConnection(response);
+  return T.ensure(conn.close, serveConnection(request, conn, ii, settings, app));
 }
 
 function serveConnection(
@@ -267,23 +262,17 @@ function serveConnection(
 ): T.Task<void> {
   return T.rescue(
     app(request, response =>
-      sendResponse(settings, conn, ii, request, conn.recv, response)
+      sendResponse(settings, conn, ii, request, response)
     ),
     err =>
-      sendResponse(settings, conn, ii, W.defaultRequest,
-        T.pure(Buffer.allocUnsafe(0)), settings.onExceptionResponse(err))
+      sendResponse(settings, conn, ii, request, settings.onExceptionResponse(err))
   );
 }
 
 export function httpConnection(
-  req: IncomingMessage,
   response: ServerResponse
 ): Z.Connection {
-  return new Conn(req, response);
-}
-
-export function recvRequest(req: IncomingMessage, recv: Z.Recv): W.Request {
-  return new WaiRequest(req, recv);
+  return new Conn(response);
 }
 
 function destroAllConnections(sockets: Record<string, Socket>): T.Task<void> {
@@ -328,7 +317,7 @@ function listenConnectionSocket(state: ServerState) {
 }
 
 class Conn {
-  constructor(private req: IncomingMessage, private response: ServerResponse) {
+  constructor(private response: ServerResponse) {
   }
 
   sendAll(buf: Buffer) {
@@ -349,73 +338,7 @@ class Conn {
     return SF.sendFile(this.response, fid, start, end, hook);
   }
 
-  get recv() {
-    return recvStream(this.req, 16384);
-  }
-
   get close() {
     return endSock(this.response);
-  }
-}
-
-class WaiRequest implements W.Request {
-  private _ver: H.HttpVersion | null;
-  private _query: H.Query | null;
-  private _pathInfo: string[] | null;
-  readonly rawPathInfo: string;
-  readonly rawQueryString: string;
-  readonly vault: Record<string, any>;
-  constructor(private req: IncomingMessage, readonly body: Z.Recv) {
-    this._ver = null;
-    this._query = null;
-    const url = req.url as string;
-    const idxParam = url.indexOf('?');
-    this.rawPathInfo = url;
-    this.rawQueryString = url.substring(idxParam + 1);
-    this.vault = {};
-  }
-
-  get protocol() {
-    if ((this.req.socket as any).encrypted) {
-      return 'https';
-    }
-    const proto = this.headers['X-Forwarded-Proto'] || 'http';
-    return (proto as string).split(/\s*,\s*/)[0];
-  }
-
-  get isSecure() {
-    return this.protocol === 'https';
-  }
-
-  get headers() {
-    return this.req.headers;
-  }
-
-  get query() {
-    if (this._query == null) {
-      this._query = H.parseQuery(this.rawQueryString);
-      return this._query;
-    }
-    return this._query;
-  }
-
-  get pathInfo() {
-    if (this._pathInfo == null) {
-      this._pathInfo = H.pathSegments(this.rawPathInfo);
-      return this._pathInfo;
-    }
-    return this._pathInfo;
-  }
-
-  get method() {
-    return this.req.method as H.HttpMethod;
-  }
-
-  get httpVersion() {
-    if (this._ver == null) {
-      this._ver = H.httpVersion(this.req.httpVersionMajor, this.req.httpVersionMinor);
-      return this._ver;
-    }
-    return this._ver;
   }
 }

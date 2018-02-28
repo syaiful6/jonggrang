@@ -21,8 +21,6 @@ export interface SendFile {
   (fid: FileId, start: number, end: number, hook: T.Task<void>): T.Task<void>
 }
 
-export type Recv = T.Task<Buffer>;
-
 export interface WriteHead {
   (st: H.Status, headers: H.ResponseHeaders): T.Task<void>;
 }
@@ -33,7 +31,6 @@ export interface Connection {
   readonly close: T.Task<void>;
   readonly writeHead: WriteHead;
   readonly sendFile: SendFile;
-  readonly recv: Recv;
 }
 
 export interface InternalInfo {
@@ -82,7 +79,7 @@ export function defaultOnException(mreq: P.Maybe<Request>, err: Error): T.Task<v
     if (P.isJust(mreq)) {
       const req = mreq.value;
       console.error(
-        `error when handle request ${req.method.toUpperCase()} ${req.rawPathInfo} with error message ${err.message}`
+        `error when handle request ${req.method} ${req.url} with error message ${err.message}`
       );
     } else {
       console.error(err.message);
