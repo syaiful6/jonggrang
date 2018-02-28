@@ -38,7 +38,9 @@ export interface Except<A> {
 
 export interface Sync<A> {
   tag: 'SYNC';
-  _1: (this: any) => A;
+  _1: (...args: any[]) => A;
+  _2: any[]; // arguments
+  _3: any; // this context
 }
 
 export interface Async<A> {
@@ -149,7 +151,7 @@ export interface IntMap<A> {
 export function createCoreTask<A>(tag: 'PURE', _1: A): PureTask<A>;
 export function createCoreTask(tag: 'THROW', _1: Error): ThrowTask;
 export function createCoreTask<A>(tag: 'SEQUENTIAL', _1: ParTask<A>): SequentialTask<A>;
-export function createCoreTask<A>(tag: 'SYNC', _1: () => A): SyncTask<A>;
+export function createCoreTask<A>(tag: 'SYNC', _1: (...args: any[]) => A, _2: any[], _3: any): SyncTask<A>;
 export function createCoreTask<A>(tag: 'ASYNC', _1: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>): AsyncTask<A>;
 export function createCoreTask<A>(tag: 'EXCEPT', _1: CoreTask<A>, _2: Fn1<Error, CoreTask<A>>): ExceptTask<A>;
 export function createCoreTask(tag: 'FORK', _1: boolean, _2: CoreTask<any>, _3?: Supervisor): ForkTask;
@@ -311,8 +313,8 @@ export class ExceptTask<A> extends Task<A> implements Except<A> {
 
 export class SyncTask<A> extends Task<A> implements Sync<A> {
   readonly tag: 'SYNC';
-  constructor(readonly _1: Eff<A>) {
-    super('SYNC', _1);
+  constructor(readonly _1: Eff<A>, readonly _2: any, readonly _3: any) {
+    super('SYNC', _1, _2, _3);
   }
 }
 

@@ -68,6 +68,10 @@ const testSupervise: T.Task<boolean> = T.co(function* () {
   return T.pure(r1 === "done" && r2 === "acquiredonerelease")
 });
 
+function timer(text: string, cb: (err: Error | null, t: string) => void): void {
+  setTimeout(() => cb(null, text), 100)
+}
+
 describe('Task.Core', () => {
   describe('Basic Operation', () => {
     it('pure', (done) => {
@@ -260,5 +264,14 @@ describe('Task.Core', () => {
         Q.shouldBe(true, tsGen.then(tsGen).then(tsGen))
       )
     })
+  });
+
+  describe('fromNodeBack', () => {
+    it('turn node callback into task correctly', done =>
+      T.runTask(
+        done,
+        Q.shouldBe('yes', T.fromNodeBack(timer, ['yes']))
+      )
+    );
   })
 });

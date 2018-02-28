@@ -141,7 +141,7 @@ class ParComputation<A> implements Computation<A> {
         for (let kid in newKills) {
           newKills[kid]();
         }
-      });
+      }, [], null);
     };
   }
 
@@ -611,7 +611,7 @@ export class TaskFiber<A> implements Fiber<A> {
 
             case 'SYNC':
               this._status = StateFiber.STEP_RESULT;
-              this._step = runSync((this._step as Sync<any>)._1);
+              this._step = runSync((this._step as Sync<any>)._1, (this._step as Sync<any>)._2, (this._step as Sync<any>)._3);
               break;
 
             case 'ASYNC':
@@ -809,9 +809,9 @@ function isComputation<A>(b: any): b is Computation<A> {
   return false;
 }
 
-function runSync<A>(f: Eff<A>): Either<Error, A> {
+function runSync<A>(f: (...args: any[]) => A, args: any[], ctx: any): Either<Error, A> {
   try {
-    let v = f();
+    let v = f.apply(ctx, args);
     return right(v);
   } catch (e) {
     return left(e);

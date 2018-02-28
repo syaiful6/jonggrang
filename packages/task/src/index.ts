@@ -116,8 +116,8 @@ export function launchTask<A>(t: Task<A>): Fiber<A> {
  * Lift an effectfull function to Task.
  * @param f An effectful function
  */
-export function liftEff<A>(f: () => A): Task<A> {
-  return new SyncTask(f);
+export function liftEff<A>(f: () => A, args?: any[], ctx?: any): Task<A> {
+  return new SyncTask(f, args || [], ctx || null);
 }
 
 /**
@@ -351,6 +351,13 @@ export function mergePar<A>(xs: Task<A>[]): Task<A[]> {
 }
 
 /**
+ * Turn a node js callback style to Task
+ */
+export function fromNodeBack(f: Function, args?: any[], ctx?: any): Task<any> {
+  return makeTask(new FromNodeBack(f, args || [], ctx || null))
+}
+
+/**
  * Traverse the `A[]` with function from `A` to `Task<B>`, collect the result
  * and run all `Task<B>` in sequence, meaning it wait previous `Task` before running
  * the next one.
@@ -418,5 +425,20 @@ class TimerComputation {
 
   cancel(err: Error): Task<void> {
     return liftEff(() => this._clearTimer());
+  }
+}
+
+class FromNodeBack {
+  constructor (private fn: Function, private args: any[], private ctx: any) {
+  }
+
+  handle(cb: NodeCallback<any, void>): void {
+    let { fn, args, ctx } = this;
+    args.push(cb);
+    fn.apply(ctx, args);
+  }
+
+  cancel() {
+    return pure(void 0);
   }
 }
