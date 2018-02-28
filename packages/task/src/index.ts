@@ -6,7 +6,7 @@ import {
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
 import { SimpleSupervisor } from './internal/scheduler';
-import { id } from './internal/utils';
+import { id, withAppend } from './internal/utils';
 
 
 // re-export
@@ -116,7 +116,7 @@ export function launchTask<A>(t: Task<A>): Fiber<A> {
  * Lift an effectfull function to Task.
  * @param f An effectful function
  */
-export function liftEff<A>(f: () => A, args?: any[], ctx?: any): Task<A> {
+export function liftEff<A>(f: (...args: any[]) => A, args?: any[], ctx?: any): Task<A> {
   return new SyncTask(f, args || [], ctx || null);
 }
 
@@ -235,13 +235,11 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
  * @param t
  */
 export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
-  function kont(e: Either<Error, A>) {
-    if (isRight(e)) {
-      return cb(null, e.value);
-    }
-    return cb(e.value);
-  }
-  return launchTask(attempt(t).chain(e => liftEff(() => kont(e))));
+  return launchTask(
+    attempt(t).chain(e =>
+      liftEff(runListener, [e, cb])
+    )
+  );
 }
 
 /**
@@ -407,6 +405,13 @@ function pair<A>(a: A): (b: A) => A[] {
   return (b: A) => [a, b];
 }
 
+function runListener<A>(e: Either<Error, A>, cb: NodeCallback<A, void>) {
+  if (isRight(e)) {
+    return cb(null, e.value);
+  }
+  return cb(e.value);
+}
+
 class TimerComputation {
   private _timerId: NodeJS.Timer | null;
   constructor(private _delay: number) {
@@ -434,8 +439,7 @@ class FromNodeBack {
 
   handle(cb: NodeCallback<any, void>): void {
     let { fn, args, ctx } = this;
-    args.push(cb);
-    fn.apply(ctx, args);
+    fn.apply(ctx, withAppend(args, cb));
   }
 
   cancel() {

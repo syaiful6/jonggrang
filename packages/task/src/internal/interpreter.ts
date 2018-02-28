@@ -522,7 +522,7 @@ export class TaskFiber<A> implements Fiber<A> {
   }
 
   runRaw(localRunTick: number) {
-    let tmp: any, result: any, attempt: any;
+    let tmp: any, result: any, attempt: any, sync: boolean;
     while (true) {
       tmp       = null;
       result    = null;
@@ -616,17 +616,25 @@ export class TaskFiber<A> implements Fiber<A> {
 
             case 'ASYNC':
               this._status = StateFiber.PENDING;
+              sync = true;
               this._step = runAsync((this._step as Async<any>)._1, (er, v) => {
                 if (this._runTick !== localRunTick) {
                   return;
                 }
                 this._runTick++;
-                scheduler.enqueue(() => {
+                if (sync) {
+                  scheduler.enqueue(() => {
+                    this._status = StateFiber.STEP_RESULT;
+                    this._step = er != null ? left(er) : right(v);
+                    this.runRaw(this._runTick);
+                  });
+                } else {
                   this._status = StateFiber.STEP_RESULT;
                   this._step = er != null ? left(er) : right(v);
                   this.runRaw(this._runTick);
-                });
+                }
               });
+              sync = false; // mark to async
               return;
 
             case 'BRACKET':

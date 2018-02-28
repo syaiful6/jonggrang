@@ -273,5 +273,10 @@ describe('Task.Core', () => {
         Q.shouldBe('yes', T.fromNodeBack(timer, ['yes']))
       )
     );
+
+    it('can run multiple times', done => {
+      const t: T.Task<string> = T.fromNodeBack(timer, ['yes']);
+      T.runTask(done, Q.equals(t, t));
+    });
   })
 });
