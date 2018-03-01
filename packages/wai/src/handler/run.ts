@@ -124,33 +124,27 @@ function shutdownServer(
   state: ServerState
 ): T.Task<void> {
   return T.mergePar([
-    destroAllConnections(state.connections),
+    T.liftEff(null, state.connections, destroAllConnections),
     closeServer(state.server)
-  ]).then(exitProcess());
+  ]).chain(() => T.liftEff(process, 0, process.exit));
 }
 
-function registerRequestHandler(
-  state: ServerState
-): T.Task<void> {
-  return T.liftEff(() => {
-    const server = state.server as Server | HServer;;
-    server.on('request', state.listener);
-    server.on('connection', listenConnectionSocket(state))
-  });
+function registerRequestHandler(state: ServerState): void {
+  const server = state.server as Server | HServer;;
+  server.on('request', state.listener);
+  server.on('connection', listenConnectionSocket(state))
 }
 
 function listenConnection(
   state: ServerState,
   sett: Z.Settings
-) {
+): T.Task<void> {
   const listenOpts = sett.listenOpts;
   const server = state.server as Server | HServer;
   if (listenOpts.path) {
     return bindConnectionUnix(listenOpts.path, listenOpts.permission || '660', listenOpts, server);
   }
-  return T.liftEff(() => {
-    server.listen(listenOpts);
-  });
+  return T.liftEff(server, listenOpts, server.listen as any);
 }
 
 function bindConnectionUnix(
@@ -161,25 +155,20 @@ function bindConnectionUnix(
 ): T.Task<void> {
   return T.apathize(FT.unlink(path))
     .chain(() => {
-      return T.liftEff(() => {
-        server.listen(listenOpts);
-      })
+      return T.liftEff(server, listenOpts, server.listen as any);
     }).chain(() => {
       return T.forkTask(FT.chmod(path, permission))
-    }).map(() => {});
+    }) as T.Task<any>;
 }
 
-function waitListening(state: ServerState): T.Task<void> {
-  return T.makeTask(cb => {
-    const server = state.server as Server | HServer;
-    server.on('error', (err: Error) => {
-      cb(err, void 0);
-    });
-    server.on('listening', () => {
-      console.log('...started');
-      cb(null, void 0);
-    });
-    return T.nonCanceler;
+function waitListening(state: ServerState, cb: (err: Error | null, b: void) => void) {
+  const server = state.server as Server | HServer;
+  server.on('error', (err: Error) => {
+    cb(err, void 0);
+  });
+  server.on('listening', () => {
+    console.log('...started');
+    cb(null, void 0);
   });
 }
 
@@ -188,9 +177,9 @@ function connectAndTrapSignal(
   settings: Z.Settings
 ): T.Task<void> {
   return T.mergePar([
-    registerRequestHandler(state),
+    T.liftEff(null, state, registerRequestHandler),
     listenConnection(state, settings),
-    waitListening(state)
+    T.node(null, state, waitListening)
   ]).chain(() => {
     return T.race([waitSigInt(), waitSigTerm()])
   });
@@ -275,15 +264,13 @@ export function httpConnection(
   return new Conn(response);
 }
 
-function destroAllConnections(sockets: Record<string, Socket>): T.Task<void> {
-  return T.liftEff(() => {
-    Object.keys(sockets).forEach(key => {
-      const sock = sockets[key];
-      if (sock) {
-        sock.destroy();
-      }
-    })
-  });
+function destroAllConnections(sockets: Record<string, Socket>): void {
+  Object.keys(sockets).forEach(key => {
+    const sock = sockets[key];
+    if (sock) {
+      sock.destroy();
+    }
+  })
 }
 
 function closeServer(server: Server | HServer | null): T.Task<void> {
@@ -297,12 +284,6 @@ function closeServer(server: Server | HServer | null): T.Task<void> {
     });
     return T.nonCanceler;
   })
-}
-
-function exitProcess() {
-  return T.liftEff(() => {
-    process.exit(0);
-  });
 }
 
 function listenConnectionSocket(state: ServerState) {
@@ -329,9 +310,7 @@ class Conn {
   }
 
   writeHead(st: H.Status, headers: H.ResponseHeaders) {
-    return T.liftEff(() => {
-      this.response.writeHead(st, headers);
-    });
+    return T.liftEff(this.response, st, headers, this.response.writeHead);
   }
 
   sendFile(fid: Z.FileId, start: number, end: number, hook: T.Task<void>) {

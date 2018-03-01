@@ -297,9 +297,7 @@ function runHandler<A, B>(cb: NodeCallback<A, B>, error: null | Error, v?: A) {
 /**
  * Create a fresh avar.
  */
-export const newEmptyAVar: Task<AVar<any>> = liftEff(() => {
-  return createAVar(Sentinel);
-});
+export const newEmptyAVar: Task<AVar<any>> = liftEff(null, Sentinel, createAVar);
 
 /**
  * Creates a fresh AVar with an initial value.
@@ -307,7 +305,7 @@ export const newEmptyAVar: Task<AVar<any>> = liftEff(() => {
  * @param a The avar value
  */
 export function newAVar<A>(a: A): Task<AVar<A>> {
-  return liftEff(() => createAVar(aVarValue(a)));
+  return liftEff(null, aVarValue(a), createAVar);
 }
 
 /**
@@ -352,15 +350,17 @@ export function readAVar<A>(avar: AVar<A>): Task<A> {
  * @param value A
  */
 export function tryPutAVar<A>(avar: AVar<A>, value: A): Task<boolean> {
-  return liftEff(() => {
-    if (avar.status.kind === AVarStatus.EMPTY) {
-      avar.status = aVarValue(value);
-      drainAVar(avar);
-      return true;
-    } else {
-      return false;
-    }
-  })
+  return liftEff(null, avar, value, _tryPutAVar);
+}
+
+function _tryPutAVar<A>(avar: AVar<A>, value: A): boolean {
+  if (avar.status.kind === AVarStatus.EMPTY) {
+    avar.status = aVarValue(value);
+    drainAVar(avar);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /**
@@ -426,18 +426,20 @@ export function modifyAVar_<A, B>(avar: AVar<A>, act: (_: A) => Task<[A, B]>): T
  * @param avar
  */
 export function tryTakeAVar<A>(avar: AVar<A>): Task<M.Maybe<A>> {
-  return liftEff(() => {
-    const status = avar.status;
-    switch (status.kind) {
-      case AVarStatus.EMPTY:
-      case AVarStatus.KILLED:
-        return M.nothing;
-      case AVarStatus.FULL:
-        avar.status = Sentinel;
-        drainAVar(avar);
-        return M.just(status.value);
-    }
-  });
+  return liftEff(null, avar, _tryTakeAVar);
+}
+
+function _tryTakeAVar<A>(avar: AVar<A>): M.Maybe<A> {
+  const status = avar.status;
+  switch (status.kind) {
+    case AVarStatus.EMPTY:
+    case AVarStatus.KILLED:
+      return M.nothing;
+    case AVarStatus.FULL:
+      avar.status = Sentinel;
+      drainAVar(avar);
+      return M.just(status.value);
+  }
 }
 
 /**
@@ -446,15 +448,17 @@ export function tryTakeAVar<A>(avar: AVar<A>): Task<M.Maybe<A>> {
  * @param avar
  */
 export function tryReadAVar<A>(avar: AVar<A>): Task<M.Maybe<A>> {
-  return liftEff(() => {
-    const status = avar.status;
-    switch (status.kind) {
-      case AVarStatus.FULL:
-        return M.just(status.value);
-      default:
-        return M.nothing;
-    }
-  });
+  return liftEff(null, avar, _tryReadAVar);
+}
+
+function _tryReadAVar<A>(avar: AVar<A>): M.Maybe<A> {
+  const status = avar.status;
+  switch (status.kind) {
+    case AVarStatus.FULL:
+      return M.just(status.value);
+    default:
+      return M.nothing;
+  }
 }
 
 /**
@@ -464,12 +468,14 @@ export function tryReadAVar<A>(avar: AVar<A>): Task<M.Maybe<A>> {
  * @param avar
  */
 export function killAVar(error: Error, avar: AVar<any>): Task<void> {
-  return liftEff(() => {
-    if (avar.status.kind !== AVarStatus.KILLED) {
-      avar.status = { kind: AVarStatus.KILLED, error: error };
-      drainAVar(avar);
-    }
-  })
+  return liftEff(null, error, avar, _killAVar);
+}
+
+function _killAVar(error: Error, avar: AVar<any>) {
+  if (avar.status.kind !== AVarStatus.KILLED) {
+    avar.status = { error, kind: AVarStatus.KILLED };
+    drainAVar(avar);
+  }
 }
 
 /**
@@ -485,7 +491,7 @@ export function isEmptyAVar(avar: AVar<any>): Task<boolean> {
  * @param avar
  */
 export function status<A>(avar: AVar<A>): Task<Status<A>> {
-  return liftEff(() => avar.status);
+  return liftEff(null, () => avar.status);
 }
 
 function _isEmptyStatus(st: Status<any>): st is Empty {
@@ -524,14 +530,16 @@ class AVarTake<A> {
     drainAVar(this.avar);
   }
 
+  _cancel() {
+    const cell = this.cell;
+    if (cell != null) {
+      deleteCell(cell);
+      this.cell = void 0;
+    }
+  }
+
   cancel() {
-    return liftEff(() => {
-      const cell = this.cell;
-      if (cell != null) {
-        deleteCell(cell);
-        this.cell = void 0;
-      }
-    })
+    return liftEff(this, this._cancel);
   }
 }
 
@@ -545,14 +553,16 @@ class AVarRead<A> {
     drainAVar(this.avar);
   }
 
+  _cancel() {
+    const cell = this.cell;
+    if (cell != null) {
+      deleteCell(cell);
+      this.cell = void 0;
+    }
+  }
+
   cancel() {
-    return liftEff(() => {
-      const cell = this.cell;
-      if (cell != null) {
-        deleteCell(cell);
-        this.cell = void 0;
-      }
-    })
+    return liftEff(this, this._cancel);
   }
 }
 
@@ -566,13 +576,15 @@ class AVarPut<A> {
     drainAVar(this.avar);
   }
 
+  _cancel() {
+    const cell = this.cell;
+    if (cell != null) {
+      deleteCell(cell);
+      this.cell = void 0;
+    }
+  }
+
   cancel() {
-    return liftEff(() => {
-      const cell = this.cell;
-      if (cell != null) {
-        deleteCell(cell);
-        this.cell = void 0;
-      }
-    })
+    return liftEff(this, this._cancel);
   }
 }

@@ -75,16 +75,18 @@ export const defaultSettings: Settings = {
 };
 
 export function defaultOnException(mreq: P.Maybe<Request>, err: Error): T.Task<void> {
-  return T.liftEff(() => {
-    if (P.isJust(mreq)) {
-      const req = mreq.value;
-      console.error(
-        `error when handle request ${req.method} ${req.url} with error message ${err.message}`
-      );
-    } else {
-      console.error(err.message);
-    }
-  })
+  return T.liftEff(null, mreq, err, defaultOnExceptionEff);
+}
+
+function defaultOnExceptionEff(mreq: P.Maybe<Request>, err: Error) {
+  if (P.isJust(mreq)) {
+    const req = mreq.value;
+    console.error(
+      `error when handle request ${req.method} ${req.url} with error message ${err.message}`
+    );
+  } else {
+    console.error(err.message);
+  }
 }
 
 export function onExceptionResponse(): Response {

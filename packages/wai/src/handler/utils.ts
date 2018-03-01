@@ -21,9 +21,7 @@ export function writeSock<W extends Writable>(writable: W, buffer: Buffer): T.Ta
 }
 
 export function endSock<W extends Writable>(writable: W): T.Task<void> {
-  return T.liftEff(() => {
-    writable.end();
-  });
+  return T.liftEff(writable, writable.end);
 }
 
 function doNothingTask() {

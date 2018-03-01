@@ -13,7 +13,7 @@ export function id<A>(a: A) {
 
 export function equals<A>(t: T.Task<A>, b: T.Task<A>): T.Task<void> {
   return t.map(pair).ap(b).chain(([a, b]) => {
-    return T.liftEff(() => {
+    return T.liftEff(null, () => {
       expect(a).to.deep.equal(b)
     })
   });
@@ -21,7 +21,7 @@ export function equals<A>(t: T.Task<A>, b: T.Task<A>): T.Task<void> {
 
 export function shouldBe<A>(a: A, t: T.Task<A>): T.Task<void> {
   return t.chain(b => {
-    return T.liftEff(() => {
+    return T.liftEff(null, () => {
       expect(a).to.deep.equal(b);
     })
   })
@@ -29,7 +29,7 @@ export function shouldBe<A>(a: A, t: T.Task<A>): T.Task<void> {
 
 export function assertTask(t: T.Task<boolean>): T.Task<void> {
   return t.chain(b => {
-    return T.liftEff(() => {
+    return T.liftEff(null, () => {
       expect(b).to.be.equal(true)
     })
   })
@@ -50,15 +50,15 @@ export type Ref<A> = {
 }
 
 export function newRef<A>(a: A): T.Task<Ref<A>> {
-  return T.liftEff(() => ({ value: a }))
+  return T.liftEff(null, () => ({ value: a }))
 }
 
 export function readRef<A>(ref: Ref<A>): T.Task<A> {
-  return T.liftEff(() => ref.value);
+  return T.liftEff(null, () => ref.value);
 }
 
 export function modifyRef<A>(ref: Ref<A>, f: (_: A) => A): T.Task<void> {
-  return T.liftEff(() => {
+  return T.liftEff(null, () => {
     ref.value = f(ref.value);
     return;
   });

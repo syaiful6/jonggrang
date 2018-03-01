@@ -16,18 +16,22 @@ export function newRef<A>(value: A): T.Task<Ref<A>> {
  * @param ref The `Ref` to read
  */
 export function readRef<A>(ref: Ref<A>): T.Task<A> {
-  return T.liftEff(() => {
-    return ref.value;
-  });
+  return T.liftEff(null, ref, _readRef);
+}
+
+function _readRef<A>(ref: Ref<A>): A {
+  return ref.value;
 }
 
 /**
  * Write a value to the mutable reference
  */
 export function writeRef<A>(ref: Ref<A>, value: A): T.Task<void> {
-  return T.liftEff(() => {
-    ref.value = value;
-  });
+  return T.liftEff(null, ref, value, _writeRef);
+}
+
+function _writeRef<A>(ref: Ref<A>, value: A) {
+  ref.value = value;
 }
 
 /**
@@ -37,11 +41,13 @@ export function writeRef<A>(ref: Ref<A>, value: A): T.Task<void> {
  * @param act
  */
 export function modifyRef_<A, B>(ref: Ref<A>, act: (_: A) => [A, B]): T.Task<B> {
-  return T.liftEff(() => {
-    const [a, b] = act(ref.value);
-    ref.value = a;
-    return b;
-  });
+  return T.liftEff(null, ref, act, _modifyRef);
+}
+
+function _modifyRef<A, B>(ref: Ref<A>, act: (_: A) => [A, B]): B {
+  const [a, b] = act(ref.value);
+  ref.value = a;
+  return b;
 }
 
 /**
@@ -51,7 +57,9 @@ export function modifyRef_<A, B>(ref: Ref<A>, act: (_: A) => [A, B]): T.Task<B> 
  * @param trans
  */
 export function modifyRef<A>(ref: Ref<A>, trans: (_: A) => A): T.Task<void> {
-  return T.liftEff(() => {
-    ref.value = trans(ref.value);
-  });
+  return T.liftEff(null, ref, trans, __modifyRef);
+}
+
+function __modifyRef<A>(ref: Ref<A>, trans: (_: A) => A) {
+  ref.value = trans(ref.value);
 }

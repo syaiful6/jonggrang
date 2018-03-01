@@ -244,7 +244,7 @@ describe('Task.Core', () => {
       T.runTask(
         done,
         Q.assertTask(
-          T.attempt(T.liftEff(() => {
+          T.attempt(T.liftEff(null, () => {
             throw new Error('sync error');
           })).map(e => e.tag === E.EitherType.LEFT)
         )

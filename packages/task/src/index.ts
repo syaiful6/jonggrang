@@ -25,7 +25,7 @@ export { scheduler } from './internal/scheduler';
  */
 export function killFiber<A>(e: Error, fiber: Fiber<A>): Task<void> {
   if (fiber.isSuspended()) {
-    return liftEff(() => fiber.kill(e, doNothing) as any);
+    return liftEff(fiber, e, doNothing, fiber.kill) as Task<any>;
   } else {
     return makeTask(k => thunkCanceller(fiber.kill(e, k)));
   }
@@ -66,7 +66,7 @@ export function makeSupervisor(): Supervisor {
  * Tracks a Fiber using provided supervisor
  */
 export function forkWith<A>(sup: Supervisor, t: Task<A>): Task<Fiber<A>> {
-  return new Task('', true, t, sup);
+  return new Task('FORK', true, t, sup);
 }
 
 /**
@@ -116,8 +116,20 @@ export function launchTask<A>(t: Task<A>): Fiber<A> {
  * Lift an effectfull function to Task.
  * @param f An effectful function
  */
-export function liftEff<A>(f: (...args: any[]) => A, args?: any[], ctx?: any): Task<A> {
-  return new Task('SYNC', f, args || [], ctx || null);
+export function liftEff<A>(ctx: any, fn: () => A): Task<A>;
+export function liftEff<A, B>(ctx: any, a: A, fn: (a: A) => B): Task<B>;
+export function liftEff<A, B, C>(ctx: any, a: A, b: B, fn: (a: A, b: B) => C): Task<C>;
+export function liftEff<A, B, C, D>(ctx: any, a: A, b: B, c: C, fn: (a: A, b: B, c: C) => D): Task<D>;
+export function liftEff<A, B, C, D, E>(ctx: any, a: A, b: B, c: C, d: D, fn: (a: A, b: B, c: C, d: D) => E): Task<E>;
+export function liftEff<A, B, C, D, E, F>(ctx: any, a: A, b: B, c: C, d: D, e: E, fn: (a: A, b: B, c: C, d: D, e: E) => F): Task<F>;
+export function liftEff<A, B, C, D, E, F, G>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, fn: (a: A, b: B, c: C, d: D, e: E, f: F) => G): Task<G>;
+export function liftEff<A, B, C, D, E, F, G, H>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G) => H): Task<H>;
+export function liftEff<A, B, C, D, E, F, G, H, I>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H) => I): Task<I>;
+export function liftEff<A, B, C, D, E, F, G, H, I, J>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I) => J): Task<J>;
+export function liftEff<A>(ctx: any, ...args: any[]): Task<A> {
+  const params = args.slice(0, -1);
+  const fn = args[args.length - 1];
+  return new Task('SYNC', fn, params, ctx);
 }
 
 /**
@@ -220,7 +232,7 @@ export function supervise<A>(t: Task<A>): Task<A> {
 }
 
 export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
-  return liftEff(() => {
+  return liftEff(null, () => {
     let fib = new TaskFiber(t, sup);
     fib.run();
     return fib;
@@ -237,7 +249,7 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
 export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
   return launchTask(
     attempt(t).chain(e =>
-      liftEff(runListener, [e, cb])
+      liftEff(null, e, cb, runListener)
     )
   );
 }
@@ -315,7 +327,7 @@ export function co(fn: () => Iterator<Task<any>>): Task<any> {
  * @param thunk
  */
 export function thunkCanceller(thunk: () => void): Canceler {
-  return () => liftEff(thunk);
+  return () => liftEff(null, thunk);
 }
 
 /**
@@ -442,7 +454,7 @@ class TimerComputation {
   }
 
   cancel(err: Error): Task<void> {
-    return liftEff(() => this._clearTimer());
+    return liftEff(this, this._clearTimer)
   }
 }
 
