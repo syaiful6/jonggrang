@@ -109,7 +109,7 @@ export class Scheduler {
   }
 
   _useSetTimeout() {
-    return () => this._drain();
+    return () => setTimeout(() => this._drain())
   }
 
   isDraining() {

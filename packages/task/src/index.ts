@@ -2,7 +2,7 @@ import { Either, left, right, isRight } from '@jonggrang/prelude';
 
 import {
   Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
-  AsyncTask, SyncTask, Task, ForkTask, BracketTask, GeneralBracket, Parallel
+  Task, GeneralBracket, Parallel
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
 import { SimpleSupervisor } from './internal/scheduler';
@@ -52,7 +52,7 @@ export function killAll(err: Error, sup: Supervisor): Task<void> {
  * and return a `canceler`, or an object with shape look like Computation interface.
  */
 export function makeTask<A>(f: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>): Task<A> {
-  return new AsyncTask(f);
+  return new Task('ASYNC', f);
 }
 
 /**
@@ -66,7 +66,7 @@ export function makeSupervisor(): Supervisor {
  * Tracks a Fiber using provided supervisor
  */
 export function forkWith<A>(sup: Supervisor, t: Task<A>): Task<Fiber<A>> {
-  return new ForkTask(true, t, sup);
+  return new Task('', true, t, sup);
 }
 
 /**
@@ -75,7 +75,7 @@ export function forkWith<A>(sup: Supervisor, t: Task<A>): Task<Fiber<A>> {
  * @return Task<Fiber<A>
  */
 export function forkTask<A>(t: Task<A>): Task<Fiber<A>> {
-  return new ForkTask(true, t);
+  return new Task('FORK', true, t);
 }
 
 /**
@@ -85,7 +85,7 @@ export function forkTask<A>(t: Task<A>): Task<Fiber<A>> {
  * @param t
  */
 export function suspendTaskWith<A>(sup: Supervisor, t: Task<A>): Task<Fiber<A>> {
-  return new ForkTask(false, t, sup);
+  return new Task('FORK', false, t, sup);
 }
 
 /**
@@ -93,7 +93,7 @@ export function suspendTaskWith<A>(sup: Supervisor, t: Task<A>): Task<Fiber<A>> 
  * @param t
  */
 export function suspendTask<A>(t: Task<A>): Task<Fiber<A>> {
-  return new ForkTask(false, t, undefined);
+  return new Task('FORK', false, t, undefined);
 }
 
 /**
@@ -117,7 +117,7 @@ export function launchTask<A>(t: Task<A>): Fiber<A> {
  * @param f An effectful function
  */
 export function liftEff<A>(f: (...args: any[]) => A, args?: any[], ctx?: any): Task<A> {
-  return new SyncTask(f, args || [], ctx || null);
+  return new Task('SYNC', f, args || [], ctx || null);
 }
 
 /**
@@ -285,7 +285,7 @@ export function generalBracket<A, B>(
   r: GeneralBracket<A, B>,
   g: Fn1<A, Task<B>>
 ): Task<B> {
-  return new BracketTask(a, r, g);
+  return new Task('BRACKET', a, r, g);
 }
 
 /**
@@ -351,8 +351,21 @@ export function mergePar<A>(xs: Task<A>[]): Task<A[]> {
 /**
  * Turn a node js callback style to Task
  */
-export function fromNodeBack(f: Function, args?: any[], ctx?: any): Task<any> {
-  return makeTask(new FromNodeBack(f, args || [], ctx || null))
+export function node<A, B>(ctx: any, a: A, fn: (a: A, cb: NodeCallback<B, void>) => void): Task<B>;
+export function node<A, B, C>(ctx: any, a: A, b: B, fn: (a: A, b: B, cb: NodeCallback<C, void>) => void): Task<C>;
+export function node<A, B, C, D>(ctx: any, a: A, b: B, c: C, fn: (a: A, b: B, c: C, cb: NodeCallback<D, void>) => void): Task<D>;
+export function node<A, B, C, D, E>(ctx: any, a: A, b: B, c: C, d: D, fn: (a: A, b: B, c: C, d: D, cb: NodeCallback<E, void>) => void): Task<E>;
+export function node<A, B, C, D, E, F>(ctx: any, a: A, b: B, c: C, d: D, e: E, fn: (a: A, b: B, c: C, d: D, e: E, cb: NodeCallback<F, void>) => void): Task<F>;
+export function node<A, B, C, D, E, F, G>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, fn: (a: A, b: B, c: C, d: D, e: E, f: F, cb: NodeCallback<G, void>) => void): Task<G>;
+export function node<A, B, C, D, E, F, G, H>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, cb: NodeCallback<H, void>) => void): Task<H>;
+export function node<A, B, C, D, E, F, G, H, I>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, cb: NodeCallback<I, void>) => void): Task<I>;
+export function node<A, B, C, D, E, F, G, H, I, J>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, cb: NodeCallback<J, void>) => void): Task<J>;
+export function node<A, B, C, D, E, F, G, H, I, J, K>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, cb: NodeCallback<K, void>) => void): Task<K>;
+export function node<A, B, C, D, E, F, G, H, I, J, K, L>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, cb: NodeCallback<L, void>) => void): Task<L>;
+export function node(ctx: any, ...args: any[]): Task<any> {
+  let params = args.slice(0, -1);
+  let fn = args[args.length - 1];
+  return makeTask(new FromNodeBack(fn, params, ctx));
 }
 
 /**

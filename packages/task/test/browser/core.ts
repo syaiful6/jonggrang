@@ -68,6 +68,27 @@ const testSupervise: T.Task<boolean> = T.co(function* () {
   return T.pure(r1 === "done" && r2 === "acquiredonerelease")
 });
 
+const testKillParallelAlt: T.Task<boolean> = T.co(function* () {
+  let ref: Q.Ref<string> = yield Q.newRef('');
+  const action = (n: number, s: string) =>
+    T.bracket(
+      T.pure(void 0),
+      () => Q.modifyRef(ref, s2 => s2 + 'killed' + s),
+      () => T.delay(n).then(Q.modifyRef(ref, s2 => s2 + s))
+    )
+  let f1: T.Fiber<void> = yield T.forkTask(T.sequential(
+    action(10, 'foo').parallel().alt(action(20, 'bar').parallel())
+  ));
+  let f2: T.Fiber<void> = yield T.forkTask(T.co(function* () {
+    yield T.delay(5);
+    yield T.killFiber(new Error('Nope'), f1);
+    return Q.modifyRef(ref, s => s + 'done')
+  }));
+  yield T.attempt(T.joinFiber(f1));
+  yield T.attempt(T.joinFiber(f2));
+  return Q.readRef(ref).map(s => s === 'killedfookilledbardone')
+})
+
 function timer(text: string, cb: (err: Error | null, t: string) => void): void {
   setTimeout(() => cb(null, text), 100)
 }
@@ -187,6 +208,13 @@ describe('Task.Core', () => {
         })))
       )
     )
+
+    it('kill parallel alt', done =>
+      T.runTask(
+        done,
+        Q.assertTask(testKillParallelAlt)
+      )
+    )
   });
 
   describe('Error handling & Joining forked Task', () => {
@@ -270,12 +298,12 @@ describe('Task.Core', () => {
     it('turn node callback into task correctly', done =>
       T.runTask(
         done,
-        Q.shouldBe('yes', T.fromNodeBack(timer, ['yes']))
+        Q.shouldBe('yes', T.node(null, 'yes', timer))
       )
     );
 
     it('can run multiple times', done => {
-      const t: T.Task<string> = T.fromNodeBack(timer, ['yes']);
+      const t = T.node(null, 'yes', timer);
       T.runTask(done, Q.equals(t, t));
     });
   })
