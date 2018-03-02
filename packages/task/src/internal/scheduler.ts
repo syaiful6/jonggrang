@@ -109,7 +109,7 @@ export class Scheduler {
   }
 
   _useSetTimeout() {
-    return () => this._drain();
+    return () => setTimeout(() => this._drain())
   }
 
   isDraining() {
@@ -169,12 +169,14 @@ export class SimpleSupervisor implements Supervisor {
     this._fiberId = 0;
     this._fibers = Object.create(null);
     return (killErr: Error) => {
-      return createCoreTask('SYNC', function () {
-        for (let k in kills) {
-          kills[k]();
-        }
-      });
+      return createCoreTask('SYNC', this.killAllHelper, [kills], this);
     };
+  }
+
+  killAllHelper(kills: IntMap<Eff<void>>) {
+    for (let k in kills) {
+      kills[k]();
+    }
   }
 
   isEmpty() {

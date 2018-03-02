@@ -102,11 +102,8 @@ export function makeAppQueue<M, Q, S, I>(
       }
     }
     function commit(state: AppState<M, Q, S>): T.Task<AppState<M, Q, S>> {
-      return T.liftEff(() => {
-        if (state.needsRender) {
-          state.snabbdom(state.model)
-        }
-      }).then(runSubs(state.interpret, app.subs(state.model))
+      return T.liftEff(null, state, commitRender)
+        .then(runSubs(state.interpret, app.subs(state.model))
         .chain(tickInterpret =>
           tickInterpret.tick()
             .map(nextInterpret =>
@@ -119,12 +116,9 @@ export function makeAppQueue<M, Q, S, I>(
     function emit(a: I) {
       T.launchTask(pushAction(a).then(self.run))
     }
-    return T.liftEff(() => {
-      let snab = renderStep(R.init(emit), app.render, el);
-      snab(app.init.model);
-      return snab;
-    }).chain(snabbdom =>
-      interpreter(
+    return T.liftEff(null, emit, app.render, app.init.model, el, snabbdomStep)
+      .chain(snabbdom =>
+        interpreter(
         S.assign({}, self, { push: (e: I) => self.push({ tag: AppActionType.ACTION, payload: e })})
       ).chain(it2 => {
         return T.forInPar(app.init.effects, pushEffect)
@@ -139,6 +133,21 @@ export function makeAppQueue<M, Q, S, I>(
       })
     )
   })
+}
+
+function commitRender<M, Q, S>(state: AppState<M, Q, S>) {
+  if (state.needsRender) {
+    state.snabbdom(state.model)
+  }
+}
+
+function snabbdomStep<I, S>(
+  emit: (_: I) => void, render: (_: S) => VNode<I>,
+  init: S, el: Element
+): (_: S) => void {
+  let snab = renderStep(R.init(emit), render, el);
+  snab(init);
+  return snab;
 }
 
 interface SubscriptionState<S, I> {

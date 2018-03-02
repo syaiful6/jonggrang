@@ -1,9 +1,10 @@
+import * as FS from 'fs';
+
 import * as T from '@jonggrang/task';
 import * as P from '@jonggrang/prelude';
 import * as RV from '@jonggrang/ref';
 import * as SM from '@jonggrang/object';
 
-import * as FS from './fs-task';
 import { Reaper, mkReaper } from './reaper';
 import { smInsertTuple, identity } from './utils';
 
@@ -64,12 +65,12 @@ function fdEntry(path: string, fd: number, status: MutableStatus): FdEntry {
   return { path, fd, status };
 }
 
-export function openFile(path: string): T.Task<FS.Fd> {
-  return FS.fdOpen(path, 'r', null);
+function openFile(path: string): T.Task<number> {
+  return T.node(null, path, 'r', null, FS.open);
 }
 
-export function closeFile(fd: FS.Fd) {
-  return FS.fdClose(fd);
+function closeFile(fd: number): T.Task<void> {
+  return T.node(null, fd, FS.close);
 }
 
 function newFdEntry(path: string): T.Task<FdEntry> {
@@ -108,12 +109,12 @@ function initialize(delay: number): T.Task<MutableFdCache> {
 
 function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
   return traverseStrMap(old, prune).map(x => filterMap(x, identity))
-    .chain(newMap => T.pure((xs: FdCache) => SM.union(newMap, xs)))
+    .chain(newMap => T.pure((xs: FdCache) => SM.union(xs, newMap)))
 }
 
 function terminate(md: MutableFdCache): T.Task<void> {
   return md.stop.chain(t => {
-    return T.forInPar(SM.toPairs(t), ps => FS.fdClose(ps[1].fd))
+    return T.forInPar(SM.toPairs(t), ps => closeFile(ps[1].fd))
   }).map(() => {});
 }
 
@@ -122,7 +123,7 @@ function prune(fd: FdEntry): T.Task<P.Maybe<FdEntry>> {
     .chain(st =>
       st === Status.ACTIVE
         ? inactive(fd.status).then(T.pure(P.just(fd)))
-        : FS.fdClose(fd.fd).then(T.pure(P.nothing))
+        : closeFile(fd.fd).then(T.pure(P.nothing))
     )
 }
 

@@ -1,10 +1,10 @@
 import * as H from '@jonggrang/http-types';
-import { Task, pure } from '@jonggrang/task';
+import { Task } from '@jonggrang/task';
 
 import {
-  Request, ResponseType, FilePath, FilePart, Response, StreamingBody, Middleware
+  Request, ContentType, HttpContent, ContentFile, ContentBuffer, ContentStream,
+  FilePath, FilePart, Response, StreamingBody, Middleware
 } from './type';
-import { Buffer } from 'buffer';
 export * from './type';
 export * from './handler/types';
 export * from './handler/run';
@@ -18,9 +18,7 @@ export function responseFile(
   path: FilePath,
   part?: FilePart
 ): Response {
-  return createResponse(ResponseType.RESPONSEFILE,
-    status, headers, undefined, undefined, path, part
-  );
+  return createResponse(status, headers, createHttpContent(ContentType.FILE, path, part))
 }
 
 /**
@@ -34,9 +32,7 @@ export function responseBuffer(
   headers: H.ResponseHeaders,
   buffer: Buffer
 ): Response {
-  return createResponse(ResponseType.RESPONSEBUFFER,
-    status, headers, buffer, undefined, undefined, undefined
-  );
+  return createResponse(status, headers, createHttpContent(ContentType.BUFFER, buffer));
 }
 
 export function responseStream(
@@ -44,9 +40,7 @@ export function responseStream(
   headers: H.RequestHeaders,
   body: StreamingBody
 ): Response {
-  return createResponse(ResponseType.RESPONSESTREAM,
-    status, headers, undefined, body, undefined, undefined
-  );
+  return createResponse(status, headers, createHttpContent(ContentType.STREAM, body));
 }
 
 /**
@@ -89,35 +83,26 @@ export function ifRequest(
     pred(req) ? middle(app)(req, send) : app(req, send);
 }
 
-export const defaultRequest: Request = {
-  method: 'GET',
-  headers: {},
-  httpVersion: H.httpVersion(1, 0),
-  rawPathInfo: '',
-  rawQueryString: '',
-  isSecure: false,
-  query: {},
-  pathInfo: [],
-  body: pure(Buffer.allocUnsafe(0)),
-  vault: {}
-}
-
-function createResponse(
-  tag: ResponseType,
+export function createResponse(
   status: H.Status,
   headers: H.ResponseHeaders,
-  buffer?: Buffer,
-  body?: StreamingBody,
-  path?: FilePath,
-  part?: FilePart
+  content: HttpContent
 ): Response {
-  return {
-    tag,
-    status,
-    headers,
-    buffer,
-    body,
-    path,
-    part
-  } as Response;
+  return { status, headers, content }
+}
+
+export function createHttpContent(tag: ContentType.BUFFER, a: Buffer): ContentBuffer;
+export function createHttpContent(tag: ContentType.STREAM, a: StreamingBody): ContentStream;
+export function createHttpContent(tag: ContentType.FILE, a: string, b?: FilePart): ContentFile;
+export function createHttpContent(tag: any, a: any, b?: any): any {
+  let buffer: any, stream: any, path: any, part: any;
+  if (tag === ContentType.BUFFER) {
+    buffer = a;
+  } else if (tag === ContentType.FILE) {
+    path = a;
+    part = b;
+  } else if (tag === ContentType.STREAM) {
+    stream = a;
+  }
+  return { tag, buffer, stream, path, part } as HttpContent;
 }

@@ -3,7 +3,7 @@ import * as FS from 'fs';
 import * as T from '@jonggrang/task';
 import * as P from '@jonggrang/prelude';
 
-import { SendFile } from './types';
+import { FileId } from './types';
 import { Writable, Readable, Stream } from 'stream';
 
 
@@ -16,13 +16,18 @@ export type FileRange
   = { tag: FileRangeType.ENTIREFILE }
   | { tag: FileRangeType.PARTOFFILE; start: number; end: number };
 
-export function createSendFile<W extends Writable>(ws: W): SendFile {
-  return function sendFile(fid, start, end, hook) {
-    if (P.isNothing(fid.fd)) {
-      return sendFilePath(ws, fid.path, fileRange(FileRangeType.PARTOFFILE, start, end), hook);
-    }
-    return sendFileFd(ws, fid.fd.value, fileRange(FileRangeType.PARTOFFILE, start, end), hook);
+
+export function sendFile<W extends Writable>(
+  ws: W,
+  fid: FileId,
+  start: number,
+  end: number,
+  hook: T.Task<void>
+) {
+  if (P.isNothing(fid.fd)) {
+    return sendFilePath(ws, fid.path, fileRange(FileRangeType.PARTOFFILE, start, end), hook);
   }
+  return sendFileFd(ws, fid.fd.value, fileRange(FileRangeType.PARTOFFILE, start, end), hook);
 }
 
 export function sendFileFd<W extends Writable>(ws: W, fd: number, range: FileRange, hook: T.Task<void>): T.Task<void> {
@@ -110,6 +115,7 @@ function cleanUpListener<T extends Stream>(s: PipeState, st: T) {
 
   s.onError = null;
   s.onSucces = null;
+  s.resolved = true;
 }
 
 export function fileRange(tag: FileRangeType.ENTIREFILE): FileRange;

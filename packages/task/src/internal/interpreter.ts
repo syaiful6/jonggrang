@@ -102,7 +102,6 @@ class ParComputation<A> implements Computation<A> {
   private _fibers: IntMap<Fiber<any>>;
   private _killId: number;
   private _kills: IntMap<IntMap<Eff<void>>>;
-  private _early: Error;
   private _interupt: Either<Error, any> | null;
   private _callback: NodeCallback<A, void>;
 
@@ -141,7 +140,7 @@ class ParComputation<A> implements Computation<A> {
         for (let kid in newKills) {
           newKills[kid]();
         }
-      });
+      }, [], null);
     };
   }
 
@@ -157,8 +156,8 @@ class ParComputation<A> implements Computation<A> {
       head  = null,
       tail  = null,
       count = 0,
-      kills: IntMap<Eff<void>> = Object.create(null),
-      tmp;
+      kills: any = Object.create(null),
+      tmp: any, kid: any, len: any;
     loop: while (true) {
       tmp = null;
       switch (step.tag) {
@@ -166,12 +165,12 @@ class ParComputation<A> implements Computation<A> {
           if ((step as Forked)._3 === TEMPTY) {
             tmp = this._fibers[step._1];
             if (tmp != null) {
-              kills[count++] = tmp.kill(error, function (err, data) {
-                count--;
-                if (count === 0) {
-                  cb(err, data);
-                }
-              });
+              kills[count++] = tmp.kill(error, function (err: any, data: any) {
+                  count--;
+                  if (count === 0) {
+                    cb(err, data);
+                  }
+                });
             }
           }
           // Terminal case.
@@ -187,6 +186,7 @@ class ParComputation<A> implements Computation<A> {
             tail = (tail as any)._2;
           }
         break;
+
         case 'APMAP':
           step = step._2;
         break;
@@ -203,6 +203,12 @@ class ParComputation<A> implements Computation<A> {
     }
     if (count === 0) {
       cb(null, void 0);
+    } else {
+      kid = 0;
+      len = count;
+      for (; kid < len; kid++) {
+        kills[kid] = kills[kid]();
+      }
     }
     return kills;
   }
@@ -293,7 +299,7 @@ class ParComputation<A> implements Computation<A> {
             // Once a side has resolved, we need to cancel the side that is still
             // pending before we can continue.
             this._kills[kid] = this.kill(
-              this._early,
+              new Error('early'),
               step === lhs ? (head as ApAlt)._2 : (head as ApAlt)._1,
               (/* unused */) => {
                 delete this._kills[kid as number];
@@ -410,8 +416,8 @@ export class TaskFiber<A> implements Fiber<A> {
   private _bhead: Fn1<any, CoreTask<any>> | null;
   private _btail: InterpretTask | null;
   private _step: CoreTask<A> | null | Either<Error, A> | Canceler | Computation<A>;
-  private _fail: Error | null;
-  private _interrupt: Error | null;
+  private _fail: Either<Error, any> | null;
+  private _interrupt: Either<Error, any> | null;
   private _bracketCount: number;
   private _joinId: number;
   private _joins: IntMap<OnComplete<A>>;
@@ -452,23 +458,23 @@ export class TaskFiber<A> implements Fiber<A> {
       cb(null, void 0);
       return doNothing;
     }
-
     let canceler = this.onComplete({
       rethrow: false,
-      handler: () => cb(null, void 0)
+      handler: () => {
+        cb(null, void 0);
+      }
     });
-
     switch (this._status) {
       case StateFiber.SUSPENDED:
-        this._interrupt = e;
+        this._interrupt = left(e);
         this._status = StateFiber.COMPLETED;
-        this._step = left(this._interrupt);
+        this._step = this._interrupt;
         this.runRaw(this._runTick);
         break;
 
       case StateFiber.PENDING:
         if (this._interrupt === null) {
-          this._interrupt = e;
+          this._interrupt = left(e);
         }
         if (this._bracketCount === 0) {
           let step = this._step as Canceler | Computation<any>;
@@ -477,18 +483,18 @@ export class TaskFiber<A> implements Fiber<A> {
                                 isComputation(step) ? step.cancel(e)
                                 : typeof step === 'function' ? step(e) : nonCanceler(e)
                                 ),
-                              this._attempts as InterpretTask, this._interrupt
+                              this._attempts as InterpretTask, this._interrupt as any
                           );
           this._status   = StateFiber.RETURN;
           this._step     = null;
           this._fail     = null;
-          this.runRaw(this._runTick++);
+          this.runRaw(++this._runTick);
         }
         break;
 
       default:
         if (this._interrupt === null) {
-          this._interrupt = e;
+          this._interrupt = left(e);
         }
         if (this._bracketCount === 0) {
           this._status   = StateFiber.RETURN;
@@ -522,7 +528,7 @@ export class TaskFiber<A> implements Fiber<A> {
   }
 
   runRaw(localRunTick: number) {
-    let tmp: any, result: any, attempt: any;
+    let tmp: any, result: any, attempt: any, sync: boolean;
     while (true) {
       tmp       = null;
       result    = null;
@@ -546,7 +552,7 @@ export class TaskFiber<A> implements Fiber<A> {
         case StateFiber.STEP_RESULT:
           if (isLeft(this._step)) {
             this._status = StateFiber.RETURN;
-            this._fail = this._step.value;
+            this._fail = this._step;
             this._step = null;
           } else if (this._bhead === null) {
             this._status = StateFiber.RETURN;
@@ -579,7 +585,7 @@ export class TaskFiber<A> implements Fiber<A> {
 
             case 'THROW': // Throw
               this._status = StateFiber.RETURN;
-              this._fail   = (this._step as Throw)._1;
+              this._fail   = left((this._step as Throw)._1);
               this._step   = null;
               break;
 
@@ -587,7 +593,7 @@ export class TaskFiber<A> implements Fiber<A> {
               if (this._bhead === null) {
                 this._attempts = createInterpret(
                   'CONS', this._step as InterpretTask, this._attempts as InterpretTask,
-                  this._interrupt
+                  this._interrupt as any
                 );
               } else {
                 this._attempts = createInterpret(
@@ -598,9 +604,9 @@ export class TaskFiber<A> implements Fiber<A> {
                       'RESUME', this._bhead, this._btail as InterpretTask
                     ),
                     this._attempts as InterpretTask,
-                    this._interrupt
+                    this._interrupt as any
                   ),
-                  this._interrupt
+                  this._interrupt as any
                 );
               }
               this._bhead = null;
@@ -611,37 +617,45 @@ export class TaskFiber<A> implements Fiber<A> {
 
             case 'SYNC':
               this._status = StateFiber.STEP_RESULT;
-              this._step = runSync((this._step as Sync<any>)._1);
+              this._step = runSync((this._step as Sync<any>)._1, (this._step as Sync<any>)._2, (this._step as Sync<any>)._3);
               break;
 
             case 'ASYNC':
               this._status = StateFiber.PENDING;
+              sync = true;
               this._step = runAsync((this._step as Async<any>)._1, (er, v) => {
                 if (this._runTick !== localRunTick) {
                   return;
                 }
                 this._runTick++;
-                scheduler.enqueue(() => {
+                if (sync) {
+                  scheduler.enqueue(() => {
+                    this._status = StateFiber.STEP_RESULT;
+                    this._step = er != null ? left(er) : right(v);
+                    this.runRaw(this._runTick);
+                  });
+                } else {
                   this._status = StateFiber.STEP_RESULT;
                   this._step = er != null ? left(er) : right(v);
                   this.runRaw(this._runTick);
-                });
+                }
               });
+              sync = false; // mark to async
               return;
 
             case 'BRACKET':
               this._bracketCount++;
               if (this._bhead === null) {
                 this._attempts = createInterpret(
-                                  'CONS', this._step as Bracket<any>, this._attempts as InterpretTask, this._interrupt
+                                  'CONS', this._step as Bracket<any>, this._attempts as InterpretTask, this._interrupt as any
                                 );
               } else {
                 this._attempts = createInterpret(
                   'CONS', this._step as Bracket<any>,
                   createInterpret('CONS', createInterpret(
-                    'RESUME', this._bhead, this._btail as InterpretTask), this._attempts as InterpretTask, this._interrupt
+                    'RESUME', this._bhead, this._btail as InterpretTask), this._attempts as InterpretTask, this._interrupt as any
                   ),
-                  this._interrupt
+                  this._interrupt as any
                 );
               }
               this._bhead = null;
@@ -677,8 +691,8 @@ export class TaskFiber<A> implements Fiber<A> {
           this._btail = null;
           if (this._attempts === null) {
             this._status = StateFiber.COMPLETED;
-            this._step = this._interrupt !== null ? left(this._interrupt)
-                       : this._fail !== null      ? left(this._fail)
+            this._step = this._interrupt !== null ? this._interrupt
+                       : this._fail !== null      ? this._fail
                                                   : this._step;
           } else {
             tmp            = (this._attempts as any)._3;
@@ -690,7 +704,7 @@ export class TaskFiber<A> implements Fiber<A> {
                   this._status = StateFiber.RETURN;
                 } else if (this._fail) {
                   this._status = StateFiber.CONTINUE;
-                  this._step = attempt._2(this._fail);
+                  this._step = attempt._2(this._fail.value);
                   this._fail = null;
                 }
                 break;
@@ -726,14 +740,14 @@ export class TaskFiber<A> implements Fiber<A> {
               case 'RELEASE':
                 this._bracketCount++;
                 this._attempts = createInterpret(
-                  'CONS', createInterpret('FINALIZED', this._step as InterpretTask), this._attempts as InterpretTask, this._interrupt);
+                  'CONS', createInterpret('FINALIZED', this._step as InterpretTask), this._attempts as InterpretTask, this._interrupt as any);
                 this._status   = StateFiber.CONTINUE;
                 // It has only been killed if the interrupt status has changed
                 // since we enqueued the item.
                 if (this._interrupt && this._interrupt !== tmp) {
-                  this._step = attempt._1.killed(this._interrupt, attempt._2);
+                  this._step = attempt._1.killed(this._interrupt.value, attempt._2);
                 } else if (this._fail) {
-                  this._step = attempt._1.failed(this._fail, attempt._2);
+                  this._step = attempt._1.failed(this._fail.value, attempt._2);
                 } else {
                   this._step = attempt._1.completed((this._step as Right<any>).value , attempt._2);
                 }
@@ -742,7 +756,7 @@ export class TaskFiber<A> implements Fiber<A> {
               case 'FINALIZER':
                 this._bracketCount++;
                 this._attempts = createInterpret(
-                  'CONS', createInterpret('FINALIZED', this._step as InterpretTask), this._attempts as InterpretTask, this._interrupt);
+                  'CONS', createInterpret('FINALIZED', this._step as InterpretTask), this._attempts as InterpretTask, this._interrupt as any);
                 this._status   = StateFiber.CONTINUE;
                 this._step     = attempt._1;
                 break;
@@ -765,7 +779,7 @@ export class TaskFiber<A> implements Fiber<A> {
           // If we have an interrupt and a fail, then the thread threw while
           // running finalizers. This should always rethrow in a fresh stack.
           if (this._interrupt && this._fail) {
-            thrower(this._fail);
+            thrower(this._fail.value);
           // If we have an unhandled exception, and no other fiber has joined
           // then we need to throw the exception in a fresh stack.
           } else if (isLeft(this._step) && this._rethrow) {
@@ -809,9 +823,9 @@ function isComputation<A>(b: any): b is Computation<A> {
   return false;
 }
 
-function runSync<A>(f: Eff<A>): Either<Error, A> {
+function runSync<A>(f: (...args: any[]) => A, args: any[], ctx: any): Either<Error, A> {
   try {
-    let v = f();
+    let v = f.apply(ctx, args);
     return right(v);
   } catch (e) {
     return left(e);

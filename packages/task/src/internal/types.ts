@@ -38,7 +38,9 @@ export interface Except<A> {
 
 export interface Sync<A> {
   tag: 'SYNC';
-  _1: (this: any) => A;
+  _1: (...args: any[]) => A;
+  _2: any[]; // arguments
+  _3: any; // this context
 }
 
 export interface Async<A> {
@@ -146,24 +148,24 @@ export interface IntMap<A> {
   [key: string]: A;
 }
 
-export function createCoreTask<A>(tag: 'PURE', _1: A): PureTask<A>;
-export function createCoreTask(tag: 'THROW', _1: Error): ThrowTask;
-export function createCoreTask<A>(tag: 'SEQUENTIAL', _1: ParTask<A>): SequentialTask<A>;
-export function createCoreTask<A>(tag: 'SYNC', _1: () => A): SyncTask<A>;
-export function createCoreTask<A>(tag: 'ASYNC', _1: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>): AsyncTask<A>;
-export function createCoreTask<A>(tag: 'EXCEPT', _1: CoreTask<A>, _2: Fn1<Error, CoreTask<A>>): ExceptTask<A>;
-export function createCoreTask(tag: 'FORK', _1: boolean, _2: CoreTask<any>, _3?: Supervisor): ForkTask;
-export function createCoreTask<A, B>(tag: 'BIND', _1: CoreTask<A>, _2: Fn1<A, CoreTask<B>>): BindTask<B>;
-export function createCoreTask<A, B>(tag: 'BRACKET', _1: CoreTask<A>, _2: GeneralBracket<A, B>, _3: Fn1<A, CoreTask<B>>): BracketTask<B>;
+export function createCoreTask<A>(tag: 'PURE', _1: A): Task<A>;
+export function createCoreTask(tag: 'THROW', _1: Error): Task<any>;
+export function createCoreTask<A>(tag: 'SEQUENTIAL', _1: ParTask<A>): Task<A>;
+export function createCoreTask<A>(tag: 'SYNC', _1: (...args: any[]) => A, _2: any[], _3: any): Task<A>;
+export function createCoreTask<A>(tag: 'ASYNC', _1: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>): Task<A>;
+export function createCoreTask<A>(tag: 'EXCEPT', _1: CoreTask<A>, _2: Fn1<Error, CoreTask<A>>): Task<A>;
+export function createCoreTask(tag: 'FORK', _1: boolean, _2: CoreTask<any>, _3?: Supervisor): Task<any>;
+export function createCoreTask<A, B>(tag: 'BIND', _1: CoreTask<A>, _2: Fn1<A, CoreTask<B>>): Task<B>;
+export function createCoreTask<A, B>(tag: 'BRACKET', _1: CoreTask<A>, _2: GeneralBracket<A, B>, _3: Fn1<A, CoreTask<B>>): Task<B>;
 export function createCoreTask(tag: any, _1: any, _2?: any, _3?: any): any {
   return new Task(tag, _1, _2, _3);
 }
 
-export function createParTask<A>(tag: 'PURE', _1: A): PureTask<A>;
-export function createParTask(tag: 'THROW', _1: Error): ThrowTask;
-export function createParTask<A, B>(tag: 'PAR_MAP', _1: Fn1<A, B>, _2: ParTask<A>): ParMap<B>;
-export function createParTask<A, B>(tag: 'PAR_APPLY', _1: ParTask<Fn1<A, B>>, _2: ParTask<A>): ParApply<B>;
-export function createParTask<A>(tag: 'PAR_ALT', _1: ParTask<A>, _2: ParTask<A>): ParAlt<A>;
+export function createParTask<A>(tag: 'PURE', _1: A): Parallel<A>;
+export function createParTask(tag: 'THROW', _1: Error): Parallel<any>;
+export function createParTask<A, B>(tag: 'PAR_MAP', _1: Fn1<A, B>, _2: ParTask<A>): Parallel<B>;
+export function createParTask<A, B>(tag: 'PAR_APPLY', _1: ParTask<Fn1<A, B>>, _2: ParTask<A>): Parallel<B>;
+export function createParTask<A>(tag: 'PAR_ALT', _1: ParTask<A>, _2: ParTask<A>): Parallel<A>;
 export function createParTask(tag: any, _1: any, _2?: any, _3?: any): any {
   return new Parallel(tag, 1, _2, _3);
 }
@@ -191,11 +193,11 @@ export class Task<A> {
 
   map<B>(f: Fn1<A, B>): Task<B> {
     if (this.tag === 'PURE') {
-      return new PureTask(f(this._1));
+      return new Task('PURE', f(this._1));
     }
 
-    return new BindTask(this as Task<A>, (a: A) => {
-      return new PureTask(f(a));
+    return new Task('BIND', this as Task<A>, (a: A) => {
+      return new Task('PURE', f(a));
     });
   }
 
@@ -204,15 +206,15 @@ export class Task<A> {
   }
 
   static of<B>(b: B): Task<B> {
-    return new PureTask(b);
+    return new Task('PURE', b);
   }
 
   static ['fantasy-land/of']<B>(b: B): Task<B> {
-    return new PureTask(b);
+    return new Task('PURE', b);
   }
 
   of<B>(b: B): Task<B> {
-    return new PureTask(b);
+    return new Task('PURE', b);
   }
 
   ['fantasy-land/of']<B>(b: B): Task<B> {
@@ -228,11 +230,11 @@ export class Task<A> {
   }
 
   ['fantasy-land/ap']<B>(other: Task<Fn1<A, B>>): Task<B> {
-    return new BindTask(other, f => this.map(f));
+    return new Task('BIND', other, (f: Fn1<A, B>) => this.map(f));
   }
 
   chain<B>(f: Fn1<A, Task<B>>): Task<B> {
-    return new BindTask(this as Task<A>, f);
+    return new Task('BIND', this as Task<A>, f);
   }
 
   ['fantasy-land/chain']<B>(f: Fn1<A, Task<B>>): Task<B> {
@@ -260,19 +262,19 @@ export class Task<A> {
   }
 
   static throwError(e: Error): Task<any> {
-    return new ThrowTask(e);
+    return new Task('THROW', e);
   }
 
   catchError(k: (_: Error) => Task<A>): Task<A> {
-    return new ExceptTask(this as Task<A>, k);
+    return new Task('EXCEPT', this as Task<A>, k);
   }
 
   static zero(): Task<any> {
-    return new ThrowTask(new Error('Always fails'));
+    return new Task('THROW', new Error('Always fails'));
   }
 
   static ['fantasy-land/zero'](): Task<any> {
-    return new ThrowTask(new Error('Always fails'));
+    return new Task('THROW', new Error('Always fails'));
   }
 
   alt(other: Task<A>): Task<A> {
@@ -288,80 +290,13 @@ export class Task<A> {
   }
 }
 
-export class PureTask<A> extends Task<A> implements Pure<A> {
-  readonly tag: 'PURE';
-  constructor(readonly _1: A) {
-    super('PURE', _1);
-  }
-}
-
-export class ThrowTask extends Task<any> implements Throw {
-  readonly tag: 'THROW';
-  constructor(readonly _1: Error) {
-    super('THROW', _1);
-  }
-}
-
-export class ExceptTask<A> extends Task<A> implements Except<A> {
-  readonly tag: 'EXCEPT';
-  constructor(readonly _1: CoreTask<A>, readonly _2: Fn1<Error, CoreTask<A>>) {
-    super('EXCEPT', _1, _2);
-  }
-}
-
-export class SyncTask<A> extends Task<A> implements Sync<A> {
-  readonly tag: 'SYNC';
-  constructor(readonly _1: Eff<A>) {
-    super('SYNC', _1);
-  }
-}
-
-export class AsyncTask<A> extends Task<A> implements Async<A> {
-  readonly tag: 'ASYNC';
-  constructor(readonly _1: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>) {
-    super('ASYNC', _1);
-  }
-}
-
-export class BindTask<A> extends Task<A> implements Bind<A> {
-  readonly tag: 'BIND';
-  constructor(readonly _1: CoreTask<any>, readonly _2: Fn1<any, CoreTask<A>>) {
-    super('BIND', _1, _2);
-  }
-}
-
-export class BracketTask<A> extends Task<A> implements Bracket<A> {
-  readonly tag: 'BRACKET';
-  constructor(
-    readonly _1: CoreTask<any>,
-    readonly _2: GeneralBracket<any, A>,
-    readonly _3: Fn1<any, CoreTask<A>>
-  ) {
-      super('BRACKET', _1, _2, _3);
-  }
-}
-
-export class ForkTask extends Task<any> implements Fork {
-  readonly tag: 'FORK';
-  constructor(readonly _1: boolean, readonly _2: CoreTask<any>, readonly _3?: Supervisor) {
-    super('FORK', _1, _2, _3);
-  }
-}
-
-export class SequentialTask<A> extends Task<A> implements Sequential<A> {
-  readonly tag: 'SEQUENTIAL';
-  constructor(readonly _1: ParTask<A>) {
-    super('SEQUENTIAL', _1);
-  }
-}
-
 export class Parallel<A> {
 
   constructor(readonly tag: any, readonly _1: any, readonly _2?: any, readonly _3?: any) {
   }
 
   static of<B>(a: B): Parallel<B> {
-    return new PureParallel(a);
+    return new Parallel('PURE', a);
   }
 
   static ['fantasy-land/of']<B>(b: B): Parallel<B> {
@@ -369,7 +304,7 @@ export class Parallel<A> {
   }
 
   map<B>(f: Fn1<A, B>): Parallel<B> {
-    return new MapParallel(f, this);
+    return new Parallel('PAR_MAP', f, this);
   }
 
   ['fantasy-land/map']<B>(f: Fn1<A, B>) {
@@ -377,7 +312,7 @@ export class Parallel<A> {
   }
 
   apply<B, C>(this: Parallel<Fn1<B, C>>, other: Parallel<B>): Parallel<C> {
-    return new ApParallel(this, other);
+    return new Parallel('PAR_APPLY', this, other);
   }
 
   ap<B, C>(this: Parallel<Fn1<B, C>>, other: Parallel<B>): Parallel<C> {
@@ -385,7 +320,7 @@ export class Parallel<A> {
   }
 
   ['fantasy-land/ap']<B>(o: Parallel<Fn1<A, B>>): Parallel<B> {
-    return new ApParallel(o, this);
+    return new Parallel('PAR_APPLY', o, this);
   }
 
   alt(other: Parallel<A>): Parallel<A> {
@@ -405,27 +340,6 @@ export class Parallel<A> {
   }
 
   sequential(): Task<A> {
-    return new SequentialTask(this);
-  }
-}
-
-export class PureParallel<A> extends Parallel<A> implements Pure<A> {
-  readonly tag: 'PURE';
-  constructor(readonly _1: A) {
-    super('PURE', _1);
-  }
-}
-
-export class MapParallel<A> extends Parallel<A> implements ParMap<A> {
-  readonly tag: 'PAR_MAP';
-  constructor(readonly _1: Fn1<any, A>, readonly _2: ParTask<any>) {
-    super('PAR_MAP', _1, _2);
-  }
-}
-
-export class ApParallel<A> extends Parallel<A> implements ParApply<A> {
-  readonly tag: 'PAR_APPLY';
-  constructor(readonly _1: ParTask<Fn1<any, A>>, readonly _2: ParTask<any>) {
-    super('PAR_APPLY', _1, _2);
+    return new Task('SEQUENTIAL', this);
   }
 }
