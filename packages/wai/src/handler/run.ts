@@ -1,5 +1,7 @@
+import * as FS from 'fs';
 import { IncomingMessage, ServerResponse, Server } from 'http';
 import { Server as HServer } from 'https';
+import { Socket } from 'net';
 
 import * as T from '@jonggrang/task';
 import * as H from '@jonggrang/http-types';
@@ -12,8 +14,6 @@ import * as SF from './send-file';
 import * as Z from './types';
 import { writeSock, endSock, identity } from './utils';
 import * as W from '../index';
-import * as FT from './fs-task';
-import { Socket } from 'net';
 
 
 /**
@@ -153,12 +153,12 @@ function bindConnectionUnix(
   listenOpts: Z.ListenOpts,
   server: Server | HServer
 ): T.Task<void> {
-  return T.apathize(FT.unlink(path))
-    .chain(() => {
-      return T.liftEff(server, listenOpts, server.listen as any);
-    }).chain(() => {
-      return T.forkTask(FT.chmod(path, permission))
-    }) as T.Task<any>;
+  return T.apathize(T.node(null, path, FS.unlink))
+    .chain(() =>
+      T.liftEff(server, listenOpts, server.listen as any)
+    ).chain(() =>
+      T.forkTask(T.node(null, path, permission, FS.chmod))
+    ) as T.Task<any>;
 }
 
 function waitListening(state: ServerState, cb: (err: Error | null, b: void) => void) {

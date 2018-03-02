@@ -1,11 +1,11 @@
+import * as FS from 'fs';
+
 import * as T from '@jonggrang/task';
 import { isEmpty } from '@jonggrang/object';
 import * as H from '@jonggrang/http-types';
 
 import { smInsertTuple } from './utils';
 import { Reaper, mkReaper } from './reaper';
-import * as FS from './fs-task';
-
 
 export class FileInfo {
   constructor(
@@ -48,7 +48,7 @@ export function withFileInfoCache<A>(
 }
 
 export function getFileInfo(path: string): T.Task<FileInfo> {
-  return FS.stat(path)
+  return T.node(null, path, FS.stat)
     .chain(stat => {
       if (stat.isFile()) {
         let time = H.fromDate(stat.mtime);

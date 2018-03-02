@@ -12,7 +12,7 @@ export function id<A>(a: A) {
 
 export function equals<A>(t: T.Task<A>, b: T.Task<A>): T.Task<void> {
   return t.map(pair).ap(b).chain(([a, b]) => {
-    return T.liftEff(() => {
+    return T.liftEff(null, () => {
       expect(a).to.deep.equal(b)
     })
   });
@@ -20,7 +20,7 @@ export function equals<A>(t: T.Task<A>, b: T.Task<A>): T.Task<void> {
 
 export function shouldBe<A>(a: A, t: T.Task<A>): T.Task<void> {
   return t.chain(b => {
-    return T.liftEff(() => {
+    return T.liftEff(null, () => {
       expect(a).to.deep.equal(b);
     })
   })
@@ -28,7 +28,7 @@ export function shouldBe<A>(a: A, t: T.Task<A>): T.Task<void> {
 
 export function assertTask(t: T.Task<boolean>): T.Task<void> {
   return t.chain(b => {
-    return T.liftEff(() => {
+    return T.liftEff(null, () => {
       expect(b).to.be.equal(true)
     })
   })
