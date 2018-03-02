@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/object",
   "description": "Utility functions for working with Javascript object",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,7 +18,7 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/prelude": "^0.1.1"
+    "@jonggrang/prelude": "0.1.2"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",

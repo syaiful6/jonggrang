@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/genjer",
   "description": "A fontend application framework",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,9 +18,9 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/prelude": "^0.1.1",
-    "@jonggrang/task": "^0.1.1",
-    "@jonggrang/ref": "^0.1.1",
+    "@jonggrang/prelude": "0.1.2",
+    "@jonggrang/ref": "0.1.2",
+    "@jonggrang/task": "0.2.0",
     "snabbdom": "^0.7.1"
   },
   "devDependencies": {
