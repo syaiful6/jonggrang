@@ -24,5 +24,11 @@
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "build": "node bin/build.js",
+    "release:pre": "yarn build",
+    "release:next": "yarn release:pre && lerna publish --exact --canary=next --npm-tag=next -- --access=public",
+    "release": "yarn release:pre && lerna publish --exact -- --access=public"
+  }
 }
