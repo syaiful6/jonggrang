@@ -7,11 +7,15 @@ import { just, nothing } from '../../src/maybe';
 describe('Prelude Str', () => {
   describe('isEmpty', () => {
     it('Return true if passed empty string', () => {
+      /* tslint:disable */
       expect(S.isEmpty('')).to.be.true;
+      /* tslint:enable */
     });
 
     it('Return false is passed non empty string', () => {
+      /* tslint:disable */
       expect(S.isEmpty('ab')).to.be.false;
+      /* tslint:enable */
     });
   });
 
@@ -44,7 +48,7 @@ describe('Prelude Str', () => {
     it('return whole string if pass same length or greater than length of string', () => {
       expect(S.take(2, 'ab')).to.be.equals('ab');
       expect(S.take(3, 'ab')).to.be.equals('ab');
-    })
+    });
   });
 
   describe('indexOf', () => {
@@ -59,7 +63,7 @@ describe('Prelude Str', () => {
 
     it('Return nothing if the pattern didn\'t occur in given string', () => {
       expect(S.indexOf('cb', 'abcd')).to.be.deep.equals(nothing);
-    })
+    });
   });
 
   describe('count', () => {

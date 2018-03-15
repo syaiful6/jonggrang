@@ -259,6 +259,17 @@ export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
 }
 
 /**
+ * `forever` runs an action indefinitely, the task not yet run
+ */
+export function forever<A>(ma: Task<A>): Task<A> {
+  return co(function* () {
+    while (true) {
+      yield ma;
+    }
+  });
+}
+
+/**
  * A task that will be resolved after a given miliseconds
  * @param ms
  */

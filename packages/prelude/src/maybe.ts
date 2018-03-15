@@ -26,7 +26,7 @@ export const nothing = { tag: MaybeType.NOTHING } as Nothing;
  * @param a
  */
 export function just<A>(a: A): Maybe<A> {
-  return { tag: MaybeType.JUST, value: a }
+  return { tag: MaybeType.JUST, value: a };
 }
 
 /**

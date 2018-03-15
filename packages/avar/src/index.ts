@@ -50,7 +50,7 @@ export const enum AVarStatus {
   FULL,
   EMPTY,
   KILLED
-};
+}
 
 export interface Full<A> {
   kind: AVarStatus.FULL;
@@ -97,7 +97,7 @@ function createAVar<A>(status: Status<A>): AVar<A> {
     takes: mutQueue(),
     reads: mutQueue(),
     puts: mutQueue()
-  }
+  };
 }
 
 function mutQueue<A>(): MutableQueue<A> {
@@ -508,16 +508,16 @@ function createAVarAction(op: any, value: any, cb?: any): any {
     case AVarAction.READ:
       return { kind: op, cb: value };
     case AVarAction.PUT:
-      return { kind: op, value: value, cb: cb }
+      return { kind: op, value: value, cb: cb };
     default:
-      throw new TypeError('Invalid argument for createAVarAction')
+      throw new TypeError('Invalid argument for createAVarAction');
   }
 }
 
 function thrower(e: Error) {
   scheduler.enqueue(() => {
-    throw e
-  })
+    throw e;
+  });
 }
 
 class AVarTake<A> {

@@ -68,6 +68,20 @@ export function responseHeaders(resp: Response): H.ResponseHeaders {
 }
 
 /**
+ * Apply the provided function to the response header list of the Response.
+ */
+export function mapResponseHeaders(resp: Response, fn: (headers: H.ResponseHeaders) => H.ResponseHeaders): Response {
+  return createResponse(resp.status, fn(resp.headers), resp.content);
+}
+
+/**
+ * Apply the provided function to the response status of the Response
+ */
+export function mapResponseStatus(resp: Response, fn: (status: H.Status) => H.Status): Response {
+  return createResponse(fn(resp.status), resp.headers, resp.content);
+}
+
+/**
  * Apply a function that modifies a response as a 'Middleware'
  * @param f Response modifier
  */

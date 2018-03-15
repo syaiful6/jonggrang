@@ -10,7 +10,7 @@ export function assign<T, S1, S2, S3>(t: T, s1: S1, s2: S2, s3: S3): T & S1 & S2
 export function assign<T, S1, S2, S3, S4>(t: T, s1: S1, s2: S2, s3: S3, s4: S4): T & S1 & S2 & S3 & S4;
 export function assign<T>(target: T, ...sources: any[]): any {
   if (!target) {
-    throw new Error("assign's target must be an object")
+    throw new Error("assign's target must be an object");
   }
   for (let source of sources) {
     if (source) {
@@ -61,8 +61,15 @@ export function mergeWith<M1, K1 extends keyof M1, M2, K2 extends keyof M2>(
 }
 
 /**
- * Returns the keys of an object.zz
+ * Returns the keys of an object.
  */
 export function keys<A>(v: A): Array<keyof A> {
   return Object.keys(v) as Array<keyof A>;
+}
+
+/**
+ * Return the values of an object
+ */
+export function values<A>(v: A): Array<A[keyof A]> {
+  return keys(v).map(k => v[k]);
 }

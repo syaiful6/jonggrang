@@ -8,7 +8,7 @@ export const enum EitherType {
  * A common use case for `Either` is error handling, where `Left` is used to
  * carry an error value and `Right` is used to carry a success value.
  */
-export type Either<A, B> = Left<A> | Right<B>
+export type Either<A, B> = Left<A> | Right<B>;
 
 export interface Left<A> {
   tag: EitherType.LEFT;

@@ -6,7 +6,7 @@ import { deepEq } from '../../src/eq';
 import { id } from './utils';
 
 function maybeShow<A>(a: jsv.Show<A> | undefined): (m: M.Maybe<A>) => string {
-  return m => M.isJust(m) ? `Just(${a == null ? 'unknown' : a(m.value)})` : 'Nothing'
+  return m => M.isJust(m) ? `Just(${a == null ? 'unknown' : a(m.value)})` : 'Nothing';
 }
 
 function maybeGen<A>(arb: jsv.Arbitrary<A>): (n: number) => M.Maybe<A> {
@@ -17,7 +17,7 @@ function maybeShrink<A>(arb: jsv.Arbitrary<A>): (m: M.Maybe<A>) => M.Maybe<A>[] 
   return m =>
     M.isJust(m) && arb.shrink != null
       ? [M.nothing as M.Maybe<A>].concat(arb.shrink(m.value).map(M.just))
-      : []
+      : [];
 }
 
 function maybeArb<A>(arb: jsv.Arbitrary<A>): jsv.Arbitrary<M.Maybe<A>> {
@@ -25,7 +25,7 @@ function maybeArb<A>(arb: jsv.Arbitrary<A>): jsv.Arbitrary<M.Maybe<A>> {
     generator: jsv.generator.bless(maybeGen(arb)),
     show: maybeShow(arb.show),
     shrink: jsv.shrink.bless(maybeShrink(arb))
-  })
+  });
 }
 
 describe('Prelude Maybe', () => {
@@ -68,7 +68,7 @@ describe('Prelude Maybe', () => {
           jsv.fn(jsv.nat),
           (t, f, g) => deepEq(M.mapMaybe(t, x => f(g(x))), M.mapMaybe(M.mapMaybe(t, g), f))
         )
-      )
+      );
     });
   });
 

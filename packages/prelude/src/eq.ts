@@ -38,7 +38,7 @@ export function deepEq(a: any, b: any): boolean {
     }
 
     for (let i = 0, len = keys.length; i < len; i++) {
-      if(!deepEq(a[keys[i]], b[keys[i]])) return false;
+      if (!deepEq(a[keys[i]], b[keys[i]])) return false;
     }
 
     return true;

@@ -77,7 +77,7 @@ describe('Prelude Either', () => {
           (t, f, g) => deepEq(E.bimapEither(t, f, g), E.mapEither(t, g))
         )
       )
-    )
+    );
   });
 
   describe('lmapEither', () => {

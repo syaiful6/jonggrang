@@ -29,7 +29,9 @@ function expectResult<A>(res: A, p: PS.Parser<A>, s: string) {
 describe('Parsing', () => {
   describe('Basic', () => {
     it('many should not blow the stack', () => {
+      /* tslint:disable */
       expect(canParse(PS.many(PS.string('a')), repeat(10000, 'a'))).to.be.true;
+      /* tslint:enable */
     });
 
     it('can parse string', () => {
@@ -40,4 +42,4 @@ describe('Parsing', () => {
       expectResult(['a', 'a', 'a'], PS.many(PS.string('a')), 'aaa');
     });
   });
-})
+});
