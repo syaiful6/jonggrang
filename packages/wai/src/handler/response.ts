@@ -50,24 +50,19 @@ function sendRsp(
   rsp: Rsp
 ): T.Task<[P.Maybe<H.Status>, P.Maybe<number>]> {
   switch (rsp.tag) {
-    case RspType.RSPNOBODY:
-      return conn.writeHead(status, headers)
-        .then(T.pure([P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]));
-
     case RspType.RSPBUFFER:
       return conn.writeHead(status, headers)
         .chain(() => conn.sendAll(rsp.buffer))
         .then(T.pure([P.just(status), P.just(rsp.buffer.length)] as [P.Maybe<H.Status>, P.Maybe<number>]));
 
-    case RspType.RSPSTREAM:
-      return conn.writeHead(status, headers)
-        .chain(_ => rsp.body(buff => conn.sendAll(buff), conn.sendAll(Buffer.from([]))))
-        .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
-
     case RspType.RSPREADABLE:
       return conn.writeHead(status, headers)
         .chain(_ => conn.sendStream(rsp.readable))
         .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
+
+    case RspType.RSPNOBODY:
+      return conn.writeHead(status, headers)
+        .then(T.pure([P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]));
 
     case RspType.RSPFILE:
       if (rsp.part != null) {
@@ -90,6 +85,12 @@ function sendRsp(
               return sendRsp(conn, ii, rspFile.status, headers, { tag: RspType.RSPNOBODY });
           }
         });
+
+    case RspType.RSPSTREAM:
+      return conn.writeHead(status, headers)
+        .chain(_ => rsp.body(buff => conn.sendAll(buff), conn.sendAll(Buffer.from([]))))
+        .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
+
 
     default:
       throw new TypeError('last argument to sendRsp must be Rsp');
@@ -135,15 +136,6 @@ function hasBody(code: H.Status): boolean {
 function rspFromResponse(body: HttpContent, method: H.HttpMethod, header: H.RequestHeaders): Rsp {
   const isHead = method === 'HEAD';
   switch (body.tag) {
-    case ContentType.FILE:
-      return {
-        isHead,
-        header,
-        tag: RspType.RSPFILE,
-        path: body.path,
-        part: body.part
-      } as Rsp;
-
     case ContentType.BUFFER:
       if (isHead) {
         return { tag: RspType.RSPNOBODY };
@@ -151,15 +143,6 @@ function rspFromResponse(body: HttpContent, method: H.HttpMethod, header: H.Requ
       return {
         tag: RspType.RSPBUFFER,
         buffer: body.buffer
-      };
-
-    case ContentType.STREAM:
-      if (isHead) {
-        return { tag: RspType.RSPNOBODY };
-      }
-      return {
-        tag: RspType.RSPSTREAM,
-        body: body.stream
       };
 
     case ContentType.READABLE:
@@ -170,6 +153,24 @@ function rspFromResponse(body: HttpContent, method: H.HttpMethod, header: H.Requ
       return {
         tag: RspType.RSPREADABLE,
         readable: body.readable
+      };
+
+    case ContentType.FILE:
+      return {
+        isHead,
+        header,
+        tag: RspType.RSPFILE,
+        path: body.path,
+        part: body.part
+      } as Rsp;
+
+    case ContentType.STREAM:
+      if (isHead) {
+        return { tag: RspType.RSPNOBODY };
+      }
+      return {
+        tag: RspType.RSPSTREAM,
+        body: body.stream
       };
 
     default:
