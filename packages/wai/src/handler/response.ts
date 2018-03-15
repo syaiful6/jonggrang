@@ -1,3 +1,4 @@
+import { Readable } from 'stream';
 import * as P from '@jonggrang/prelude';
 import * as H from '@jonggrang/http-types';
 import * as T from '@jonggrang/task';
@@ -23,21 +24,23 @@ export function sendResponse(
     );
   }
   return sendRsp(conn, ii, resp.status, resp.headers, { tag: RspType.RSPNOBODY })
-    .chain(() => settings.logger(req, resp.status, P.nothing))
+    .chain(() => settings.logger(req, resp.status, P.nothing));
 }
 
 const enum RspType {
   RSPNOBODY,
   RSPFILE,
   RSPBUFFER,
-  RSPSTREAM
+  RSPSTREAM,
+  RSPREADABLE
 }
 
 type Rsp
   = { tag: RspType.RSPNOBODY }
   | { tag: RspType.RSPFILE; path: string; part?: FilePart; header: H.RequestHeaders; isHead: boolean; }
   | { tag: RspType.RSPBUFFER; buffer: Buffer; }
-  | { tag: RspType.RSPSTREAM; body: StreamingBody };
+  | { tag: RspType.RSPSTREAM; body: StreamingBody }
+  | { tag: RspType.RSPREADABLE; readable: Readable };
 
 function sendRsp(
   conn: Z.Connection,
@@ -54,11 +57,16 @@ function sendRsp(
     case RspType.RSPBUFFER:
       return conn.writeHead(status, headers)
         .chain(() => conn.sendAll(rsp.buffer))
-        .then(T.pure([P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]));
+        .then(T.pure([P.just(status), P.just(rsp.buffer.length)] as [P.Maybe<H.Status>, P.Maybe<number>]));
 
     case RspType.RSPSTREAM:
       return conn.writeHead(status, headers)
         .chain(_ => rsp.body(buff => conn.sendAll(buff), conn.sendAll(Buffer.from([]))))
+        .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
+
+    case RspType.RSPREADABLE:
+      return conn.writeHead(status, headers)
+        .chain(_ => conn.sendStream(rsp.readable))
         .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
 
     case RspType.RSPFILE:
@@ -70,7 +78,7 @@ function sendRsp(
       return T.attempt(ii.getFinfo(rsp.path))
         .chain(efinfo => {
           if (P.isLeft(efinfo)) {
-            return sendRspFile404(conn, ii, headers)
+            return sendRspFile404(conn, ii, headers);
           }
           const rspFile = conditionalRequest(efinfo.value, headers, rsp.header);
           switch (rspFile.tag) {
@@ -106,7 +114,7 @@ function sendRspFile2XX(
       const fid = Z.fileId(path, mfd);
       return conn.writeHead(status, headers)
         .chain(() => conn.sendFile(fid, beg, len, fresher))
-        .chain(() => T.pure([P.just(status), P.just(len)] as [P.Maybe<H.Status>, P.Maybe<number>]))
+        .chain(() => T.pure([P.just(status), P.just(len)] as [P.Maybe<H.Status>, P.Maybe<number>]));
     });
 }
 
@@ -117,7 +125,7 @@ function sendRspFile404(
 ): T.Task<[P.Maybe<H.Status>, P.Maybe<number>]> {
   const buffer = Buffer.from('File not found', 'ascii');
   const headers = SM.set('Content-Type', 'text/plain; charset=utf-8', h as any);
-  return sendRsp(conn, ii, 404, headers, { buffer, tag: RspType.RSPBUFFER })
+  return sendRsp(conn, ii, 404, headers, { buffer, tag: RspType.RSPBUFFER });
 }
 
 function hasBody(code: H.Status): boolean {
@@ -152,7 +160,17 @@ function rspFromResponse(body: HttpContent, method: H.HttpMethod, header: H.Requ
       return {
         tag: RspType.RSPSTREAM,
         body: body.stream
+      };
+
+    case ContentType.READABLE:
+      if (isHead) {
+        return { tag: RspType.RSPNOBODY };
       }
+
+      return {
+        tag: RspType.RSPREADABLE,
+        readable: body.readable
+      };
 
     default:
       throw new TypeError('argument 1 to rspFromResponse must be a Response');

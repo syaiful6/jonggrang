@@ -54,7 +54,7 @@ export function addContentHeadersForFilePart(hs: H.ResponseHeaders, fp: FilePart
 function ifModified(h: H.RequestHeaders, size: number, d: H.HttpDate): P.Maybe<RspFileInfo> {
   return P.mapMaybe(ifMofiedSince_(h), date =>
     date.equals(d) ? rspFileInfo(RspFileInfoType.WITHOUTBODY, 304) : unConditional(h, size)
-  )
+  );
 }
 
 function ifUnmodifiedSince(h: H.RequestHeaders, size: number, date1: H.HttpDate): P.Maybe<RspFileInfo> {
@@ -81,11 +81,11 @@ function unConditional(h: H.RequestHeaders, size: number): RspFileInfo {
 function parseRange(rng: string, size: number): RspFileInfo {
   const parsed = H.parseByteRanges(rng);
   if (parsed.tag === P.MaybeType.NOTHING) {
-    return rspFileInfo(RspFileInfoType.WITHOUTBODY, 416)
+    return rspFileInfo(RspFileInfoType.WITHOUTBODY, 416);
   }
   const rngs = parsed.value;
   if (rngs.length === 0) {
-    return rspFileInfo(RspFileInfoType.WITHOUTBODY, 416)
+    return rspFileInfo(RspFileInfoType.WITHOUTBODY, 416);
   }
   const [beg, end] = checkRange(rngs[0], size);
   const len = end - beg + 1;

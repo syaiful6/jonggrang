@@ -1,6 +1,7 @@
 import * as FS from 'fs';
 import { IncomingMessage, ServerResponse, Server } from 'http';
 import { Server as HServer } from 'https';
+import { Readable } from 'stream';
 import { Socket } from 'net';
 
 import * as T from '@jonggrang/task';
@@ -9,8 +10,8 @@ import * as P from '@jonggrang/prelude';
 
 import { withFileInfoCache, getFileInfo } from './file-info';
 import { withFdCache } from './fd-cache';
-import { sendResponse } from './response'
-import * as SF from './send-file';
+import { sendResponse } from './response';
+import * as SF from './send-stream';
 import * as Z from './types';
 import { writeSock, endSock, identity } from './utils';
 import * as W from '../index';
@@ -117,7 +118,7 @@ export function runServer(
     T.pure(createServerState(settings, app, ii, server)),
     shutdownServer,
     state => connectAndTrapSignal(state, settings)
-  )
+  );
 }
 
 function shutdownServer(
@@ -130,9 +131,9 @@ function shutdownServer(
 }
 
 function registerRequestHandler(state: ServerState): void {
-  const server = state.server as Server | HServer;;
+  const server = state.server as Server | HServer;
   server.on('request', state.listener);
-  server.on('connection', listenConnectionSocket(state))
+  server.on('connection', listenConnectionSocket(state));
 }
 
 function listenConnection(
@@ -181,7 +182,7 @@ function connectAndTrapSignal(
     listenConnection(state, settings),
     T.node(null, state, waitListening)
   ]).chain(() => {
-    return T.race([waitSigInt(), waitSigTerm()])
+    return T.race([waitSigInt(), waitSigTerm()]);
   });
 }
 
@@ -206,14 +207,14 @@ function createRequestHandler(
         err =>
           settings.onException(P.nothing, err)
       )
-    )
-  }
+    );
+  };
 }
 
 function waitSigInt(): T.Task<void> {
   return T.makeTask(cb => {
     function handler() {
-      cb(null, void 0)
+      cb(null, void 0);
     }
     process.removeAllListeners('SIGINT').on('SIGINT', handler);
     return T.thunkCanceller(() => {
@@ -225,13 +226,13 @@ function waitSigInt(): T.Task<void> {
 function waitSigTerm(): T.Task<void> {
   return T.makeTask(cb => {
     function handler() {
-      cb(null, void 0)
+      cb(null, void 0);
     }
     process.removeAllListeners('SIGTERM').on('SIGTERM', handler);
     return T.thunkCanceller(() => {
       process.removeListener('SIGTERM', handler);
-    })
-  })
+    });
+  });
 }
 
 function handleRequest(
@@ -270,7 +271,7 @@ function destroAllConnections(sockets: Record<string, Socket>): void {
     if (sock) {
       sock.destroy();
     }
-  })
+  });
 }
 
 function closeServer(server: Server | HServer | null): T.Task<void> {
@@ -283,7 +284,7 @@ function closeServer(server: Server | HServer | null): T.Task<void> {
       cb(null, void 0);
     });
     return T.nonCanceler;
-  })
+  });
 }
 
 function listenConnectionSocket(state: ServerState) {
@@ -294,7 +295,7 @@ function listenConnectionSocket(state: ServerState) {
       delete state.connections[(socket as any).__waiConId__];
     });
     state.connections[(socket as any).__waiConId__] = socket;
-  }
+  };
 }
 
 class Conn {
@@ -306,7 +307,11 @@ class Conn {
   }
 
   sendMany(bs: Buffer[]) {
-    return T.forIn(bs, buf => writeSock(this.response, buf)).map(() => {})
+    return T.forIn(bs, buf => writeSock(this.response, buf)).map(() => {});
+  }
+
+  sendStream(stream: Readable) {
+    return SF.sendStream(this.response, stream);
   }
 
   writeHead(st: H.Status, headers: H.ResponseHeaders) {

@@ -1,3 +1,5 @@
+import { Readable } from 'stream';
+
 import * as P from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
 import * as H from '@jonggrang/http-types';
@@ -10,7 +12,7 @@ import { ListenOptions } from 'net';
 
 export interface FileId {
   path: string;
-  fd: P.Maybe<number>
+  fd: P.Maybe<number>;
 }
 
 export function fileId(path: string, fd: P.Maybe<number>): FileId {
@@ -18,7 +20,7 @@ export function fileId(path: string, fd: P.Maybe<number>): FileId {
 }
 
 export interface SendFile {
-  (fid: FileId, start: number, end: number, hook: T.Task<void>): T.Task<void>
+  (fid: FileId, start: number, end: number, hook: T.Task<void>): T.Task<void>;
 }
 
 export interface WriteHead {
@@ -26,11 +28,12 @@ export interface WriteHead {
 }
 
 export interface Connection {
-  readonly sendMany: (bs: Buffer[]) => T.Task<void>;
-  readonly sendAll: (buf: Buffer) => T.Task<void>;
+  sendMany(bs: Buffer[]): T.Task<void>;
+  sendAll(buf: Buffer): T.Task<void>;
   readonly close: T.Task<void>;
   readonly writeHead: WriteHead;
   readonly sendFile: SendFile;
+  sendStream<T extends Readable>(readable: T): T.Task<void>;
 }
 
 export interface InternalInfo {

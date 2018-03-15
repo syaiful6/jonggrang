@@ -1,4 +1,5 @@
 import { IncomingMessage } from 'http';
+import { Readable } from 'stream';
 
 import * as H from '@jonggrang/http-types';
 import { Task } from '@jonggrang/task';
@@ -20,7 +21,8 @@ export interface FilePart {
 export const enum ContentType {
   FILE,
   BUFFER,
-  STREAM
+  STREAM,
+  READABLE
 }
 
 export interface ContentFile {
@@ -39,10 +41,16 @@ export interface ContentStream {
   stream: StreamingBody;
 }
 
+export interface ContentReadable {
+  tag: ContentType.READABLE;
+  readable: Readable;
+}
+
 export type HttpContent
   = ContentFile
   | ContentBuffer
-  | ContentStream;
+  | ContentStream
+  | ContentReadable;
 
 export type FilePath = string;
 

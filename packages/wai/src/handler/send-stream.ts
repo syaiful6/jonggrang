@@ -1,10 +1,12 @@
 import * as FS from 'fs';
+import { ServerResponse } from 'http';
+import { Writable, Readable, Stream } from 'stream';
+import * as onFinished from 'on-finished';
 
 import * as T from '@jonggrang/task';
 import * as P from '@jonggrang/prelude';
 
 import { FileId } from './types';
-import { Writable, Readable, Stream } from 'stream';
 
 
 export const enum FileRangeType {
@@ -17,8 +19,8 @@ export type FileRange
   | { tag: FileRangeType.PARTOFFILE; start: number; end: number };
 
 
-export function sendFile<W extends Writable>(
-  ws: W,
+export function sendFile(
+  ws: ServerResponse,
   fid: FileId,
   start: number,
   end: number,
@@ -30,14 +32,43 @@ export function sendFile<W extends Writable>(
   return sendFileFd(ws, fid.fd.value, fileRange(FileRangeType.PARTOFFILE, start, end), hook);
 }
 
-export function sendFileFd<W extends Writable>(ws: W, fd: number, range: FileRange, hook: T.Task<void>): T.Task<void> {
+export function sendFileFd(ws: ServerResponse, fd: number, range: FileRange, hook: T.Task<void>): T.Task<void> {
   const stream = fdcreateReadStream(fd, range);
   return pipeStream(ws, stream).then(hook);
 }
 
-export function sendFilePath<W extends Writable>(ws: W, path: string, range: FileRange, hook: T.Task<void>): T.Task<void> {
+export function sendFilePath(ws: ServerResponse, path: string, range: FileRange, hook: T.Task<void>): T.Task<void> {
   const stream = pathCreateReadStream(path, range);
+  onFinished(ws, destroyStream.bind(null, stream));
   return pipeStream(ws, stream).then(hook);
+}
+
+export function sendStream(ws: ServerResponse, read: Readable): T.Task<void> {
+  onFinished(ws, destroyStream.bind(null, read));
+  return pipeStream(ws, read);
+}
+
+export function destroyStream<T extends Readable>(stream: T) {
+  if (stream instanceof FS.ReadStream) {
+    return destroyReadStream(stream);
+  }
+  if (typeof stream.destroy === 'function') {
+    stream.destroy();
+  }
+}
+
+function destroyReadStream(stream: FS.ReadStream) {
+  stream.destroy();
+  if (typeof stream.close === 'function') {
+    stream.on('open', onOpenClose);
+  }
+}
+
+function onOpenClose(this: any) {
+  if (typeof this.fd === 'number') {
+    // actually close down the fd
+    this.close();
+  }
 }
 
 function pathCreateReadStream(path: string, range: FileRange) {
@@ -52,7 +83,7 @@ function pathCreateReadStream(path: string, range: FileRange) {
   return FS.createReadStream(path, {
     flags: 'r',
     autoClose: true
-  })
+  });
 }
 
 function fdcreateReadStream(fd: number, range: FileRange) {
@@ -76,9 +107,9 @@ type PipeState = {
   onError: ((e: Error) => void) | null;
   onSucces: (() => void) | null;
   resolved: boolean;
-}
+};
 
-function pipeStream<W extends Writable, T extends Readable>(ws: W, rs: T): T.Task<void> {
+export function pipeStream<W extends Writable, T extends Readable>(ws: W, rs: T): T.Task<void> {
   return T.makeTask(cb => {
     rs.pipe(ws, { end: false });
     const state: PipeState = {
@@ -97,7 +128,7 @@ function pipeStream<W extends Writable, T extends Readable>(ws: W, rs: T): T.Tas
 function onError<T extends Stream>(s: PipeState, st: T, cb: T.NodeCallback<void, void>, e: Error) {
   cb(e);
   if (!s.resolved) {
-    cleanUpListener(s, st)
+    cleanUpListener(s, st);
   }
 }
 

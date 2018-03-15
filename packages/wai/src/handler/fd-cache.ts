@@ -90,7 +90,7 @@ function fdCache(reaper: MutableFdCache): T.Task<FdCache> {
 function look(mfc: MutableFdCache, path: string): T.Task<P.Maybe<FdEntry>> {
   return fdCache(mfc)
     .map(fc =>
-      P.chainMaybe(SM.lookup(path, fc), fd => validateEntry(fd, path)))
+      P.chainMaybe(SM.lookup(path, fc), fd => validateEntry(fd, path)));
 }
 
 function validateEntry(fd: FdEntry, path: string): P.Maybe<FdEntry> {
@@ -104,17 +104,17 @@ function initialize(delay: number): T.Task<MutableFdCache> {
     empty: {},
     action: clean,
     cons: smInsertTuple
-  })
+  });
 }
 
 function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
   return traverseStrMap(old, prune).map(x => filterMap(x, identity))
-    .chain(newMap => T.pure((xs: FdCache) => SM.union(xs, newMap)))
+    .chain(newMap => T.pure((xs: FdCache) => SM.union(xs, newMap)));
 }
 
 function terminate(md: MutableFdCache): T.Task<void> {
   return md.stop.chain(t => {
-    return T.forInPar(SM.toPairs(t), ps => closeFile(ps[1].fd))
+    return T.forInPar(SM.toPairs(t), ps => closeFile(ps[1].fd));
   }).map(() => {});
 }
 
@@ -124,7 +124,7 @@ function prune(fd: FdEntry): T.Task<P.Maybe<FdEntry>> {
       st === Status.ACTIVE
         ? inactive(fd.status).then(T.pure(P.just(fd)))
         : closeFile(fd.fd).then(T.pure(P.nothing))
-    )
+    );
 }
 
 function filterMap<K extends string, V, W>(
@@ -144,11 +144,11 @@ function traverseStrMap<K extends string, A, B>(
     function set(o: SM.StrMap<K, B>) {
       return (v: B) => {
         let o2 = SM.singleton(k, v);
-        return SM.union(o2, o)
-      }
+        return SM.union(o2, o);
+      };
     }
     return ta.map(set).apply(f(ms[k]));
-  }, T.pure({} as SM.StrMap<K, B>))
+  }, T.pure({} as SM.StrMap<K, B>));
 }
 
 function getFd(mfc: MutableFdCache): (path: string) => T.Task<[P.Maybe<number>, Refresh]> {
@@ -163,7 +163,7 @@ function maybeGetFd(mfd: MutableFdCache, path: string, mentry: P.Maybe<FdEntry>)
   if (P.isNothing(mentry)) {
     return newFdEntry(path)
       .chain(entry => mfd.add([path, entry])
-        .then(T.pure([P.just(entry.fd), refresh(entry.status)] as [P.Maybe<number>, Refresh])))
+        .then(T.pure([P.just(entry.fd), refresh(entry.status)] as [P.Maybe<number>, Refresh])));
   }
   let fdEntry = mentry.value;
   return refresh(fdEntry.status).then(T.pure([P.just(fdEntry.fd), refresh(fdEntry.status)] as [P.Maybe<number>, Refresh]));

@@ -44,7 +44,7 @@ export function withFileInfoCache<A>(
 ): T.Task<A> {
   return delay === 0
     ? action(getFileInfo)
-    : T.bracket(initialize(delay), terminate, s => action(getAndRegisterInfo(s)))
+    : T.bracket(initialize(delay), terminate, s => action(getAndRegisterInfo(s)));
 }
 
 export function getFileInfo(path: string): T.Task<FileInfo> {
@@ -53,7 +53,7 @@ export function getFileInfo(path: string): T.Task<FileInfo> {
       if (stat.isFile()) {
         let time = H.fromDate(stat.mtime);
         let date = H.formatHttpDate(time);
-        return T.pure(new FileInfo(path, stat.size, time, date))
+        return T.pure(new FileInfo(path, stat.size, time, date));
       }
       return T.raise(new Error(`getInfo: ${path}  isn't a file`));
     });
@@ -70,20 +70,20 @@ function getAndRegisterInfo(fcache: FileInfoCache): (path: string) => T.Task<Fil
       if (there && item.tag === EntryType.POSITIVE) {
         return T.pure(item.finfo);
       }
-      return T.rescue(positive(fcache, path), () => negative(fcache, path))
+      return T.rescue(positive(fcache, path), () => negative(fcache, path));
     });
-  }
+  };
 }
 
 function positive(fic: FileInfoCache, path: string): T.Task<FileInfo> {
   return getFileInfo(path)
     .chain(finfo =>
-      fic.add([path, createEntry(EntryType.POSITIVE, finfo)]).then(T.pure(finfo)))
+      fic.add([path, createEntry(EntryType.POSITIVE, finfo)]).then(T.pure(finfo)));
 }
 
 function negative(fic: FileInfoCache, path: string): T.Task<FileInfo> {
   return fic.add([path, createEntry(EntryType.NEGATIVE)])
-    .then(T.raise(new Error('FileInfoCache:negative')))
+    .then(T.raise(new Error('FileInfoCache:negative')));
 }
 
 function initialize(delay: number): T.Task<FileInfoCache> {
@@ -93,7 +93,7 @@ function initialize(delay: number): T.Task<FileInfoCache> {
     empty: {},
     action: override,
     cons: smInsertTuple,
-  })
+  });
 }
 
 function createEntry(tag: EntryType.NEGATIVE): Entry;
@@ -103,7 +103,7 @@ function createEntry(tag: EntryType, finfo?: FileInfo): Entry {
 }
 
 function override(): T.Task<(c: Cache) => Cache> {
-  return T.pure(() => ({}))
+  return T.pure(() => ({}));
 }
 
 function terminate(fcache: FileInfoCache): T.Task<void> {

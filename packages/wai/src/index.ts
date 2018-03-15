@@ -1,9 +1,11 @@
+import { Readable } from 'stream';
+
 import * as H from '@jonggrang/http-types';
 import { Task } from '@jonggrang/task';
 
 import {
   Request, ContentType, HttpContent, ContentFile, ContentBuffer, ContentStream,
-  FilePath, FilePart, Response, StreamingBody, Middleware
+  FilePath, FilePart, Response, StreamingBody, Middleware, ContentReadable
 } from './type';
 export * from './type';
 export * from './handler/types';
@@ -18,7 +20,7 @@ export function responseFile(
   path: FilePath,
   part?: FilePart
 ): Response {
-  return createResponse(status, headers, createHttpContent(ContentType.FILE, path, part))
+  return createResponse(status, headers, createHttpContent(ContentType.FILE, path, part));
 }
 
 /**
@@ -37,10 +39,18 @@ export function responseBuffer(
 
 export function responseStream(
   status: H.Status,
-  headers: H.RequestHeaders,
+  headers: H.ResponseHeaders,
   body: StreamingBody
 ): Response {
   return createResponse(status, headers, createHttpContent(ContentType.STREAM, body));
+}
+
+export function responseReadable(
+  status: H.Status,
+  headers: H.ResponseHeaders,
+  body: Readable
+): Response {
+  return createResponse(status, headers, createHttpContent(ContentType.READABLE, body));
 }
 
 /**
@@ -88,14 +98,15 @@ export function createResponse(
   headers: H.ResponseHeaders,
   content: HttpContent
 ): Response {
-  return { status, headers, content }
+  return { status, headers, content };
 }
 
 export function createHttpContent(tag: ContentType.BUFFER, a: Buffer): ContentBuffer;
 export function createHttpContent(tag: ContentType.STREAM, a: StreamingBody): ContentStream;
+export function createHttpContent(tag: ContentType.READABLE, a: Readable): ContentReadable;
 export function createHttpContent(tag: ContentType.FILE, a: string, b?: FilePart): ContentFile;
 export function createHttpContent(tag: any, a: any, b?: any): any {
-  let buffer: any, stream: any, path: any, part: any;
+  let buffer: any, stream: any, path: any, part: any, readable: any;
   if (tag === ContentType.BUFFER) {
     buffer = a;
   } else if (tag === ContentType.FILE) {
@@ -103,6 +114,8 @@ export function createHttpContent(tag: any, a: any, b?: any): any {
     part = b;
   } else if (tag === ContentType.STREAM) {
     stream = a;
+  } else if (tag === ContentType.READABLE) {
+    readable = a;
   }
-  return { tag, buffer, stream, path, part } as HttpContent;
+  return { tag, buffer, stream, path, part, readable } as HttpContent;
 }

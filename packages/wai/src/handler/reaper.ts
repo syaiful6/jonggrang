@@ -43,7 +43,7 @@ export function mkReaper<W, I>(
             })
           )
       )
-    )
+    );
 }
 
 function addItem<W, I>(
@@ -57,14 +57,14 @@ function addItem<W, I>(
       let wl: W;
       if (s.tag === StateType.NOREAPER) {
         wl = settings.cons(item, settings.empty);
-        return [{ tag: StateType.WORKLOAD, workload: wl }, spawn(lock, settings, stateRef, tidRef)]
+        return [{ tag: StateType.WORKLOAD, workload: wl }, spawn(lock, settings, stateRef, tidRef)];
       }
       wl = settings.cons(item, s.workload);
       return [{ tag: StateType.WORKLOAD, workload: wl }, T.pure(void 0)];
     }
     return AV.withAVar(lock, () => R.modifyRef_(stateRef, cons))
       .chain(identity);
-  }
+  };
 }
 
 function spawn<W, I>(
@@ -74,7 +74,7 @@ function spawn<W, I>(
   tidRef: R.Ref<T.Fiber<void> | undefined>
 ): T.Task<void> {
   return T.forkTask(reaper(lock, settings, stateRef, tidRef))
-    .chain(fib => R.writeRef(tidRef, fib))
+    .chain(fib => R.writeRef(tidRef, fib));
 }
 
 function reaper<W, I>(
@@ -96,7 +96,7 @@ function reaper<W, I>(
     let wl = merge(s.workload);
     return settings.isNull(wl)
       ? [{ tag: StateType.NOREAPER }, R.writeRef(tidRef, void 0)]
-      : [{ tag: StateType.WORKLOAD, workload: wl }, reaper(lock, settings, stateRef, tidRef) ]
+      : [{ tag: StateType.WORKLOAD, workload: wl }, reaper(lock, settings, stateRef, tidRef) ];
   }
   return T.delay(settings.delay).then(
       AV.withAVar(lock, () => R.modifyRef_(stateRef, swapWithEmpty)))

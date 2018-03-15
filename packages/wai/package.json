@@ -23,12 +23,14 @@
     "@jonggrang/object": "0.1.3",
     "@jonggrang/prelude": "0.1.3",
     "@jonggrang/ref": "0.1.3",
-    "@jonggrang/task": "0.2.1"
+    "@jonggrang/task": "0.2.1",
+    "on-finished": "^2.3.0"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
     "@types/mocha": "^2.2.33",
     "@types/node": "^7.0.4",
+    "@types/on-finished": "2.3.1",
     "chai": "^4.1.2"
   },
   "publishConfig": {
