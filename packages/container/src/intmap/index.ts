@@ -58,7 +58,7 @@ export function fromAssocArray<A>(xs: Array<[number, A]>): IntMap<A> {
  *
  */
 export function fromAssocArrayWith<A>(xs: Array<[number, A]>, f: (v1: A, v2: A) => A): IntMap<A> {
-  return xs.reduce((m, [k, v]) => insertWith(f, k, v, m), empty as IntMap<A>)
+  return xs.reduce((m, [k, v]) => insertWith(f, k, v, m), empty as IntMap<A>);
 }
 
 /**
@@ -253,6 +253,21 @@ export function mergeWithKey_<A, B, C>(
   return op.run(t1, t2);
 }
 
+/**
+ * Transform all of the values in the map, the transformation function get
+ * access both key and value.
+ */
+export function mapWithKey<A, B>(fn: (i: number, v: A) => B, im: IntMap<A>): IntMap<B> {
+  function go(t: IntMap<A>): IntMap<B> {
+    switch (t.tag) {
+      case IntMapType.NIL: return empty;
+      case IntMapType.TIP: return TipIM(t.key, fn(t.key, t.value));
+      case IntMapType.BIN: return BinIM(t.prefix, t.mask, go(t.left), go(t.right));
+    }
+  }
+  return go(im);
+}
+
 export function link<A>(k1: number, t1: IntMap<A>, k2: number, t2: IntMap<A>): IntMap<A> {
   const m = I.branchMask(k1, k2);
   const p = I.mask(m, k1);
@@ -267,7 +282,7 @@ export function join<A>(
 ): IntMap<A> {
   const m = I.branchingBit_(k1, m1, k2, m2);
   if (I.branchLeft(m, k1)) {
-    return BinIM(I.mask(m, k1), m, t1, t2)
+    return BinIM(I.mask(m, k1), m, t1, t2);
   }
   return BinIM(I.mask(m, k1), m, t2, t1);
 }
@@ -277,7 +292,7 @@ function BinIM<A>(prefix: I.Prefix, mask: I.Mask, left: IntMap<A>, right: IntMap
 }
 
 function TipIM<A>(key: number, value: A): IntMap<A> {
-  return { value, key: key | 0, tag: IntMapType.TIP }
+  return { value, key: key | 0, tag: IntMapType.TIP };
 }
 
 function BinNE<A>(p: I.Prefix, m: I.Mask, t1: IntMap<A>, t2: IntMap<A>): IntMap<A> {
@@ -325,7 +340,7 @@ class InsertWithKey<A> {
 
       case IntMapType.TIP:
         if (k === t1.key) {
-          return TipIM(t1.key, splat(k, t1.value, a))
+          return TipIM(t1.key, splat(k, t1.value, a));
         }
         return join(k, 0, TipIM(k, a), t1.key, 0, t1);
 
@@ -471,7 +486,7 @@ class UnionWithKeyOp<A> {
     }
     if (left.mask === right.mask && left.prefix === right.prefix) {
       // the prefixes are identical, we'll union symmetrically
-      return BinIM(left.prefix, left.mask, this.run(left.left, right.left), this.run(left.right, right.right))
+      return BinIM(left.prefix, left.mask, this.run(left.left, right.left), this.run(left.right, right.right));
     }
     if (I.maskLonger(left.mask, right.mask) && I.matchPrefix(left.prefix, left.mask, right.prefix)) {
       // the left mask is longer and the right prefix is a subsequence of the left
@@ -487,7 +502,7 @@ class UnionWithKeyOp<A> {
       if (I.branchLeft(right.mask, left.prefix)) {
         return BinIM(right.prefix, right.mask, this.run(left, right.left), right.right);
       }
-      return BinIM(right.prefix, right.mask, right.left, this.run(left, right.left))
+      return BinIM(right.prefix, right.mask, right.left, this.run(left, right.left));
     }
     // the prefixes disagree entirely, we'll make a new branch point
     return join(left.prefix, left.mask, left, right.prefix, right.mask, right);
@@ -508,7 +523,7 @@ class MergeWithKeyOp<A, B, C> {
     if (t1.tag === IntMapType.BIN && t2.tag === IntMapType.BIN) {
       if (I.maskLonger(t1.mask, t2.mask)) {
         if (!I.matchPrefix(t1.prefix, t2.prefix, t2.mask)) {
-          return this.maybeLink(t1.prefix, g1(t1), t2.prefix, g2(t2))
+          return this.maybeLink(t1.prefix, g1(t1), t2.prefix, g2(t2));
         }
         if (I.branchLeft(t2.mask, t1.prefix)) {
           return br(t2.prefix, t2.mask, this.run(t1, t2.left), g2(t2.right));
@@ -536,7 +551,7 @@ class MergeWithKeyOp<A, B, C> {
       return g1(t1);
     }
     if (t1.tag === IntMapType.TIP) {
-      return this.mergeLf(t1, t1.key, t2)
+      return this.mergeLf(t1, t1.key, t2);
     }
     if (t1.tag === IntMapType.NIL) {
       return g2(t2);
@@ -549,10 +564,10 @@ class MergeWithKeyOp<A, B, C> {
     switch (t2.tag) {
       case IntMapType.BIN:
         if (!I.matchPrefix(t2.prefix, t2.mask, k1)) {
-          return this.maybeLink(k1, g1(t1), t2.prefix, g2(t2))
+          return this.maybeLink(k1, g1(t1), t2.prefix, g2(t2));
         }
         if (I.branchLeft(t2.mask, k1)) {
-          return br(t2.prefix, t2.mask, this.mergeLf(t1, k1, t2.left), g2(t2.right))
+          return br(t2.prefix, t2.mask, this.mergeLf(t1, k1, t2.left), g2(t2.right));
         }
         return br(t2.prefix, t2.mask, g2(t2.left), this.mergeLf(t1, k1, t2.right));
 
@@ -579,7 +594,7 @@ class MergeWithKeyOp<A, B, C> {
       if (I.branchLeft(t1.mask, k2)) {
         return br(t1.prefix, t1.mask, this.mergeBrLf(t2, k2, t1.left), g1(t1.right));
       }
-      return br(t1.prefix, t1.mask, g1(t1.left), this.mergeBrLf(t2, k2, t1.right))
+      return br(t1.prefix, t1.mask, g1(t1.left), this.mergeBrLf(t2, k2, t1.right));
     }
     if (t1.tag === IntMapType.TIP) {
       if (t1.key === k2) {
@@ -590,7 +605,7 @@ class MergeWithKeyOp<A, B, C> {
     if (t1.tag === IntMapType.NIL) {
       return g2(t2);
     }
-    throw new TypeError('invalid invariant IntMap detected in mergeBrLf')
+    throw new TypeError('invalid invariant IntMap detected in mergeBrLf');
   }
 
   maybeLink<D>(p1: I.Prefix, t1: IntMap<D>, p2: I.Prefix, t2: IntMap<D>) {

@@ -18,7 +18,7 @@ function instructionShow<V>(
 ): (ins: Instruction<V>) => string {
   return ins => ins.tag === InstructionType.INSERT
     ? `Insert ${ins.key} ${show == null ? 'unknown' : show(ins.value)}`
-    : `Delete ${ins.key};`
+    : `Delete ${ins.key}`;
 }
 
 function instructionGen<V>(arb: jsv.Arbitrary<V>): (n: number) => Instruction<V> {
@@ -27,15 +27,15 @@ function instructionGen<V>(arb: jsv.Arbitrary<V>): (n: number) => Instruction<V>
     let v = arb.generator(size);
     return size % 2 === 0
       ? { tag: InstructionType.INSERT, key: k, value: v }
-      : { tag: InstructionType.DELETE, key: k }
-  }
+      : { tag: InstructionType.DELETE, key: k };
+  };
 }
 
 function instructionArb<V>(arb: jsv.Arbitrary<V>): jsv.Arbitrary<Instruction<V>> {
   return jsv.bless({
     generator: jsv.generator.bless(instructionGen(arb)),
     show: instructionShow(arb.show)
-  })
+  });
 }
 
 function intMapGen<V>(arb: jsv.Arbitrary<V>): (n: number) => IM.IntMap<V> {
@@ -43,13 +43,13 @@ function intMapGen<V>(arb: jsv.Arbitrary<V>): (n: number) => IM.IntMap<V> {
     let arbs = jsv.array(instructionArb(arb));
     let instruct = arbs.generator(n);
     return runInstruction(instruct, IM.empty);
-  }
+  };
 }
 
 function intMapArb<V>(arb: jsv.Arbitrary<V>): jsv.Arbitrary<IM.IntMap<V>> {
   return jsv.bless({
     generator: jsv.generator.bless(intMapGen(arb))
-  })
+  });
 }
 
 function runInstruction<V>(
@@ -144,4 +144,18 @@ describe('Container IntMap', () => {
       )
     )
   );
-})
+
+  it('alter can be used to updating', () =>
+    jsv.assert(
+      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, jsv.number, (im, k, v1, v2) =>
+        P.maybe(
+          false,
+          ret => ret === (v1 + v2),
+          IM.lookup(
+            k,
+            IM.alter(mv => P.just(P.maybe(v2, v3 => v3 + v2, mv)), k, IM.insert(k, v1, im)))
+        )
+      )
+    )
+  );
+});
