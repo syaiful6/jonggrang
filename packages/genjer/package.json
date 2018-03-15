@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/genjer",
   "description": "A frontend application framework",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,9 +18,9 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/prelude": "0.1.3",
-    "@jonggrang/ref": "0.1.3",
-    "@jonggrang/task": "0.2.1",
+    "@jonggrang/prelude": "0.1.4",
+    "@jonggrang/ref": "0.1.4",
+    "@jonggrang/task": "0.2.2",
     "snabbdom": "^0.7.1"
   },
   "devDependencies": {
