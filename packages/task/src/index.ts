@@ -1,4 +1,4 @@
-import { Either, left, right, isRight } from '@jonggrang/prelude';
+import { Either, left, right } from '@jonggrang/prelude';
 
 import {
   Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
@@ -123,9 +123,12 @@ export function liftEff<A, B, C, D>(ctx: any, a: A, b: B, c: C, fn: (a: A, b: B,
 export function liftEff<A, B, C, D, E>(ctx: any, a: A, b: B, c: C, d: D, fn: (a: A, b: B, c: C, d: D) => E): Task<E>;
 export function liftEff<A, B, C, D, E, F>(ctx: any, a: A, b: B, c: C, d: D, e: E, fn: (a: A, b: B, c: C, d: D, e: E) => F): Task<F>;
 export function liftEff<A, B, C, D, E, F, G>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, fn: (a: A, b: B, c: C, d: D, e: E, f: F) => G): Task<G>;
-export function liftEff<A, B, C, D, E, F, G, H>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G) => H): Task<H>;
-export function liftEff<A, B, C, D, E, F, G, H, I>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H) => I): Task<I>;
-export function liftEff<A, B, C, D, E, F, G, H, I, J>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I) => J): Task<J>;
+export function liftEff<A, B, C, D, E, F, G, H>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F,
+                                                g: G, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G) => H): Task<H>;
+export function liftEff<A, B, C, D, E, F, G, H, I>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G,
+                                                   h: H, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H) => I): Task<I>;
+export function liftEff<A, B, C, D, E, F, G, H, I, J>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G,
+                                                      h: H, i: I, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I) => J): Task<J>;
 export function liftEff<A>(ctx: any, ...args: any[]): Task<A> {
   const params = args.slice(0, -1);
   const fn = args[args.length - 1];
@@ -247,11 +250,12 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
  * @param t
  */
 export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
-  return launchTask(
-    attempt(t).chain(e =>
-      liftEff(null, e, cb, runListener)
-    )
-  );
+  const fib = launchTask(t);
+  fib.onComplete({
+    rethrow: false,
+    handler: cb
+  });
+  return fib;
 }
 
 /**
@@ -367,13 +371,34 @@ export function node<A, B>(ctx: any, a: A, fn: (a: A, cb: NodeCallback<B, void>)
 export function node<A, B, C>(ctx: any, a: A, b: B, fn: (a: A, b: B, cb: NodeCallback<C, void>) => void): Task<C>;
 export function node<A, B, C, D>(ctx: any, a: A, b: B, c: C, fn: (a: A, b: B, c: C, cb: NodeCallback<D, void>) => void): Task<D>;
 export function node<A, B, C, D, E>(ctx: any, a: A, b: B, c: C, d: D, fn: (a: A, b: B, c: C, d: D, cb: NodeCallback<E, void>) => void): Task<E>;
-export function node<A, B, C, D, E, F>(ctx: any, a: A, b: B, c: C, d: D, e: E, fn: (a: A, b: B, c: C, d: D, e: E, cb: NodeCallback<F, void>) => void): Task<F>;
-export function node<A, B, C, D, E, F, G>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, fn: (a: A, b: B, c: C, d: D, e: E, f: F, cb: NodeCallback<G, void>) => void): Task<G>;
-export function node<A, B, C, D, E, F, G, H>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, cb: NodeCallback<H, void>) => void): Task<H>;
-export function node<A, B, C, D, E, F, G, H, I>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, cb: NodeCallback<I, void>) => void): Task<I>;
-export function node<A, B, C, D, E, F, G, H, I, J>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, cb: NodeCallback<J, void>) => void): Task<J>;
-export function node<A, B, C, D, E, F, G, H, I, J, K>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, cb: NodeCallback<K, void>) => void): Task<K>;
-export function node<A, B, C, D, E, F, G, H, I, J, K, L>(ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, cb: NodeCallback<L, void>) => void): Task<L>;
+export function node<A, B, C, D, E, F>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E,
+  fn: (a: A, b: B, c: C, d: D, e: E, cb: NodeCallback<F, void>) => void
+): Task<F>;
+export function node<A, B, C, D, E, F, G>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, cb: NodeCallback<G, void>) => void
+): Task<G>;
+export function node<A, B, C, D, E, F, G, H>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, cb: NodeCallback<H, void>) => void
+): Task<H>;
+export function node<A, B, C, D, E, F, G, H, I>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, cb: NodeCallback<I, void>) => void
+): Task<I>;
+export function node<A, B, C, D, E, F, G, H, I, J>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, cb: NodeCallback<J, void>) => void
+): Task<J>;
+export function node<A, B, C, D, E, F, G, H, I, J, K>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, cb: NodeCallback<K, void>) => void
+): Task<K>;
+export function node<A, B, C, D, E, F, G, H, I, J, K, L>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, cb: NodeCallback<L, void>) => void
+): Task<L>;
 export function node(ctx: any, ...args: any[]): Task<any> {
   let params = args.slice(0, -1);
   let fn = args[args.length - 1];
@@ -430,13 +455,6 @@ function pair<A>(a: A): (b: A) => A[] {
   return (b: A) => [a, b];
 }
 
-function runListener<A>(e: Either<Error, A>, cb: NodeCallback<A, void>) {
-  if (isRight(e)) {
-    return cb(null, e.value);
-  }
-  return cb(e.value);
-}
-
 class TimerComputation {
   private _timerId: NodeJS.Timer | null;
   constructor(private _delay: number) {
@@ -454,7 +472,7 @@ class TimerComputation {
   }
 
   cancel(err: Error): Task<void> {
-    return liftEff(this, this._clearTimer)
+    return liftEff(this, this._clearTimer);
   }
 }
 
