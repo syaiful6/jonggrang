@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "ES5",
+    "allowSyntheticDefaultImports": true,
     "noImplicitAny": true,
     "sourceMap": true,
     "strictNullChecks": true,

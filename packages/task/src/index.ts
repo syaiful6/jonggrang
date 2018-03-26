@@ -262,11 +262,7 @@ export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
  * `forever` runs an action indefinitely, the task not yet run
  */
 export function forever<A>(ma: Task<A>): Task<A> {
-  return co(function* () {
-    while (true) {
-      yield ma;
-    }
-  });
+  return ma.chain(() => forever(ma));
 }
 
 /**

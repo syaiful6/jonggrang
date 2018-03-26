@@ -1,7 +1,7 @@
 import * as FS from 'fs';
 import { ServerResponse } from 'http';
 import { Writable, Readable, Stream } from 'stream';
-import * as onFinished from 'on-finished';
+import onFinished from 'on-finished';
 
 import * as T from '@jonggrang/task';
 import * as P from '@jonggrang/prelude';

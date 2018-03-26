@@ -11,7 +11,7 @@
   },
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
-  "jsnext:main": "es6/index.js",
+  "module": "es6/index.js",
   "license": "MIT",
   "files": [
     "lib/",
