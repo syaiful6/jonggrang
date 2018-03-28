@@ -100,7 +100,7 @@ const noEscape = [
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0  // 112 - 127
 ];
 
-function qsEscape(str: string): string {
+export function qsEscape(str: string): string {
   let out = '';
   let lastPos = 0;
 

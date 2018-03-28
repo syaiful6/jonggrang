@@ -72,7 +72,7 @@ describe('HTTP Cookie', () => {
       expect(CO.renderCookie(CO.createCookieKV('foo\n', 'bar')).value)
         .to.be.match(/Cookie name is invalid/);
       expect(CO.renderCookie(CO.createCookieKV('foo\u280a', 'baz')).value)
-        .to.be.match(/Cookie name is invalid/)
+        .to.be.match(/Cookie name is invalid/);
     });
 
     it('can render all options', () => {
