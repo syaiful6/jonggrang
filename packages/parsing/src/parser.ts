@@ -31,6 +31,10 @@ export class ParseError extends Error {
   }
 }
 
+export function mkParseError(msg: string) {
+  return new ParseError(msg);
+}
+
 /**
  * The result of running `ParserFn`
  */
