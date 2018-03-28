@@ -13,10 +13,9 @@ export interface Cookie {
   sameSite?: SameSite;
 }
 
-export function createCookie(name: string, value: string,
-  expires: number | undefined, path: string | undefined, domain: string | undefined,
-  secure: boolean, httpOnly: boolean, sameSite: SameSite | undefined
-): Cookie {
+export function createCookie(name: string, value: string, expires: number | undefined,
+                             path: string | undefined, domain: string | undefined,
+                             secure: boolean, httpOnly: boolean, sameSite: SameSite | undefined): Cookie {
   return { name, value, expires, path, domain, secure, httpOnly, sameSite };
 }
 
