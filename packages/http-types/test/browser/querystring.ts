@@ -1,7 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
 
-import { parseQuery, renderQuery } from '../../src/uri';
+import { parseQuery, renderQuery } from '../../src/querystring';
 
 describe('HTTP URI', () => {
   describe('parseQuery', () => {
