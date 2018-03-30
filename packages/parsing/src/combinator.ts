@@ -15,7 +15,7 @@ export function lookAhead<A>(p: Parser<A>) {
 export function many<A>(p: Parser<A>): Parser<A[]> {
   function go(i: A[]): Parser<P.Either<A[], A[]>> {
     return (p.map(P.left) as Parser<P.Either<A, null>>).alt(Parser.of(P.right(null)))
-      .map(aa => P.bimapEither(aa, x => consArr(x, i), () => reverseArr(i)));
+      .map(aa => P.bimapEither(aa, x => withAppend(i, x), () => i));
   }
   return tailRecParser([] as A[], go);
 }
@@ -86,14 +86,23 @@ export function useDef<A>(a: A, p: Parser<any>): Parser<A> {
   return p.map(() => a);
 }
 
-// 2 functions below mutate the array, should be used locally
-
-function consArr<A>(a: A, xs: A[]): A[] {
-  xs.unshift(a);
-  return xs;
+function withAppend<A>(xs: A[], x: A): A[] {
+  const len = xs.length;
+  const ys = new Array(len + 1);
+  let i: number;
+  for (i = 0; i < len; i++) {
+    ys[i] = xs[i];
+  }
+  ys[i] = x;
+  return ys;
 }
 
-function reverseArr<A>(xs: A[]): A[] {
-  let ys = xs.slice();
-  return ys.reverse();
+function consArr<A>(x: A, xs: A[]): A[] {
+  const len = xs.length;
+  const ys = new Array(len + 1);
+  ys[0] = x;
+  for (let i = 0; i < len; i++) {
+    ys[i + 1] = xs[i];
+  }
+  return ys;
 }

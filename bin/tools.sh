@@ -31,6 +31,10 @@ function test() {
   fi
 }
 
+function test-browser() {
+  karma start
+}
+
 function build() {
   node bin/build.js
 }

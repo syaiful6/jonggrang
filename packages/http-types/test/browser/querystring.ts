@@ -3,7 +3,7 @@ import { expect } from 'chai';
 
 import { parseQuery, renderQuery } from '../../src/querystring';
 
-describe('HTTP URI', () => {
+describe('HTTP Querystring', () => {
   describe('parseQuery', () => {
     it('parse query string', () => {
       const parsed = parseQuery('?test=ok');
