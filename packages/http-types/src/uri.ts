@@ -16,18 +16,39 @@ export interface URI {
   fragment: string; // #frag
 }
 
+// Type for authority value within a URI
 export interface URIAuth {
   userInfo: string; // anonymous@
   port: string; // :42
   regName: string; // www.haskell.org
 }
 
-export function mkURI(scheme: string, auth: P.Maybe<URIAuth>, path: string, query: string, fragment: string): URI {
-  return { scheme, auth, path, query, fragment };
+class Uri {
+  constructor(
+    readonly scheme: string,
+    readonly auth: P.Maybe<URIAuth>,
+    readonly path: string,
+    readonly query: string,
+    readonly fragment: string
+  ) {
+  }
 }
 
-export function mkURIAuth(userInfo: string, regName: string, port: string) {
-  return { userInfo, port, regName };
+class UriAuth {
+  constructor(
+    readonly userInfo: string,
+    readonly port: string,
+    readonly regName: string
+  ) {
+  }
+}
+
+export function mkURI(scheme: string, auth: P.Maybe<URIAuth>, path: string, query: string, fragment: string): URI {
+  return new Uri(scheme, auth, path, query, fragment);
+}
+
+export function mkURIAuth(userInfo: string, regName: string, port: string): URIAuth {
+  return new UriAuth(userInfo, port, regName);
 }
 
 export function uriToString(fn: (s: string) => string, uri: URI): string {
@@ -398,6 +419,7 @@ function removeDotSegments(input: string): string {
       input = input.replace(RDS3, '/');
       out.pop();
     } else if (input === '.' || input === '..') {
+
       input = '';
     } else {
       const im = input.match(RDS5);

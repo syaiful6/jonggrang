@@ -393,6 +393,77 @@ describe('HTTP URI', () => {
       testRelJoin('testRFC10', RFCBASE, '#s', 'http://a/b/c/d;p?q#s');
       testRelJoin('testRFC11', RFCBASE, 'g#s', 'http://a/b/c/g#s');
       testRelJoin('testRFC12', RFCBASE, 'g?y#s', 'http://a/b/c/g?y#s');
+
+      testRelJoin('testRFC14', RFCBASE, 'g;x', 'http://a/b/c/g;x');
+      testRelJoin('testRFC15', RFCBASE, 'g;x?y#s', 'http://a/b/c/g;x?y#s');
+      testRelJoin('testRFC16', RFCBASE, '', 'http://a/b/c/d;p?q');
+      testRelJoin('testRFC17', RFCBASE, '.', 'http://a/b/c/');
+      testRelJoin('testRFC18', RFCBASE, './', 'http://a/b/c/');
+      testRelJoin('testRFC19', RFCBASE, '..', 'http://a/b/');
+      testRelJoin('testRFC20', RFCBASE, '../', 'http://a/b/');
+      testRelJoin('testRFC21', RFCBASE, '../g', 'http://a/b/g');
+      testRelJoin('testRFC22', RFCBASE, '../..', 'http://a/');
+      testRelJoin('testRFC23', RFCBASE, '../../', 'http://a/');
+      testRelJoin('testRFC24', RFCBASE, '../../g', 'http://a/g');
+    });
+
+    it('handle abnormal cases, RFC2396bis 5.4.2', () => {
+      testRelJoin('testRFC25', RFCBASE, '?q', RFCBASE);
+      testRelJoin('testRFC26', RFCBASE, '../../../g', 'http://a/g');
+      testRelJoin('testRFC27', RFCBASE, '../../../../g', 'http://a/g');
+      testRelJoin('testRFC28', RFCBASE, '/./g', 'http://a/g');
+      testRelJoin('testRFC29', RFCBASE, '/../g', 'http://a/g');
+      testRelJoin('testRFC30', RFCBASE, 'g.', 'http://a/b/c/g.');
+      testRelJoin('testRFC31', RFCBASE, '.g', 'http://a/b/c/.g');
+      testRelJoin('testRFC32', RFCBASE, 'g..', 'http://a/b/c/g..');
+      testRelJoin('testRFC33', RFCBASE, '..g', 'http://a/b/c/..g');
+      testRelJoin('testRFC34', RFCBASE, './../g', 'http://a/b/g');
+      testRelJoin('testRFC35', RFCBASE, './g/.', 'http://a/b/c/g/');
+      testRelJoin('testRFC36', RFCBASE, 'g/./h', 'http://a/b/c/g/h');
+      testRelJoin('testRFC37', RFCBASE, 'g/../h', 'http://a/b/c/h');
+      testRelJoin('testRFC38', RFCBASE, 'g;x=1/./y', 'http://a/b/c/g;x=1/y');
+      testRelJoin('testRFC39', RFCBASE, 'g;x=1/../y', 'http://a/b/c/y');
+      testRelJoin('testRFC40', RFCBASE, 'g?y/./x', 'http://a/b/c/g?y/./x');
+      testRelJoin('testRFC41', RFCBASE, 'g?y/../x', 'http://a/b/c/g?y/../x');
+      testRelJoin('testRFC42', RFCBASE, 'g#s/./x', 'http://a/b/c/g#s/./x');
+      testRelJoin('testRFC43', RFCBASE, 'g#s/../x', 'http://a/b/c/g#s/../x');
+      testRelJoin('testRFC44', RFCBASE, 'http:x', 'http:x');
+    });
+
+    it('handle null path, RFC2396bis, section 5.2', () => {
+      testRelative('testRFC45', 'http://ex', 'http://ex/x/y?q', '/x/y?q');
+      testRelJoin('testRFC46', 'http://ex', 'x/y?q', 'http://ex/x/y?q');
+      testRelative('testRFC47', 'http://ex?p', 'http://ex/x/y?q', '/x/y?q');
+      testRelJoin('testRFC48', 'http://ex?p', 'x/y?q', 'http://ex/x/y?q');
+      testRelative('testRFC49', 'http://ex#f', 'http://ex/x/y?q', '/x/y?q');
+      testRelJoin('testRFC50', 'http://ex#f', 'x/y?q', 'http://ex/x/y?q');
+      testRelative('testRFC51', 'http://ex?p', 'http://ex/x/y#g', '/x/y#g');
+      testRelJoin('testRFC52', 'http://ex?p', 'x/y#g', 'http://ex/x/y#g');
+      testRelative('testRFC53', 'http://ex', 'http://ex/', '/');
+      testRelJoin('testRFC54', 'http://ex', './', 'http://ex/');
+      testRelative('testRFC55', 'http://ex', 'http://ex/a/b', '/a/b');
+    });
+
+    it('handle other oddballs correctly', () => {
+      const MAILBASE = 'mailto:local/option@domain.org?notaquery#frag';
+
+      testRelJoin('testMail01', MAILBASE, 'more@domain', 'mailto:local/more@domain');
+      testRelJoin('testMail02', MAILBASE, '#newfrag', 'mailto:local/option@domain.org?notaquery#newfrag');
+      testRelJoin('testMail03', MAILBASE, 'l1/q1@domain', 'mailto:local/l1/q1@domain');
+
+      testRelJoin('testMail04', 'mailto:local1@domain1?query1', 'mailto:local2@domain2',
+                  'mailto:local2@domain2');
+      testRelJoin('testMail05', 'mailto:local1@domain1', 'mailto:local2@domain2?query2',
+                  'mailto:local2@domain2?query2');
+      testRelJoin('testMail06', 'mailto:local1@domain1?query1', 'mailto:local2@domain2?query2',
+                  'mailto:local2@domain2?query2');
+      testRelJoin('testMail07', 'mailto:local@domain?query1', 'mailto:local@domain?query2',
+                  'mailto:local@domain?query2');
+      testRelJoin('testMail08', 'mailto:?query1', 'mailto:local@domain?query2', 'mailto:local@domain?query2');
+      testRelJoin('testMail09', 'mailto:local@domain?query1', '?query2', 'mailto:local@domain?query2');
+
+      testRelJoin('testInfo01', 'info:name/1234/../567', 'name/9876/../543', 'info:name/name/543');
+      testRelJoin('testInfo02', 'info:/name/1234/../567', 'name/9876/../543', 'info:/name/name/543');
     });
   });
 });
