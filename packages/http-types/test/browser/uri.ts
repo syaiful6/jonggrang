@@ -367,6 +367,32 @@ describe('HTTP URI', () => {
       testRelSplit('testRelative74', 'http://example.org/base/uri', 'http:this', 'this');
       testRelJoin('testRelative75', 'http://example.org/base/uri', 'http:this', 'http:this');
       testRelJoin('testRelative76', 'http:base', 'http:this', 'http:this');
+      testRelJoin('testRelative77', 'f:/a', './/g', 'f://g');
+      testRelJoin('testRelative78', 'f://example.org/base/a', 'b/c//d/e', 'f://example.org/base/b/c//d/e');
+      testRelJoin('testRelative79', 'mid:m@example.ord/c@example.org', 'm2@example.ord/c2@example.org',
+                  'mid:m@example.ord/m2@example.ord/c2@example.org');
+      testRelJoin('testRelative80', 'file:///C:/DEV/Haskell/lib/HXmlToolbox-3.01/examples/',
+                  'mini1.xml', 'file:///C:/DEV/Haskell/lib/HXmlToolbox-3.01/examples/mini1.xml');
+      testRelative('testRelative81', 'foo:a/y/z', 'foo:a/b/c', '../b/c');
+      testRelJoin('testRelative82', 'f:/a/', '..//g', 'f://g');
+    });
+  });
+
+  describe('RFC2396 relative-to-absolute URI', () => {
+    const RFCBASE = 'http://a/b/c/d;p?q';
+    it('handle normal cases, RFC2396bis 5.4.1', () => {
+      testRelJoin('testRFC01', RFCBASE, 'g:h', 'g:h');
+      testRelJoin('testRFC02', RFCBASE, 'g', 'http://a/b/c/g');
+      testRelJoin('testRFC03', RFCBASE, './g', 'http://a/b/c/g');
+      testRelJoin('testRFC04', RFCBASE, 'g/', 'http://a/b/c/g/');
+      testRelJoin('testRFC05', RFCBASE, '/g', 'http://a/g');
+      testRelJoin('testRFC06', RFCBASE, '//g', 'http://g');
+      testRelJoin('testRFC07', RFCBASE, '?y', 'http://a/b/c/d;p?y');
+      testRelJoin('testRFC08', RFCBASE, 'g?y', 'http://a/b/c/g?y');
+      testRelJoin('testRFC09', RFCBASE, '?q#s', 'http://a/b/c/d;p?q#s');
+      testRelJoin('testRFC10', RFCBASE, '#s', 'http://a/b/c/d;p?q#s');
+      testRelJoin('testRFC11', RFCBASE, 'g#s', 'http://a/b/c/g#s');
+      testRelJoin('testRFC12', RFCBASE, 'g?y#s', 'http://a/b/c/g?y#s');
     });
   });
 });
