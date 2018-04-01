@@ -30,6 +30,17 @@ export function mkURIAuth(userInfo: string, regName: string, port: string) {
   return { userInfo, port, regName };
 }
 
+export function uriToString(fn: (s: string) => string, uri: URI): string {
+  return uri.scheme + uriAuthToString(fn, uri.auth) + uri.path + uri.query + uri.fragment;
+}
+
+export function uriAuthToString(fn: (s: string) => string, auth: P.Maybe<URIAuth>): string {
+  if (P.isNothing(auth)) return '';
+
+  const uriAuth = auth.value;
+  return `//${uriAuth.userInfo.length === 0 ? '' : fn(uriAuth.userInfo)}${uriAuth.regName}${uriAuth.port}`;
+}
+
 export function ensurePrefix(p: string, s: string): string {
   const ix = p.length > s.length ? -1 : s.indexOf(p);
   return ix === 0 ? s : p + s;
@@ -310,6 +321,186 @@ export function isAbsoluteURI(str: string): boolean {
 
 export function isURI(str: string): boolean {
   return isValidParse(uri, str);
+}
+
+function uriAuthEquals(s: P.Maybe<URIAuth>, d: P.Maybe<URIAuth>): boolean {
+  if (P.isNothing(s) && P.isNothing(d)) return true;
+  if (P.isJust(s) && P.isJust(d)) {
+    const sa = s.value;
+    const da = d.value;
+    const uriAuth: (keyof URIAuth)[] = ['userInfo', 'port', 'regName'];
+    return uriAuth.every(x => sa[x] === da[x]);
+  }
+  return false;
+}
+
+export function relativeFrom(uabs: URI, base: URI): URI {
+  if (uabs.scheme !== base.scheme)
+    return uabs;
+
+  if (!uriAuthEquals(uabs.auth, base.auth))
+    return mkURI('', uabs.auth, uabs.path, uabs.query, uabs.fragment);
+
+  if (uabs.path !== base.path) {
+    return mkURI(
+      '',
+      P.nothing,
+      relPathFrom(removeBodyDotSegments(uabs.path), removeBodyDotSegments(base.path)),
+      uabs.query,
+      uabs.fragment
+    );
+  }
+
+  if (uabs.query !== base.query)
+    return mkURI('', P.nothing, '', uabs.query, uabs.fragment);
+
+  return mkURI('', P.nothing, '', '', uabs.fragment);
+}
+
+export function relativeTo(ref: URI, base: URI): URI {
+  if (ref.scheme !== '') {
+    return justSegments(ref);
+  }
+
+  if (P.isJust(ref.auth)) {
+    return justSegments(mkURI(base.scheme, ref.auth, ref.path, ref.query, ref.fragment));
+  }
+
+  if (ref.path !== '') {
+    if (ref.path.charAt(0) === '/') {
+      return justSegments(mkURI(base.scheme, base.auth, ref.path, ref.query, ref.fragment));
+    }
+
+    return justSegments(mkURI(base.scheme, base.auth, mergePaths(base, ref), ref.query, ref.fragment));
+  }
+
+  if (ref.query !== '') {
+    return justSegments(mkURI(base.scheme, base.auth, base.path, ref.query, ref.fragment));
+  }
+
+  return justSegments(mkURI(base.scheme, base.auth, base.path, base.query, ref.fragment));
+}
+
+const RDS1 = /^\.\.?\//;
+const RDS2 = /^\/\.(\/|$)/;
+const RDS3 = /^\/\.\.(\/|$)/;
+const RDS5 = /^\/?(?:.|\n)*?(?=\/|$)/;
+
+function removeDotSegments(input: string): string {
+  let out: string[] = [];
+
+  while (input.length) {
+    if (input.match(RDS1)) {
+      input = input.replace(RDS1, '');
+    } else if (input.match(RDS2)) {
+      input = input.replace(RDS2, '/');
+    } else if (input.match(RDS3)) {
+      input = input.replace(RDS3, '/');
+      out.pop();
+    } else if (input === '.' || input === '..') {
+      input = '';
+    } else {
+      const im = input.match(RDS5);
+      if (im) {
+        const s = im[0];
+        input = input.slice(s.length);
+        out.push(s);
+      }
+    }
+  }
+
+  return out.join('');
+}
+
+function removeBodyDotSegments(p: string): string {
+  const [p1, p2] = splitLast(p);
+  return removeDotSegments(p1) + p2;
+}
+
+function mergePaths(b: URI, r: URI): string {
+  if (P.isJust(b.auth) && b.path.length === 0) {
+    return '/' + r.path;
+  }
+  return splitLast(b.path)[0] + r.path;
+}
+
+function relPathFrom(pabs: string, base: string): string {
+  if (pabs.length === 0) return '/';
+  if (base.length === 0) return pabs;
+  const [sa1, ra1] = nextSegment(pabs);
+  const [sb1, rb1] = nextSegment(base);
+
+  if (sa1 === sb1) {
+    if (sa1 === '/') {
+      const [sa2, ra2] = nextSegment(ra1);
+      const [sb2, rb2] = nextSegment(rb1);
+      if (sa2 === sb2)
+        return relPathFrom1(ra2, rb2);
+      else
+        return pabs;
+    } else {
+      return relPathFrom1(ra1, rb1);
+    }
+  } else {
+    return pabs;
+  }
+}
+
+function relPathFrom1(pabs: string, base: string): string {
+  const [sa, na] = splitLast(pabs);
+  const [sb, nb] = splitLast(base);
+  const rp = relSegsFrom(sa, sb);
+
+  return rp.length === 0
+    ? (na === nb ? '' : (na.length === 0 || na.indexOf(':') !== -1 ? `./${na}` : na))
+    : (rp + na);
+}
+
+function relSegsFrom(sabs: string, base: string): string {
+  while (true) {
+    if (sabs.length === 0 && base.length === 0)
+      return '';
+    let [sa1, ra1] = nextSegment(sabs);
+    let [sb1, ra2] = nextSegment(base);
+    if (sa1 === sb1) {
+      sabs = ra1;
+      base = ra2;
+      continue;
+    } else {
+      return difSegsFrom(sabs, base);
+    }
+  }
+}
+
+function difSegsFrom(sabs: string, base: string): string {
+  while (true) {
+    if (base === '') return sabs;
+
+    sabs = `../${sabs}`;
+    base = nextSegment(base)[1];
+  }
+}
+
+function justSegments(b: URI): URI {
+  return mkURI(b.scheme, b.auth, removeDotSegments(b.path), b.query, b.fragment);
+}
+
+function nextSegment(s: string): [string, string] {
+  let ix = s.indexOf('/');
+  let first = s.slice(0, ix);
+  let second = s.slice(ix, s.length);
+
+  if (second.charAt(0) === '/') {
+    return [first + '/', second.slice(1)];
+  }
+  return [first, second];
+}
+
+function splitLast(p: string): [string, string] {
+  let ix = p.lastIndexOf('/');
+  let first = p.slice(0, ix + 1);
+  let last = p.slice(ix + 1, p.length);
+  return [first, last];
 }
 
 function parseEof<A>(p: PS.Parser<A>): PS.Parser<A> {

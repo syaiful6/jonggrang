@@ -4,6 +4,7 @@ import * as P from '@jonggrang/prelude';
 
 import * as uri from '../../src/uri';
 
+
 const enum URIType {
   AbsId,
   AbsRf,
@@ -14,10 +15,6 @@ const enum URIType {
 function isValidT(t: URIType) {
   return t === URIType.InvRf ? false : true;
 }
-
-// function isAbsRfT(t: URIType) {
-//   return t === URIType.AbsId || t === URIType.AbsRf;
-// }
 
 function isRelRfT(t: URIType) {
   return t === URIType.RelRf;
@@ -39,6 +36,42 @@ function testURIRef(t: URIType, u: string) {
 
 function testURIRefComponents(msg: string, uv: P.Maybe<uri.URI>, str: string) {
   testEq('testURIRefComponents: ' + str, uv, uri.parseURIReference(str));
+}
+
+function testRelSplit(label: string, base: string, uabs: string, urel: string) {
+  function mkRel(s: P.Maybe<uri.URI>, b: P.Maybe<uri.URI>) {
+    if (P.isJust(s) && P.isJust(b)) {
+      return uri.uriToString(iden, uri.relativeFrom(s.value, b.value));
+    }
+    return P.isNothing(s) ? `Invalid URI: ${urel}` : `Invalid URI: ${uabs}`;
+  }
+
+  const puabs = uri.parseURIReference(uabs);
+  const pubas = uri.parseURIReference(base);
+
+  return testEq(label, mkRel(puabs, pubas), urel);
+}
+
+function testRelJoin(label: string, base: string, urel: string, uabs: string) {
+  function mkabs(s: P.Maybe<uri.URI>, b: P.Maybe<uri.URI>) {
+    if (P.isJust(s) && P.isJust(b)) {
+      return uri.uriToString(iden, uri.relativeTo(s.value, b.value));
+    }
+    return P.isNothing(s) ? `Invalid URI: ${urel}` : `Invalid URI: ${uabs}`;
+  }
+
+  const purel = uri.parseURIReference(urel);
+  const pubas = uri.parseURIReference(base);
+  return testEq(label, mkabs(purel, pubas), uabs);
+}
+
+function testRelative(label: string, base: string, uabs: string, urel: string) {
+  testRelSplit(label + ' (rel)', base, uabs, urel);
+  testRelJoin(label + ' (abs)', base, urel, uabs);
+}
+
+function iden<A>(a: A): A {
+  return a;
 }
 
 describe('HTTP URI', () => {
@@ -206,16 +239,134 @@ describe('HTTP URI', () => {
       );
 
       testURIRefComponents(
-        'testComoinent05',
+        'testComponent05',
         P.just(uri.mkURI('about:', P.nothing, '', '', '')),
         'about:'
       );
 
       testURIRefComponents(
-        'testComoinent06',
+        'testComponent06',
         P.just(uri.mkURI('file:', P.just(uri.mkURIAuth('', 'windowsauth', '')), '/d$', '', '')),
         'file://windowsauth/d$'
       );
+    });
+  });
+
+  describe('relative URI', () => {
+    it('handle basic operation', () => {
+      testRelative('testRelative01', 'foo:xyz', 'bar:abc', 'bar:abc');
+      testRelative('testRelative2', 'http://example/x/y/z', 'http://example/x/abc', '../abc');
+      testRelative('testRelative03', 'http://example2/x/y/z', 'http://example/x/abc', '//example/x/abc');
+      testRelative('testRelative04', 'http://ex/x/y/z', 'http://ex/x/r', '../r');
+      testRelative('testRelative05', 'http://ex/x/y/z', 'http://ex/r', '/r');
+      testRelative('testRelative06', 'http://ex/x/y/z', 'http://ex/x/y/q/r', 'q/r');
+    });
+
+    it('handle URI fragment', () => {
+      testRelative('testRelative07', 'http://ex/x/y', 'http://ex/x/q/r#s', 'q/r#s');
+      testRelative('testRelative08', 'http://ex/x/y', 'http://ex/x/q/r#s/t', 'q/r#s/t');
+    });
+
+    it('handle different scheme', () => {
+      testRelative('testRelative09', 'http://ex/x/y', 'ftp://ex/x/q/r', 'ftp://ex/x/q/r');
+    });
+
+    it('handle identical URI', () => {
+      testRelative('testRelative10', 'http://ex/x/y', 'http://ex/x/y', '');
+      testRelative('testRelative11', 'http://ex/x/y/', 'http://ex/x/y/', '');
+      testRelative('testRelative12', 'http://ex/x/y/pdq', 'http://ex/x/y/pdq', '');
+    });
+
+    it('handle URI path', () => {
+      testRelative('testRelative13', 'http://ex/x/y/', 'http://ex/x/y/z/', 'z/');
+    });
+
+    it('handle file scheme', () => {
+      testRelative('testRelative14', 'file:/swap/test/animal.rdf', 'file:/swap/test/animal.rdf#animal', '#animal');
+      testRelative('testRelative15', 'file:/e/x/y/z', 'file:/e/x/abc', '../abc');
+      testRelative('testRelative16', 'file:/example2/x/y/z', 'file:/example/x/abc', '/example/x/abc');
+      testRelative('testRelative17', 'file:/ex/x/y/z', 'file:/ex/x/r', '../r');
+      testRelative('testRelative18', 'file:/ex/x/y/z', 'file:/r', '/r');
+      testRelative('testRelative19', 'file:/ex/x/y', 'file:/ex/x/q/r', 'q/r');
+      testRelative('testRelative20', 'file:/ex/x/y', 'file:/ex/x/q/r#s', 'q/r#s');
+      testRelative('testRelative21', 'file:/ex/x/y', 'file:/ex/x/q/r#', 'q/r#');
+      testRelative('testRelative22', 'file:/ex/x/y', 'file:/ex/x/q/r#s/t', 'q/r#s/t');
+      // mix other scheme
+      testRelative('testRelative23', 'file:/ex/x/y', 'ftp://ex/x/q/r', 'ftp://ex/x/q/r');
+      // same URI
+      testRelative('testRealtive24', 'file:/ex/x/y', 'file:/ex/x/y', '');
+      testRelative('testRealtive25', 'file:/ex/x/y/', 'file:/ex/x/y/z/', 'z/');
+
+      testRelative('testRelative26', 'file:/devel/WWW/2000/10/swap/test/reluri-1.n3',
+                   'file://meetings.example.com/cal#m1', '//meetings.example.com/cal#m1');
+      testRelative('testRelative27', 'file:/home/connolly/w3ccvs/WWW/2000/10/swap/test/reluri-1.n3',
+                   'file://meetings.example.com/cal#m1', '//meetings.example.com/cal#m1');
+
+      testRelative('testRelative28', 'file:/some/dir/foo', 'file:/some/dir/#blort', './#blort');
+      testRelative('testRelative29', 'file:/some/dir/foo', 'file:/some/dir/#', './#');
+    });
+
+    it('handle RFC2396 section 5', () => {
+      testRelative('testRelative30', 'http://ex/x/y', 'http://ex/x/q:r', './q:r');
+      testRelative('testRelative31', 'http://ex/x/y', 'http://ex/x/p=q:r', './p=q:r');
+      testRelative('testRelative32', 'http://ex/x/y?pp/qq', 'http://ex/x/y?pp/rr', '?pp/rr');
+      testRelative('testRelative33', 'http://ex/x/y?pp/qq', 'http://ex/x/y/z', 'y/z');
+      testRelative('testRelative34', 'mailto:local', 'mailto:local/qual@domain.org#frag',
+                   'local/qual@domain.org#frag');
+      testRelative('testRelative35', 'mailto:local/qual1@domain1.org',
+                   'mailto:local/more/qual2@domain2.org#frag', 'more/qual2@domain2.org#frag');
+      testRelative('testRelative36', 'http://ex/x/z?q', 'http://ex/x/y?q', 'y?q');
+      testRelative('testRelative37', 'http://ex?p', 'http://ex/x/y?q', '/x/y?q');
+      testRelative('testRelative38', 'foo:a/b', 'foo:a/c/d', 'c/d');
+      testRelative('testRelative39', 'foo:a/b', 'foo:/c/d', '/c/d');
+      testRelative('testRelative40', 'foo:a/b?c#d', 'foo:a/b?c', '');
+      testRelative('testRelative41', 'foo:a', 'foo:b/c', 'b/c');
+      testRelative('testRelative42', 'foo:/a/y/z', 'foo:/a/b/c', '../b/c');
+
+      testRelJoin('testRelative43', 'foo:a', './b/c', 'foo:b/c');
+      testRelJoin('testRelative44', 'foo:a', '/./b/c', 'foo:/b/c');
+      testRelJoin('testRelative45', 'foo://a//b/c', '../../d', 'foo://a/d');
+      testRelJoin('testRelative46', 'foo:a', '.', 'foo:');
+      testRelJoin('testRelative47', 'foo:a', '..', 'foo:');
+    });
+
+    it('handle escaped URI', () => {
+      testRelative('testRelative48', 'http://example/x/y%2Fz', 'http://example/x/abc', 'abc');
+      testRelative('testRelaive49', 'http://example/a/x/y/z', 'http://example/a/x%2Fabc', '../../x%2Fabc');
+      testRelative('testRelative50', 'http://example/a/x/y%2Fz', 'http://example/a/x%2Fabc', '../x%2Fabc');
+      testRelative('testRelative51', 'http://example/x%2Fy/z', 'http://example/x%2Fy/abc', 'abc');
+      testRelative('testRelative52', 'http://ex/x/y', 'http://ex/x/q%3Ar', 'q%3Ar');
+      testRelative('tetstRelative53', 'http://example/x/y%2Fz', 'http://example/x%2Fabc', '/x%2Fabc');
+      testRelative('testRelative54', 'http://example/x/y/z', 'http://example/x%2Fabc', '/x%2Fabc');
+      testRelative('testRelative55', 'http://example/x/y%2Fz', 'http://example/x%2Fabc', '/x%2Fabc');
+    });
+
+    it('correctly normalize URI segment', () => {
+      testRelJoin('testRelative56', 'ftp://example/x/y', 'http://example/a/b/../../c', 'http://example/c');
+      testRelJoin('testRelative57', 'ftp://example/x/y', 'http://example/a/b/c/../../', 'http://example/a/');
+      testRelJoin('testRelative58', 'ftp://example/x/y', 'http://example/a/b/c/./', 'http://example/a/b/c/');
+      testRelJoin('testRelative59', 'ftp://example/x/y', 'http://example/a/b/c/.././', 'http://example/a/b/');
+      testRelJoin('testRelative60', 'ftp://example/x/y', 'http://example/a/b/c/d/../../../../e', 'http://example/e');
+      testRelJoin('testRelative61', 'ftp://example/x/y', 'http://example/a/b/c/d/../../../../../e', 'http://example/e');
+      // Check handling of queries and fragments with non-relative paths
+      testRelative('testRelative62', 'mailto:local1@domain1?query1', 'mailto:local2@domain2', 'local2@domain2');
+      testRelative('testRelative63', 'mailto:local1@domain1', 'mailto:local2@domain2?query2', 'local2@domain2?query2');
+      testRelative('testRelative64', 'mailto:local1@domain1?query1', 'mailto:local2@domain2?query2', 'local2@domain2?query2');
+      testRelative('testRelative65', 'mailto:local@domain?query1', 'mailto:local@domain?query2', '?query2');
+      testRelative('testRelative66', 'mailto:?query1', 'mailto:local@domain?query2', 'local@domain?query2');
+      testRelative('testRelative67', 'mailto:local@domain?query1', 'mailto:local@domain?query2', '?query2');
+      testRelative('testRelative68', 'foo:bar', 'http://example/a/b?c/../d', 'http://example/a/b?c/../d');
+      testRelative('testRelative69', 'foo:bar', 'http://example/a/b#c/../d', 'http://example/a/b#c/../d');
+      // awkward test, thrown up by a question: http://lists.w3.org/Archives/Public/uri/2005Jul/0013
+      testRelative('testRelative70', 'http://www.example.com/data/limit/..',
+                   'http://www.example.com/data/limit/test.xml', 'test.xml');
+      testRelative('testRelative71', 'file:/some/dir/foo', 'file:/some/dir/#blort', './#blort');
+      testRelative('testRelative72', 'file:/some/dir/foo', 'file:/some/dir/#', './#');
+      testRelative('testRelative73', 'file:/some/dir/..', 'file:/some/dir/#blort', './#blort');
+
+      testRelSplit('testRelative74', 'http://example.org/base/uri', 'http:this', 'this');
+      testRelJoin('testRelative75', 'http://example.org/base/uri', 'http:this', 'http:this');
+      testRelJoin('testRelative76', 'http:base', 'http:this', 'http:this');
     });
   });
 });
