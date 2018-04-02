@@ -1,79 +1,27 @@
 import * as P from '@jonggrang/prelude';
 import * as PS from '@jonggrang/parsing';
-import { isHexTable } from './internal/querystring';
+
+import { URI, URIAuth, mkURI, mkURIAuth } from '../types';
 
 
-/**
- * Represents a general universal resource identifier using its component parts.
- * For example, for the URI:
- * foo://anonymous@www.haskell.org:42/ghc?query#frag
- */
-export interface URI {
-  scheme: string; // foo:
-  auth: P.Maybe<URIAuth>; // //anonymous@www.haskell.org:42
-  path: string; // /ghc
-  query: string; // ?query
-  fragment: string; // #frag
-}
-
-// Type for authority value within a URI
-export interface URIAuth {
-  userInfo: string; // anonymous@
-  port: string; // :42
-  regName: string; // www.haskell.org
-}
-
-class Uri {
-  constructor(
-    readonly scheme: string,
-    readonly auth: P.Maybe<URIAuth>,
-    readonly path: string,
-    readonly query: string,
-    readonly fragment: string
-  ) {
-  }
-}
-
-class UriAuth {
-  constructor(
-    readonly userInfo: string,
-    readonly port: string,
-    readonly regName: string
-  ) {
-  }
-}
-
-export function mkURI(scheme: string, auth: P.Maybe<URIAuth>, path: string, query: string, fragment: string): URI {
-  return new Uri(scheme, auth, path, query, fragment);
-}
-
-export function mkURIAuth(userInfo: string, regName: string, port: string): URIAuth {
-  return new UriAuth(userInfo, port, regName);
-}
-
-export function uriToString(fn: (s: string) => string, uri: URI): string {
-  return uri.scheme + uriAuthToString(fn, uri.auth) + uri.path + uri.query + uri.fragment;
-}
-
-export function uriAuthToString(fn: (s: string) => string, auth: P.Maybe<URIAuth>): string {
-  if (P.isNothing(auth)) return '';
-
-  const uriAuth = auth.value;
-  return `//${uriAuth.userInfo.length === 0 ? '' : fn(uriAuth.userInfo)}${uriAuth.regName}${uriAuth.port}`;
-}
-
-export function ensurePrefix(p: string, s: string): string {
-  const ix = p.length > s.length ? -1 : s.indexOf(p);
-  return ix === 0 ? s : p + s;
-}
-
-export function uriIsAbsolute(uri: URI): boolean {
-  return uri.scheme !== '';
-}
-
-export function uriIsRelative(uri: URI): boolean {
-  return !uriIsAbsolute(uri);
-}
+const isHexTable = [
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0 - 15
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16 - 31
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 32 - 47
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, // 48 - 63
+  0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 64 - 79
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 80 - 95
+  0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 96 - 111
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 112 - 127
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 128 ...
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // ... 256
+];
 
 const hexDigitChar: PS.Parser<string> = PS.satisfy(isHexDigitAt);
 
@@ -265,7 +213,7 @@ const relativePart: PS.Parser<[P.Maybe<URIAuth>, string]> = PS.co(function* () {
   .alt(pathNoScheme.map(p => [P.nothing, p]))
   .alt(PS.pure([P.nothing, '']));
 
-const relativeRef: PS.Parser<URI> = PS.co(function* () {
+export const relativeRef: PS.Parser<URI> = PS.co(function* () {
   yield notMatching(uscheme);
   const [ua, path]: [P.Maybe<URIAuth>, string] = yield relativePart;
   const uq: string = yield PS.option('', PS.char('?').chain(() => uquery));
@@ -283,7 +231,7 @@ const hierPart: PS.Parser<[P.Maybe<URIAuth>, string]> = PS.co(function* () {
   .alt(pathRootLess.map(ps => [P.nothing, ps]))
   .alt(PS.pure([P.nothing, '']));
 
-const uri: PS.Parser<URI> = PS.co(function* () {
+export const uri: PS.Parser<URI> = PS.co(function* () {
   const us: string = yield PS.attempt(uscheme);
   const [ua, up]: [P.Maybe<URIAuth>, string] = yield hierPart;
   const uq: string = yield PS.option('', PS.char('?').chain(() => uquery));
@@ -291,313 +239,14 @@ const uri: PS.Parser<URI> = PS.co(function* () {
   return PS.pure(mkURI(us, ua, up, uq, uf));
 });
 
-const absoluteURI: PS.Parser<URI> = PS.co(function* () {
+export const absoluteURI: PS.Parser<URI> = PS.co(function* () {
   const us: string = yield uscheme;
   const [ua, up]: [P.Maybe<URIAuth>, string] = yield hierPart;
   const uq: string = yield PS.option('', PS.char('?').chain(() => uquery));
   return PS.pure(mkURI(us, ua, up, uq, ''));
 });
 
-const uriReference: PS.Parser<URI> = uri.alt(relativeRef);
-
-export function parseURIAny(p: PS.Parser<URI>, str: string): P.Maybe<URI> {
-  const ret = PS.runParser(parseEof(p), str);
-  if (P.isRight(ret)) return P.just(ret.value);
-  return P.nothing;
-}
-
-export function parseAbsoluteURI(str: string): P.Maybe<URI> {
-  return parseURIAny(absoluteURI, str);
-}
-
-export function parseURI(str: string): P.Maybe<URI> {
-  return parseURIAny(uri, str);
-}
-
-export function parseURIReference(str: string): P.Maybe<URI> {
-  return parseURIAny(uriReference, str);
-}
-
-export function parseRelativeReference(str: string): P.Maybe<URI> {
-  return parseURIAny(relativeRef, str);
-}
-
-export function isValidParse<A>(p: PS.Parser<A>, str: string): boolean {
-  const ret = PS.runParser(parseEof(p), str);
-  if (P.isRight(ret)) return true;
-  return false;
-}
-
-export function isURIReference(str: string): boolean {
-  return isValidParse(uriReference, str);
-}
-
-export function isRelativeReference(str: string): boolean {
-  return isValidParse(relativeRef, str);
-}
-
-export function isAbsoluteURI(str: string): boolean {
-  return isValidParse(absoluteURI, str);
-}
-
-export function isURI(str: string): boolean {
-  return isValidParse(uri, str);
-}
-
-function uriAuthEquals(s: P.Maybe<URIAuth>, d: P.Maybe<URIAuth>): boolean {
-  if (P.isNothing(s) && P.isNothing(d)) return true;
-  if (P.isJust(s) && P.isJust(d)) {
-    const sa = s.value;
-    const da = d.value;
-    const uriAuth: (keyof URIAuth)[] = ['userInfo', 'port', 'regName'];
-    return uriAuth.every(x => sa[x] === da[x]);
-  }
-  return false;
-}
-
-export function relativeFrom(uabs: URI, base: URI): URI {
-  if (uabs.scheme !== base.scheme)
-    return uabs;
-
-  if (!uriAuthEquals(uabs.auth, base.auth))
-    return mkURI('', uabs.auth, uabs.path, uabs.query, uabs.fragment);
-
-  if (uabs.path !== base.path) {
-    return mkURI(
-      '',
-      P.nothing,
-      relPathFrom(removeBodyDotSegments(uabs.path), removeBodyDotSegments(base.path)),
-      uabs.query,
-      uabs.fragment
-    );
-  }
-
-  if (uabs.query !== base.query)
-    return mkURI('', P.nothing, '', uabs.query, uabs.fragment);
-
-  return mkURI('', P.nothing, '', '', uabs.fragment);
-}
-
-export function relativeTo(ref: URI, base: URI): URI {
-  if (ref.scheme !== '') {
-    return justSegments(ref);
-  }
-
-  if (P.isJust(ref.auth)) {
-    return justSegments(mkURI(base.scheme, ref.auth, ref.path, ref.query, ref.fragment));
-  }
-
-  if (ref.path !== '') {
-    if (ref.path.charAt(0) === '/') {
-      return justSegments(mkURI(base.scheme, base.auth, ref.path, ref.query, ref.fragment));
-    }
-
-    return justSegments(mkURI(base.scheme, base.auth, mergePaths(base, ref), ref.query, ref.fragment));
-  }
-
-  if (ref.query !== '') {
-    return justSegments(mkURI(base.scheme, base.auth, base.path, ref.query, ref.fragment));
-  }
-
-  return justSegments(mkURI(base.scheme, base.auth, base.path, base.query, ref.fragment));
-}
-
-/**
- * Case normalization; cf. RFC3986 section 6.2.2.1
- * @param uriStr URI string to normalize
- * @return Normalized URI string
- */
-export function normalizeCase(uriStr: string): string {
-  let out = '';
-  let ix = 0;
-  let cs = uriStr;
-  while (ix < cs.length) {
-    if (cs.charCodeAt(ix) === 58) {
-      return `${out}:${_ncEscape(cs.slice(ix + 1, cs.length))}`;
-    } else if (isSchemeChar(cs.charAt(ix))) {
-      out += cs.charAt(ix).toLowerCase();
-      ix++;
-    } else {
-      return _ncEscape(uriStr);
-    }
-  }
-  return _ncEscape(uriStr);
-}
-
-/**
- *
- */
-export function normalizeEscape(s: string): string {
-  let out = '';
-  let ix = 0;
-  while (ix < s.length) {
-    if ((s.length - ix) >= 3 && s.charCodeAt(ix) === 37 && isHexDigitAt(s, ix + 1) && isHexDigitAt(s, ix + 2)) {
-      let ecval = String.fromCharCode(parseInt(s.charAt(ix + 1), 16) * 16 + parseInt(s.charAt(ix + 2), 16));
-      if (isUnreserved(ecval)) {
-        out += ecval;
-        ix += 3;
-        continue;
-      }
-    }
-    out += s.charAt(ix);
-    ix++;
-  }
-  return out;
-}
-
-export function normalizePathSegments(uriStr: string): string {
-  let juri = parseURI(uriStr);
-  if (P.isNothing(juri)) return uriStr;
-  const uriV = juri.value;
-  let normUri = mkURI(uriV.scheme, uriV.auth, removeDotSegments(uriV.path), uriV.query,
-                      uriV.fragment);
-  return uriToString(ident, normUri);
-}
-
-function _ncEscape(s: string): string {
-  let out = '';
-  while (s.length > 0) {
-    if (s.length >= 3 && s.charCodeAt(0) === 37) {
-      out += '%' + s.slice(1, 3).toUpperCase();
-      s = s.slice(3, s.length);
-      continue;
-    }
-    out += s.charAt(0);
-    s = s.slice(1, s.length);
-  }
-  return out;
-}
-
-function removeDotSegments(path: string): string {
-  if (path == '..' || path == '.') {
-
-    return '';
-  } else if (path.indexOf('./') === -1 && path.indexOf('/.') === -1) {
-
-    return path;
-  } else {
-    let leadingSlash = path.indexOf('/') === 0;
-    let segments = path.split('/');
-    let out = [];
-
-    for (let pos = 0; pos < segments.length;) {
-      let segment = segments[pos++];
-
-      if (segment == '.') {
-        if (leadingSlash && pos == segments.length) {
-          out.push('');
-        }
-      } else if (segment == '..') {
-        if (out.length > 1 || out.length == 1 && out[0] != '') {
-          out.pop();
-        }
-        if (leadingSlash && pos == segments.length) {
-          out.push('');
-        }
-      } else {
-        out.push(segment);
-        leadingSlash = true;
-      }
-    }
-
-    return out.join('/');
-  }
-}
-
-function removeBodyDotSegments(p: string): string {
-  const [p1, p2] = splitLast(p);
-  return removeDotSegments(p1) + p2;
-}
-
-function mergePaths(b: URI, r: URI): string {
-  if (P.isJust(b.auth) && b.path.length === 0) {
-    return '/' + r.path;
-  }
-  return splitLast(b.path)[0] + r.path;
-}
-
-function relPathFrom(pabs: string, base: string): string {
-  if (pabs.length === 0) return '/';
-  if (base.length === 0) return pabs;
-  const [sa1, ra1] = nextSegment(pabs);
-  const [sb1, rb1] = nextSegment(base);
-
-  if (sa1 === sb1) {
-    if (sa1 === '/') {
-      const [sa2, ra2] = nextSegment(ra1);
-      const [sb2, rb2] = nextSegment(rb1);
-      if (sa2 === sb2)
-        return relPathFrom1(ra2, rb2);
-      else
-        return pabs;
-    } else {
-      return relPathFrom1(ra1, rb1);
-    }
-  } else {
-    return pabs;
-  }
-}
-
-function relPathFrom1(pabs: string, base: string): string {
-  const [sa, na] = splitLast(pabs);
-  const [sb, nb] = splitLast(base);
-  const rp = relSegsFrom(sa, sb);
-
-  return rp.length === 0
-    ? (na === nb ? '' : (na.length === 0 || na.indexOf(':') !== -1 ? `./${na}` : na))
-    : (rp + na);
-}
-
-function relSegsFrom(sabs: string, base: string): string {
-  while (true) {
-    if (sabs.length === 0 && base.length === 0)
-      return '';
-    let [sa1, ra1] = nextSegment(sabs);
-    let [sb1, ra2] = nextSegment(base);
-    if (sa1 === sb1) {
-      sabs = ra1;
-      base = ra2;
-      continue;
-    } else {
-      return difSegsFrom(sabs, base);
-    }
-  }
-}
-
-function difSegsFrom(sabs: string, base: string): string {
-  while (true) {
-    if (base === '') return sabs;
-
-    sabs = `../${sabs}`;
-    base = nextSegment(base)[1];
-  }
-}
-
-function justSegments(b: URI): URI {
-  return mkURI(b.scheme, b.auth, removeDotSegments(b.path), b.query, b.fragment);
-}
-
-function nextSegment(s: string): [string, string] {
-  let ix = s.indexOf('/');
-  let first = s.slice(0, ix);
-  let second = s.slice(ix, s.length);
-
-  if (second.charAt(0) === '/') {
-    return [first + '/', second.slice(1)];
-  }
-  return [first, second];
-}
-
-function splitLast(p: string): [string, string] {
-  let ix = p.lastIndexOf('/');
-  let first = p.slice(0, ix + 1);
-  let last = p.slice(ix + 1, p.length);
-  return [first, last];
-}
-
-function parseEof<A>(p: PS.Parser<A>): PS.Parser<A> {
-  return p.chain(x => PS.eof.map(() => x));
-}
+export const uriReference: PS.Parser<URI> = uri.alt(relativeRef);
 
 function oneThenMany<A>(p: PS.Parser<A>, r: PS.Parser<A>): PS.Parser<A[]> {
   return p.chain(x => PS.many(r).map(xs => [x].concat(xs)));
@@ -678,15 +327,15 @@ function replicateA<A>(n: number, a: A): A[] {
   return result;
 }
 
-function isHexDigitAt(c: string, i?: number): boolean {
+export function isHexDigitAt(c: string, i?: number): boolean {
   return !!isHexTable[c.charCodeAt(i == null ? 0 : i)];
 }
 
-function isGenDelims(c: string): boolean {
+export function isGenDelims(c: string): boolean {
   return ':/?#[]@'.indexOf(c) !== -1;
 }
 
-function isSubDelims(c: string): boolean {
+export function isSubDelims(c: string): boolean {
   return '!$&\'()*+,;='.indexOf(c) !== -1;
 }
 
@@ -694,16 +343,16 @@ export function isReserved(c: string): boolean {
   return isGenDelims(c) || isSubDelims(c);
 }
 
-function isDigits(c: string) {
+export function isDigits(c: string) {
   return c >= '0' && c <= '9';
 }
 
-function isLowerCaseChar(c: string) {
+export function isLowerCaseChar(c: string) {
   const co = c.charCodeAt(0);
   return co >= 97 && co <= 122;
 }
 
-function isUpperCaseChar(c: string) {
+export function isUpperCaseChar(c: string) {
   const co = c.charCodeAt(0);
   return co >= 65 && co <= 90;
 }
@@ -712,10 +361,10 @@ function isAlphaNumChar(c: string) {
   return isDigits(c) || isLowerCaseChar(c) || isUpperCaseChar(c);
 }
 
-function isUnreserved(c: string) {
+export function isUnreserved(c: string) {
   return isAlphaNumChar(c) || '-_.~'.indexOf(c) !== -1;
 }
 
-function isSchemeChar(c: string) {
+export function isSchemeChar(c: string) {
   return isAlphaNumChar(c) || '+-.'.indexOf(c) !== -1;
 }

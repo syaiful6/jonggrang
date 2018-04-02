@@ -2,7 +2,7 @@ import 'mocha';
 import { expect } from 'chai';
 import * as P from '@jonggrang/prelude';
 
-import * as uri from '../../src/uri';
+import * as uri from '../../src';
 
 
 const enum URIType {
