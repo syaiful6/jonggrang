@@ -99,6 +99,16 @@ function isValidParse<A>(p: PS.Parser<A>, str: string): boolean {
   return false;
 }
 
+// Predicates
+
+export function uriIsAbsolute(uri: URI): boolean {
+  return uri.scheme !== '';
+}
+
+export function uriIsRelative(uri: URI): boolean {
+  return !uriIsAbsolute(uri);
+}
+
 // Reconstruct a URI string
 
 /**
@@ -111,11 +121,32 @@ export function uriToString(fn: (s: string) => string, uri: URI): string {
   return uri.scheme + uriAuthToString(fn, uri.auth) + uri.path + uri.query + uri.fragment;
 }
 
-function uriAuthToString(fn: (s: string) => string, auth: P.Maybe<URIAuth>): string {
+/**
+ * Turn a `URIAuth` into a string
+ */
+export function uriAuthToString(fn: (s: string) => string, auth: P.Maybe<URIAuth>): string {
   if (P.isNothing(auth)) return '';
 
   const uriAuth = auth.value;
   return `//${uriAuth.userInfo.length === 0 ? '' : fn(uriAuth.userInfo)}${uriAuth.regName}${uriAuth.port}`;
+}
+
+/**
+ * Show an URI. Note that for security reasons, the default  behaviour is to suppress
+ * any userinfo field (see RFC3986, section 7.5). This can be overridden by using
+ * uriToString directly with first argument `identity` function.
+ */
+export function showURI(uri: URI): string {
+  return uriToString(defaultUserInfoMap, uri);
+}
+
+function defaultUserInfoMap(s: string): string {
+  let ix = s.indexOf(':');
+  if (ix === -1) return s;
+  let user = s.slice(0, ix);
+  let pass = s.slice(ix, s.length);
+
+  return pass.length === 0 || pass === '@' || pass === ':@' ? `${user}${pass}` : `${user}:...@`;
 }
 
 // Character classes
@@ -298,7 +329,12 @@ function _ncEscape(s: string): string {
   return out;
 }
 
-function removeDotSegments(path: string): string {
+/**
+ * Removes dot segments in given path component, as described in RFC 3986, section 5.2.4.
+ * @param path A non-empty path component
+ * @return Path component with removed dot segments.
+ */
+export function removeDotSegments(path: string): string {
   if (path == '..' || path == '.') {
 
     return '';

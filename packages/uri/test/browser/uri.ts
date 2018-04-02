@@ -493,4 +493,21 @@ describe('HTTP URI', () => {
       testEq('testNormalize12', 'foo:e', uri.normalizePathSegments('foo:a/b/../.././../../e'));
     });
   });
+
+  describe('URI formatting', () => {
+    const TESTURI = uri.mkURI('http:', P.just(uri.mkURIAuth('user:pass@', 'example.org', ':99')),
+                              '/aaa/bbb', '?ccc', '#ddd/eee');
+    it('show null URI return empty string', () => {
+      const nullURI = uri.mkURI('', P.nothing, '', '', '');
+      expect(uri.showURI(nullURI)).to.be.equals('');
+    });
+
+    it('show URI surpress suppress user info', () => {
+      expect(uri.showURI(TESTURI)).to.be.equals('http://user:...@example.org:99/aaa/bbb?ccc#ddd/eee');
+    });
+
+    it('uriToString didn\'t surpass surpress suppress user info', () => {
+      expect(uri.uriToString(iden, TESTURI)).to.be.equals('http://user:pass@example.org:99/aaa/bbb?ccc#ddd/eee');
+    });
+  });
 });
