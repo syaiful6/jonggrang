@@ -87,6 +87,7 @@ let allPackages = [
   'ref',
   'parsing',
   'http-types',
+  'uri',
   'wai',
   'genjer'
 ]

@@ -31,6 +31,10 @@ export class ParseError extends Error {
   }
 }
 
+export function mkParseError(msg: string) {
+  return new ParseError(msg);
+}
+
 /**
  * The result of running `ParserFn`
  */
@@ -52,7 +56,7 @@ export class Parser<A> {
   map<B>(f: (_: A) => B): Parser<B> {
     return defParser(input =>
       P.mapEither(this.fn(input), ({ result, suffix }) => ({ suffix, result: f(result) }))
-    )
+    );
   }
 
   ['fantasy-land/map']<B>(f: (_: A) => B): Parser<B> {
@@ -66,7 +70,7 @@ export class Parser<A> {
           ({ result: f(x), suffix: s2 })
         )
       )
-    )
+    );
   }
 
   ap<B, C>(this: Parser<(_: B) => C>, other: Parser<B>): Parser<C> {
@@ -78,7 +82,7 @@ export class Parser<A> {
   }
 
   static of<B>(a: B): Parser<B> {
-    return defParser(input => P.right({ result: a, suffix: input }))
+    return defParser(input => P.right({ result: a, suffix: input }));
   }
 
   static ['fantasy-land/of']<B>(a: B): Parser<B> {
@@ -104,7 +108,7 @@ export class Parser<A> {
       P.chainEither(this.fn(s), ({ result, suffix }) =>
         f(result).fn(suffix)
       )
-    )
+    );
   }
 
   ['fantasy-land/chain']<B>(f: (a: A) => Parser<B>): Parser<B> {
@@ -118,7 +122,7 @@ export class Parser<A> {
     return defParser(str => {
       function split(state: { suffix: PosStr, result: P.Either<B, C>}): P.Either<{ state: B, str: PosStr }, { result: C, suffix: PosStr}> {
         if (P.isLeft(state.result)) {
-          return P.left({ state: state.result.value, str: state.suffix })
+          return P.left({ state: state.result.value, str: state.suffix });
         }
         return P.right({ result: state.result.value, suffix: state.suffix });
       }
@@ -134,7 +138,7 @@ export class Parser<A> {
   }
 
   static defer<A>(f: () => Parser<A>): Parser<A> {
-    return defParser(s => f().fn(s))
+    return defParser(s => f().fn(s));
   }
 }
 
@@ -158,7 +162,7 @@ export function pure<B>(b: B): Parser<B> {
  * @param p
  */
 export function attempt<A>(p: Parser<A>): Parser<A> {
-  return defParser(input => P.lmapEither(p.fn(input), err => ({ pos: input.pos, error: err.error })))
+  return defParser(input => P.lmapEither(p.fn(input), err => ({ pos: input.pos, error: err.error })));
 }
 
 /**
@@ -216,7 +220,7 @@ export function tailRecParser<A, B>(
   return defParser(str => {
     function split(state: { suffix: PosStr, result: P.Either<A, B>}): P.Either<{ state: A, str: PosStr }, { result: B, suffix: PosStr}> {
       if (P.isLeft(state.result)) {
-        return P.left({ state: state.result.value, str: state.suffix })
+        return P.left({ state: state.result.value, str: state.suffix });
       }
       return P.right({ result: state.result.value, suffix: state.suffix });
     }

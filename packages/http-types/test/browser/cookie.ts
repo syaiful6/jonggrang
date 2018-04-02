@@ -53,8 +53,8 @@ describe('HTTP Cookie', () => {
       expect(CO.parseCookies(cookie)).to.deep.equals([
         CO.createCookieKV('foo', '%1'),
         CO.createCookieKV('bar', 'bar')
-      ])
-    })
+      ]);
+    });
   });
 
   describe('renderCookie', () => {
@@ -72,12 +72,14 @@ describe('HTTP Cookie', () => {
       expect(CO.renderCookie(CO.createCookieKV('foo\n', 'bar')).value)
         .to.be.match(/Cookie name is invalid/);
       expect(CO.renderCookie(CO.createCookieKV('foo\u280a', 'baz')).value)
-        .to.be.match(/Cookie name is invalid/)
+        .to.be.match(/Cookie name is invalid/);
     });
 
     it('can render all options', () => {
       const cookie = CO.createCookie('foo', 'baz', 60 * 3600, '/', 'example.com', true, true, 'LAX');
+      /* tslint:disable */
       const RE = /foo=baz; Domain=example\.com; Path=\/; Max-Age=([0-9]{1,}); Expires=(\w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT); HttpOnly; Secure; SameSite=LAX$/;
+      /* tslint:enable */
       expect(CO.renderCookie(cookie).value).to.be.match(RE);
     });
 

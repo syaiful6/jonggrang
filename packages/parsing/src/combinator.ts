@@ -15,7 +15,7 @@ export function lookAhead<A>(p: Parser<A>) {
 export function many<A>(p: Parser<A>): Parser<A[]> {
   function go(i: A[]): Parser<P.Either<A[], A[]>> {
     return (p.map(P.left) as Parser<P.Either<A, null>>).alt(Parser.of(P.right(null)))
-      .map(aa => P.bimapEither(aa, x => consArr(x, i), () => reverseArr(i)))
+      .map(aa => P.bimapEither(aa, x => withAppend(i, x), () => i));
   }
   return tailRecParser([] as A[], go);
 }
@@ -51,16 +51,16 @@ export function optionMaybe<A>(p: Parser<A>): Parser<P.Maybe<A>> {
 }
 
 export function sepBy<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
-  return sepBy1(p, sep).alt(Parser.of([]))
+  return sepBy1(p, sep).alt(Parser.of([]));
 }
 
 // Parse one or more separated values.
 export function sepBy1<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
-  return p.chain(a => many(sep.chain(() => p)).map(as => consArr(a, as)))
+  return p.chain(a => many(sep.chain(() => p)).map(as => consArr(a, as)));
 }
 
 export function sepEndBy<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
-  return sepEndBy1(p, sep).alt(Parser.of([]))
+  return sepEndBy1(p, sep).alt(Parser.of([]));
 }
 
 export function sepEndBy1<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
@@ -86,14 +86,23 @@ export function useDef<A>(a: A, p: Parser<any>): Parser<A> {
   return p.map(() => a);
 }
 
-// 2 functions below mutate the array, should be used locally
-
-function consArr<A>(a: A, xs: A[]): A[] {
-  xs.unshift(a);
-  return xs;
+function withAppend<A>(xs: A[], x: A): A[] {
+  const len = xs.length;
+  const ys = new Array(len + 1);
+  let i: number;
+  for (i = 0; i < len; i++) {
+    ys[i] = xs[i];
+  }
+  ys[i] = x;
+  return ys;
 }
 
-function reverseArr<A>(xs: A[]): A[] {
-  let ys = xs.slice();
-  return ys.reverse();
+function consArr<A>(x: A, xs: A[]): A[] {
+  const len = xs.length;
+  const ys = new Array(len + 1);
+  ys[0] = x;
+  for (let i = 0; i < len; i++) {
+    ys[i + 1] = xs[i];
+  }
+  return ys;
 }

@@ -1,0 +1,33 @@
+{
+  "name": "@jonggrang/uri",
+  "description": "URI manipulation, parsing and unparsing URIs, and creating and resolving relative URI references, closely following the URI spec (RFC 3986).",
+  "version": "0.0.0",
+  "author": {
+    "name": "Syaiful Bahri"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syaiful6/jonggrang.git"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "module": "es6/index.js",
+  "license": "MIT",
+  "files": [
+    "lib/",
+    "es6/"
+  ],
+  "dependencies": {
+    "@jonggrang/parsing": "0.1.4",
+    "@jonggrang/prelude": "0.1.4"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.0.4",
+    "@types/mocha": "^2.2.33",
+    "@types/node": "^8.0.51",
+    "chai": "^4.1.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

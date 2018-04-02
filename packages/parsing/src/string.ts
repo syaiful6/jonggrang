@@ -26,21 +26,21 @@ export function string(nt: string): Parser<string> {
     const ix = str.indexOf(nt, pos);
     return ix !== -1 && ix === pos
       ? P.right({ result: nt, suffix: { str, pos: pos + nt.length }})
-      : P.left({ pos, error: new ParseError(`Expected '${nt}'.`) })
+      : P.left({ pos, error: new ParseError(`Expected '${nt}'.`) });
   });
 }
 
 export function satisfy(f: (s: string) => boolean): Parser<string> {
   return attempt(
     anyChar.chain(c => f(c) ? Parser.of(c) : fail(`Character ${c} didn't satisfy predicate`))
-  )
+  );
 }
 
 export function char(c: string) {
   return PC.withError(
     satisfy(s => s === c),
     `Could not match character ${c}`
-  )
+  );
 }
 
 export const whiteSpace: Parser<string> = PC.many(
@@ -73,7 +73,7 @@ export const upperCaseChar: Parser<string> = attempt(
       ? Parser.of(c)
       : fail(`Expected a upper case character but found ${c}`);
   })
-)
+);
 
 export const anyLetter: Parser<string> = PC.withError(
   lowerCaseChar.alt(upperCaseChar),

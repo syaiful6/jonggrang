@@ -17,7 +17,7 @@ function instructionShow<V>(
 ): (ins: Instruction<V>) => string {
   return ins => ins.tag === InstructionType.INSERT
     ? `Insert ${ins.key} ${show == null ? 'unknown' : show(ins.value)}`
-    : `Delete ${ins.key};`
+    : `Delete ${ins.key};`;
 }
 
 function instructionGen<V>(arb: jsv.Arbitrary<V>): (n: number) => Instruction<V> {
@@ -26,15 +26,15 @@ function instructionGen<V>(arb: jsv.Arbitrary<V>): (n: number) => Instruction<V>
     let v = arb.generator(size);
     return size % 2 === 0
       ? { tag: InstructionType.INSERT, key: k, value: v }
-      : { tag: InstructionType.DELETE, key: k }
-  }
+      : { tag: InstructionType.DELETE, key: k };
+  };
 }
 
 function instructionArb<V>(arb: jsv.Arbitrary<V>): jsv.Arbitrary<Instruction<V>> {
   return jsv.bless({
     generator: jsv.generator.bless(instructionGen(arb)),
     show: instructionShow(arb.show)
-  })
+  });
 }
 
 function runInstruction<V>(
@@ -135,7 +135,7 @@ describe('StrMap', () => {
           return P.deepEq(
             M.lookup(k, M.union(m1, m2)),
             P.isNothing(mv) ? M.lookup(k, m2) : mv
-          )
+          );
         }
       )
     )
@@ -163,4 +163,4 @@ describe('StrMap', () => {
       )
     )
   );
-})
+});
