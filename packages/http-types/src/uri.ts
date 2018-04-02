@@ -402,36 +402,106 @@ export function relativeTo(ref: URI, base: URI): URI {
   return justSegments(mkURI(base.scheme, base.auth, base.path, base.query, ref.fragment));
 }
 
-const RDS1 = /^\.\.?\//;
-const RDS2 = /^\/\.(\/|$)/;
-const RDS3 = /^\/\.\.(\/|$)/;
-const RDS5 = /^\/?(?:.|\n)*?(?=\/|$)/;
-
-function removeDotSegments(input: string): string {
-  let out: string[] = [];
-
-  while (input.length) {
-    if (input.match(RDS1)) {
-      input = input.replace(RDS1, '');
-    } else if (input.match(RDS2)) {
-      input = input.replace(RDS2, '/');
-    } else if (input.match(RDS3)) {
-      input = input.replace(RDS3, '/');
-      out.pop();
-    } else if (input === '.' || input === '..') {
-
-      input = '';
+/**
+ * Case normalization; cf. RFC3986 section 6.2.2.1
+ * @param uriStr URI string to normalize
+ * @return Normalized URI string
+ */
+export function normalizeCase(uriStr: string): string {
+  let out = '';
+  let ix = 0;
+  let cs = uriStr;
+  while (ix < cs.length) {
+    if (cs.charCodeAt(ix) === 58) {
+      return `${out}:${_ncEscape(cs.slice(ix + 1, cs.length))}`;
+    } else if (isSchemeChar(cs.charAt(ix))) {
+      out += cs.charAt(ix).toLowerCase();
+      ix++;
     } else {
-      const im = input.match(RDS5);
-      if (im) {
-        const s = im[0];
-        input = input.slice(s.length);
-        out.push(s);
-      }
+      return _ncEscape(uriStr);
     }
   }
+  return _ncEscape(uriStr);
+}
 
-  return out.join('');
+/**
+ *
+ */
+export function normalizeEscape(s: string): string {
+  let out = '';
+  let ix = 0;
+  while (ix < s.length) {
+    if ((s.length - ix) >= 3 && s.charCodeAt(ix) === 37 && isHexDigitAt(s, ix + 1) && isHexDigitAt(s, ix + 2)) {
+      let ecval = String.fromCharCode(parseInt(s.charAt(ix + 1), 16) * 16 + parseInt(s.charAt(ix + 2), 16));
+      if (isUnreserved(ecval)) {
+        out += ecval;
+        ix += 3;
+        continue;
+      }
+    }
+    out += s.charAt(ix);
+    ix++;
+  }
+  return out;
+}
+
+export function normalizePathSegments(uriStr: string): string {
+  let juri = parseURI(uriStr);
+  if (P.isNothing(juri)) return uriStr;
+  const uriV = juri.value;
+  let normUri = mkURI(uriV.scheme, uriV.auth, removeDotSegments(uriV.path), uriV.query,
+                      uriV.fragment);
+  return uriToString(ident, normUri);
+}
+
+function _ncEscape(s: string): string {
+  let out = '';
+  while (s.length > 0) {
+    if (s.length >= 3 && s.charCodeAt(0) === 37) {
+      out += '%' + s.slice(1, 3).toUpperCase();
+      s = s.slice(3, s.length);
+      continue;
+    }
+    out += s.charAt(0);
+    s = s.slice(1, s.length);
+  }
+  return out;
+}
+
+function removeDotSegments(path: string): string {
+  if (path == '..' || path == '.') {
+
+    return '';
+  } else if (path.indexOf('./') === -1 && path.indexOf('/.') === -1) {
+
+    return path;
+  } else {
+    let leadingSlash = path.indexOf('/') === 0;
+    let segments = path.split('/');
+    let out = [];
+
+    for (let pos = 0; pos < segments.length;) {
+      let segment = segments[pos++];
+
+      if (segment == '.') {
+        if (leadingSlash && pos == segments.length) {
+          out.push('');
+        }
+      } else if (segment == '..') {
+        if (out.length > 1 || out.length == 1 && out[0] != '') {
+          out.pop();
+        }
+        if (leadingSlash && pos == segments.length) {
+          out.push('');
+        }
+      } else {
+        out.push(segment);
+        leadingSlash = true;
+      }
+    }
+
+    return out.join('/');
+  }
 }
 
 function removeBodyDotSegments(p: string): string {

@@ -466,4 +466,31 @@ describe('HTTP URI', () => {
       testRelJoin('testInfo02', 'info:/name/1234/../567', 'name/9876/../543', 'info:/name/name/543');
     });
   });
+
+  describe('URI Normalization', () => {
+    it('handle case normalization; cf. RFC2396bis section 6.2.2.1', () => {
+      testEq('testNormalize01', 'http://EXAMPLE.com/Root/%2A?%2B#%2C',
+             uri.normalizeCase('HTTP://EXAMPLE.com/Root/%2a?%2b#%2c'));
+    });
+
+    it('handle encoding normalization', () => {
+      testEq('testNormalize02', 'HTTP://EXAMPLE.com/Root/~Me/',
+             uri.normalizeEscape('HTTP://EXAMPLE.com/Root/%7eMe/'));
+      testEq('testNormalize03', 'foo:%40AZ%5b%60az%7b%2f09%3a-._~',
+             uri.normalizeEscape('foo:%40%41%5a%5b%60%61%7a%7b%2f%30%39%3a%2d%2e%5f%7e'));
+      testEq('testNomrmalize04', 'foo:%3a%2f%3f%23%5b%5d%40',
+             uri.normalizeEscape('foo:%3a%2f%3f%23%5b%5d%40'));
+    });
+
+    it('handle path segment normalization; cf. RFC2396bis section 6.2.2.4', () => {
+      testEq('testNormalize05', 'http://example/c', uri.normalizePathSegments('http://example/a/b/../../c'));
+      testEq('testNormalize06', 'http://example/a/', uri.normalizePathSegments('http://example/a/b/c/../../'));
+      testEq('testNormalize07', 'http://example/a/b/c/', uri.normalizePathSegments('http://example/a/b/c/./'));
+      testEq('testNormalize08', 'http://example/a/b/', uri.normalizePathSegments('http://example/a/b/c/.././'));
+      testEq('testNormalize09', 'http://example/e', uri.normalizePathSegments('http://example/a/b/c/d/../../../../e'));
+      testEq('testNormalize10', 'http://example/e', uri.normalizePathSegments('http://example/a/b/c/d/../.././../../e'));
+      testEq('testNormalize11', 'http://example/e', uri.normalizePathSegments('http://example/a/b/../.././../../e'));
+      testEq('testNormalize12', 'foo:e', uri.normalizePathSegments('foo:a/b/../.././../../e'));
+    });
+  });
 });
