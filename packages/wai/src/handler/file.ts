@@ -80,13 +80,13 @@ function unConditional(h: H.RequestHeaders, size: number): RspFileInfo {
 
 function parseRange(rng: string, size: number): RspFileInfo {
   const parsed = H.parseByteRanges(rng);
-  if (parsed.tag === P.MaybeType.NOTHING) {
+  if (P.isNothing(parsed))
     return rspFileInfo(RspFileInfoType.WITHOUTBODY, 416);
-  }
+
   const rngs = parsed.value;
-  if (rngs.length === 0) {
+  if (rngs.length === 0)
     return rspFileInfo(RspFileInfoType.WITHOUTBODY, 416);
-  }
+
   const [beg, end] = checkRange(rngs[0], size);
   const len = end - beg + 1;
   const st = beg == 0 && end == size - 1 ? 200 : 206;
@@ -94,16 +94,9 @@ function parseRange(rng: string, size: number): RspFileInfo {
 }
 
 function checkRange(rng: H.ByteRange, size: number): [number, number] {
-  if (rng.tag === H.ByteRangeType.RANGEFROM) {
-    return [rng.from, size - 1];
-  }
-  if (rng.tag === H.ByteRangeType.RANGEFROMTO) {
-    return [rng.from, Math.min(size - 1, rng.to)];
-  }
-  if (rng.tag === H.ByteRangeType.RANGESUFFIX) {
-    return [Math.max(0, size - rng.suffix), size - 1];
-  }
-  throw new TypeError('first argument to checkRange must be Http ByteRange');
+  return rng.tag === H.ByteRangeType.RANGEFROM ? [rng.from, size - 1]
+    : rng.tag === H.ByteRangeType.RANGEFROMTO ? [rng.from, Math.min(size - 1, rng.to)]
+      : [Math.max(0, size - rng.suffix), size - 1];
 }
 
 function ifMofiedSince_(headers: H.RequestHeaders): P.Maybe<H.HttpDate> {
@@ -128,9 +121,24 @@ function parseHttpHeader(
   return P.nothing;
 }
 
-function rspFileInfo(tag: RspFileInfoType.WITHOUTBODY, status: H.Status): RspFileInfo;
-function rspFileInfo(tag: RspFileInfoType.WITHBODY, status: H.Status, header: H.ResponseHeaders, offset: number, length: number): RspFileInfo;
-function rspFileInfo(tag: RspFileInfoType, status: H.Status, header?: H.ResponseHeaders, offset?: number, length?: number): RspFileInfo {
+export function rspFileInfo(
+  tag: RspFileInfoType.WITHOUTBODY,
+  status: H.Status
+): RspFileInfoWithoutBody;
+export function rspFileInfo(
+  tag: RspFileInfoType.WITHBODY,
+  status: H.Status,
+  header: H.ResponseHeaders,
+  offset: number,
+  length: number
+): RspFileInfoWithBody;
+export function rspFileInfo(
+  tag: RspFileInfoType,
+  status: H.Status,
+  header?: H.ResponseHeaders,
+  offset?: number,
+  length?: number
+): RspFileInfo {
   return { tag, status, header, offset, length } as RspFileInfo;
 }
 
