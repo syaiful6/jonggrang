@@ -5,3 +5,6 @@ export * from './ord';
 // reexport string
 import * as str from './str';
 export { str };
+
+import * as list from './list';
+export { list };
