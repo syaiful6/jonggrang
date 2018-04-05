@@ -1,4 +1,5 @@
 import 'mocha';
+import { expect } from 'chai';
 import * as jsv from 'jsverify';
 
 import * as M from '../../src/maybe';
@@ -45,6 +46,27 @@ describe('Prelude Maybe', () => {
           jsv.json,
           jsv.json,
           (a, b) => M.fromMaybe(a, M.just(b)) === b
+        )
+      )
+    );
+  });
+
+  describe('fromMaybe_', () => {
+    it('should call the thunk if Nothing passed', () =>
+      jsv.assert(
+        jsv.forall(
+          jsv.fn(jsv.nat),
+          f => M.fromMaybe_(f as any, M.nothing) === f(void 0)
+        )
+      )
+    );
+
+    it('should return the value inside just', () =>
+      jsv.assert(
+        jsv.forall(
+          jsv.nat,
+          jsv.fn(jsv.nat),
+          (a, f) => deepEq(M.fromMaybe_(f as any, M.just(a)), a)
         )
       )
     );
@@ -117,5 +139,50 @@ describe('Prelude Maybe', () => {
         )
       )
     );
+  });
+
+  describe('maybe_', () => {
+    it('call the thunk if the Maybe is Nothing', () =>
+      jsv.assert(
+        jsv.forall(
+          jsv.fn(jsv.nat),
+          jsv.fn(jsv.nat),
+          (f, g) => deepEq(M.maybe_(f as any, g, M.nothing), f(void 0))
+        )
+      )
+    );
+
+    it('apply function to value inside Just', () =>
+      jsv.assert(
+        jsv.forall(
+          jsv.nat,
+          jsv.fn(jsv.nat),
+          jsv.fn(jsv.nat),
+          (a, f, g) => deepEq(M.maybe_(f as any, g, M.just(a)), g(a))
+        )
+      )
+    );
+  });
+
+  describe('chainMaybe', () => {
+    it('does not call functions if the maybe is Nothing', () => {
+      let ix = 0;
+      function transform(a: string) {
+        ix++;
+        return M.just('fail');
+      }
+      let e = M.chainMaybe(M.nothing, transform);
+      expect(ix).to.be.equals(0);
+      expect(e).to.be.deep.equals({ tag: M.MaybeType.NOTHING });
+    });
+
+    it('sequencing of `maybe` values and functions that return maybe', () => {
+      function transform(a: string) {
+        return M.just(a + 'sequencing');
+      }
+      let t = M.chainMaybe(M.just('value'), transform);
+      expect(t.tag).to.be.equals(M.MaybeType.JUST);
+      expect((t as any).value).to.be.equals('valuesequencing');
+    });
   });
 });

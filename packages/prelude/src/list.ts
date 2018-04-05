@@ -1,4 +1,5 @@
-import { just, nothing, Maybe, mapMaybe } from './maybe';
+import { just, nothing, Maybe, mapMaybe, isNothing, isJust } from './maybe';
+import { Either, isLeft } from './either';
 
 export const enum ListType {
   NIL,
@@ -162,6 +163,205 @@ export function length(xs: List<any>): number {
   return foldl(_increment, 0, xs);
 }
 
+// Indexed operations
+
+/**
+ * Get the element at the specified index, or `Nothing` if the index is out-of-bounds.
+ */
+export function index<A>(xs: List<A>, i: number): Maybe<A> {
+  while (xs.tag !== ListType.NIL) {
+    if (i === 0) return just(xs.head);
+    xs = xs.tail;
+    i--;
+  }
+
+  return nothing;
+}
+
+/**
+ * Find the first index for which a predicate holds.
+ */
+export function findIndex<A>(f: (_: A) => boolean, xs: List<A>): Maybe<number> {
+  let i = 0;
+  while (xs.tag !== ListType.NIL) {
+    if (f(xs.head)) return just(i);
+    xs = xs.tail;
+    i++;
+  }
+  return nothing;
+}
+
+/**
+ * Find the last index for which a predicate holds.
+ */
+export function findLastIndex<A>(f: (_: A) => boolean, xs: List<A>): Maybe<number> {
+  return mapMaybe(findIndex(f, reverse(xs)), ix => (length(xs) - 1) - ix);
+}
+
+/**
+ * Insert an element into a list at the specified index, returning a new
+ * list or `Nothing` if the index is out-of-bounds.
+ */
+export function insertAt<A>(ix: number, x: A, xs: List<A>): Maybe<List<A>> {
+  return ix === 0 ? just(cons(x, xs))
+    : xs.tag === ListType.CONS ? mapMaybe(insertAt(ix - 1, x, xs.tail), ys => cons(xs.head, ys))
+      : nothing;
+}
+
+/**
+ * Delete an element from a list at the specified index, returning a new
+ * list or `Nothing` if the index is out-of-bounds.
+ */
+export function deleteAt<A>(ix: number, xs: List<A>): Maybe<List<A>> {
+  return ix === 0 && xs.tag === ListType.CONS ? just(xs.tail)
+    : xs.tag === ListType.CONS ?  mapMaybe(deleteAt(ix - 1, xs.tail), ys => cons(xs.head, ys))
+      : nothing;
+}
+
+/**
+ * Update the element at the specified index, returning a new
+ * list or `Nothing` if the index is out-of-bounds.
+ */
+export function updateAt<A>(ix: number, x: A, xs: List<A>): Maybe<List<A>> {
+  return ix === 0 && xs.tag === ListType.CONS ? just(cons(x, xs.tail))
+    : xs.tag === ListType.CONS ? mapMaybe(updateAt(ix - 1, x, xs.tail), ys => cons(xs.head, ys))
+      : nothing;
+}
+
+/**
+ * Update the element at the specified index by applying a function to
+ * the current value, returning a new list or `Nothing` if the index is
+ * out-of-bounds.
+ */
+export function modifiAt<A>(ix: number, f: (x: A) => A, xs: List<A>): Maybe<List<A>> {
+  return alterAt(ix, x => just(f(x)), xs);
+}
+
+/**
+ * Update or delete the element at the specified index by applying a
+ * function to the current value, returning a new list or `Nothing` if the
+ * index is out-of-bounds.
+ */
+export function alterAt<A>(ix: number, f: (x: A) => Maybe<A>, xs: List<A>): Maybe<List<A>> {
+  if (ix === 0 && xs.tag === ListType.CONS) {
+    let ret = f(xs.head);
+    return isNothing(ret) ? just(xs.tail) : just(cons(ret.value, xs.tail));
+  }
+
+  return xs.tag === ListType.CONS
+    ? mapMaybe(alterAt(ix - 1, f, xs.tail), ys => cons(xs.head, ys))
+    : nothing;
+}
+
+// Transformations
+
+/**
+ * Flatten a list of lists.
+ */
+export function concat<A>(xxs: List<List<A>>): List<A> {
+  return concatMap(id as any, xxs);
+}
+
+/**
+ * Apply a function to each element in a list, and flatten the results
+ * into a single, new list.
+ */
+export function concatMap<A, B>(f: (x: A) => List<B>, xs: List<A>): List<B> {
+  let acc: List<B> = nil;
+  while (xs.tag !==  ListType.NIL) {
+    acc = append(acc, f(xs.head));
+    xs = xs.tail;
+  }
+  return acc;
+}
+
+/**
+ * Transform each element in a list using a given function
+ */
+export function map<A, B>(f: (_: A) => B, xs: List<A>): List<B> {
+  let acc: List<B> = nil;
+  while (xs.tag === ListType.CONS) {
+    acc = cons(f(xs.head), acc);
+    xs = xs.tail;
+  }
+  return reverse(acc);
+}
+
+/**
+ * Apply a function to each element in a list, keeping only the results which
+ * contain a value.
+ */
+export function filterMap<A, B>(f: (x: A) => Maybe<B>, xs: List<A>): List<B> {
+  let acc: List<B> = nil;
+  let ret: Maybe<B>;
+  while (xs.tag !== ListType.NIL) {
+    ret = f(xs.head);
+    if (isJust(ret)) acc = cons(ret.value, acc);
+    xs = xs.tail;
+  }
+  return reverse(acc);
+}
+
+/**
+ * Filter a list, keeping the elements which satisfy a predicate function.
+ */
+export function filter<A>(f: (x: A) => boolean, xs: List<A>): List<A> {
+  let acc: List<A> = nil;
+  while (xs.tag !== ListType.NIL) {
+    if (f(xs.head)) acc = cons(xs.head, acc);
+    xs = xs.tail;
+  }
+  return reverse(acc);
+}
+
+/**
+ * partition a List on an either predicate.
+ */
+export function partitionMap<A, L, R>(
+  f: (_: A) => Either<L, R>,
+  xs: List<A>
+): { left: List<L>; right: List<R> } {
+  function select(x: A, acc: { left: List<L>; right: List<R> }): { left: List<L>; right: List<R> } {
+    let ret = f(x);
+    return isLeft(ret) ? { left: cons(ret.value, acc.left), right: acc.right }
+      : { left: acc.left, right: cons(ret.value, acc.right) };
+  }
+  return foldr(select, { left: nil, right: nil }, xs);
+}
+
+/**
+ * Append to list
+ */
+export function append<A>(xs: List<A>, ys: List<A>): List<A> {
+  return foldr(cons, ys, xs) as any;
+}
+
+// Zipping
+/**
+ * Apply a function to pairs of elements at the same positions in two lists,
+ * collecting the results in a new list.
+ * If one list is longer, elements will be discarded from the longer list.
+ */
+export function zipWith<A, B, C>(f: (a: A, b: B) => C, xs: List<A>, ys: List<B>): List<C> {
+  let acc: List<C> = nil;
+  while (xs.tag === ListType.CONS && ys.tag === ListType.CONS) {
+    acc = cons(f(xs.head, ys.head), acc);
+    xs = xs.tail;
+    ys = ys.tail;
+  }
+  return reverse(acc);
+}
+
+/**
+ * Collect pairs of elements at the same positions in two lists.
+ */
+export function zip<A, B>(xs: List<A>, ys: List<B>): List<[A, B]> {
+  return zipWith(arrTuple as any, xs, ys);
+}
+
+/**
+ * Convert List<A> to string using mapping function from A to string
+ */
 export function joinWith<A>(xs: List<A>, f: (x: A) => string): string {
   let out = '';
   while (xs.tag !== ListType.NIL) {
@@ -177,4 +377,12 @@ function _increment(a: number) {
 
 function _takeInit<A>(un: { init: List<A>, last: A }): List<A> {
   return un.init;
+}
+
+function id<A>(x: A): A {
+  return x;
+}
+
+function arrTuple<A, B>(x: A, y: B): [A, B] {
+  return [x, y];
 }
