@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import * as S from '../../src/str';
 import { just, nothing } from '../../src/maybe';
 
+
 describe('Prelude Str', () => {
   describe('isEmpty', () => {
     it('Return true if passed empty string', () => {

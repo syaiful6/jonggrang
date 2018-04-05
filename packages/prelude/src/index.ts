@@ -3,5 +3,8 @@ export * from './either';
 export * from './eq';
 export * from './ord';
 // reexport string
-import * as Str from './str';
-export { Str };
+import * as str from './str';
+export { str };
+
+import * as list from './list';
+export { list };

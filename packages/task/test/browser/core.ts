@@ -12,23 +12,23 @@ const testTry = Q.assertTask(T.attempt(T.Task.of(42)).chain(x => {
 }));
 
 const tsGen = T.co(function* () {
-  let ref = yield Q.newRef("");
+  let ref = yield Q.newRef('');
   yield T.forkTask(T.co(function* () {
     yield T.delay(10);
-    return Q.modifyRef(ref, x => x + 'child')
+    return Q.modifyRef(ref, x => x + 'child');
   }));
   yield Q.modifyRef(ref, x => x + 'go');
   yield T.delay(20);
   yield Q.modifyRef(ref, (x) => x + 'parent');
   let b = yield Q.readRef(ref);
-  return T.Task.of(b === 'gochildparent')
-})
+  return T.Task.of(b === 'gochildparent');
+});
 
 const tsChaiRecAsync = T.Task.chainRec(function (f, g, x) {
   if (x > 10) {
     return T.Task.of(g(x));
   } else {
-    return T.delay(0).chain(_ => T.Task.of(f(x + 1)))
+    return T.delay(0).chain(_ => T.Task.of(f(x + 1)));
   }
 }, 0);
 
@@ -46,7 +46,7 @@ const taskMultiJoin = T.co(function* () {
   }));
   let n1 = yield T.forIn([f1, f1, f1, f2], T.joinFiber);
   let n2 = yield Q.readRef(ref);
-  return T.Task.of(n1.reduce((a: number, b: number) => a + b, 0) === 50 && n2 === 3)
+  return T.Task.of(n1.reduce((a: number, b: number) => a + b, 0) === 50 && n2 === 3);
 });
 
 const testSupervise: T.Task<boolean> = T.co(function* () {
@@ -65,7 +65,7 @@ const testSupervise: T.Task<boolean> = T.co(function* () {
   }));
   yield T.delay(20);
   let r2 = yield Q.readRef(ref);
-  return T.pure(r1 === "done" && r2 === "acquiredonerelease")
+  return T.pure(r1 === 'done' && r2 === 'acquiredonerelease');
 });
 
 const testKillParallelAlt: T.Task<boolean> = T.co(function* () {
@@ -75,22 +75,22 @@ const testKillParallelAlt: T.Task<boolean> = T.co(function* () {
       T.pure(void 0),
       () => Q.modifyRef(ref, s2 => s2 + 'killed' + s),
       () => T.delay(n).then(Q.modifyRef(ref, s2 => s2 + s))
-    )
+    );
   let f1: T.Fiber<void> = yield T.forkTask(T.sequential(
     action(10, 'foo').parallel().alt(action(20, 'bar').parallel())
   ));
   let f2: T.Fiber<void> = yield T.forkTask(T.co(function* () {
     yield T.delay(5);
     yield T.killFiber(new Error('Nope'), f1);
-    return Q.modifyRef(ref, s => s + 'done')
+    return Q.modifyRef(ref, s => s + 'done');
   }));
   yield T.attempt(T.joinFiber(f1));
   yield T.attempt(T.joinFiber(f2));
-  return Q.readRef(ref).map(s => s === 'killedfookilledbardone')
-})
+  return Q.readRef(ref).map(s => s === 'killedfookilledbardone');
+});
 
 function timer(text: string, cb: (err: Error | null, t: string) => void): void {
-  setTimeout(() => cb(null, text), 100)
+  setTimeout(() => cb(null, text), 100);
 }
 
 describe('Task.Core', () => {
@@ -129,18 +129,18 @@ describe('Task.Core', () => {
       );
     });
 
-    it("fork", (done) => {
+    it('fork', (done) => {
       T.runTask(
         done,
         Q.assertTask(
-          Q.newRef("")
+          Q.newRef('')
           .chain(ref => {
             return T.forkTask(T.delay(10).chain(_ => Q.modifyRef(ref, (s) => s + 'child')))
               .chain(_ => Q.modifyRef(ref, (x) => x + 'go'))
               .chain(_ => T.delay(20))
               .chain(_ => Q.modifyRef(ref, (x) => x + 'parent'))
               .chain(_ => Q.readRef(ref))
-              .map(s => s === 'gochildparent')
+              .map(s => s === 'gochildparent');
           })
         )
       );
@@ -150,7 +150,7 @@ describe('Task.Core', () => {
       T.runTask(
         done,
         Q.assertTask(
-          Q.newRef("")
+          Q.newRef('')
           .chain(ref => {
             return T.suspendTask(T.delay(10).chain(_ => Q.modifyRef(ref, (s) => s + 'child')))
               .chain(fib => {
@@ -159,7 +159,7 @@ describe('Task.Core', () => {
                   .chain(_ => Q.modifyRef(ref, (x) => x + 'parent'))
                   .chain(_ => T.joinFiber(fib))
                   .chain(_ => Q.readRef(ref))
-                  .map(s => s === 'goparentchild')
+                  .map(s => s === 'goparentchild');
               });
           })
         )
@@ -171,7 +171,7 @@ describe('Task.Core', () => {
     );
 
     it('ChainRec', (done) => {
-      T.runTask(done, Q.shouldBe(11, tsChaiRecAsync))
+      T.runTask(done, Q.shouldBe(11, tsChaiRecAsync));
     });
 
     it('test generator', (done) => {
@@ -207,14 +207,14 @@ describe('Task.Core', () => {
           return T.pure(E.isLeft(r1) && r2 === 'foo');
         })))
       )
-    )
+    );
 
     it('kill parallel alt', done =>
       T.runTask(
         done,
         Q.assertTask(testKillParallelAlt)
       )
-    )
+    );
   });
 
   describe('Error handling & Joining forked Task', () => {
@@ -222,7 +222,7 @@ describe('Task.Core', () => {
       T.runTask(done, Q.assertTask(T.co(function* () {
         let fib = yield T.forkTask(T.co(function* () {
           yield T.delay(10);
-          return T.Task.throwError(new Error('Nope.'))
+          return T.Task.throwError(new Error('Nope.'));
         }));
         let et = yield T.attempt(T.joinFiber(fib));
         return T.Task.of(et.tag === E.EitherType.LEFT);
@@ -281,17 +281,17 @@ describe('Task.Core', () => {
           T.delay(20).then(T.raise(new Error('failed'))),
           T.delay(40).map(_ => 5)
         ])
-      ))
+      ));
     });
   });
 
   describe('co fn', () => {
-    it('can run more than once', (done) => {
+    it('can run more than once', (done) =>
       T.runTask(
         done,
         Q.shouldBe(true, tsGen.then(tsGen).then(tsGen))
       )
-    })
+    );
   });
 
   describe('fromNodeBack', () => {
@@ -306,5 +306,5 @@ describe('Task.Core', () => {
       const t = T.node(null, 'yes', timer);
       T.runTask(done, Q.equals(t, t));
     });
-  })
+  });
 });

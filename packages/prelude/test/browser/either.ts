@@ -5,7 +5,6 @@ import * as jsv from 'jsverify';
 import * as E from '../../src/either';
 import { deepEq } from '../../src/eq';
 import { id } from './utils';
-import { deepEqual } from 'assert';
 
 
 function leftArb<A>(arb: jsv.Arbitrary<A>): jsv.Arbitrary<E.Either<A, any>> {
@@ -82,19 +81,19 @@ describe('Prelude Either', () => {
 
   describe('lmapEither', () => {
     it('map the content of Left', () =>
-      jsv.forall(
+      jsv.assert(jsv.forall(
         leftArb(jsv.nat),
         jsv.fn(jsv.nat),
-        (a, f) => deepEqual(E.lmapEither(a, f), E.left(f(a.value)))
-      )
+        (a, f) => deepEq(E.lmapEither(a, f), E.left(f(a.value)))
+      ))
     );
 
     it('Right value is untouched', () =>
-      jsv.forall(
+      jsv.assert(jsv.forall(
         rightArb(jsv.nat),
         jsv.fn(jsv.nat),
-        (a, f) => deepEqual(E.lmapEither(a, f), a)
-      )
+        (a, f) => deepEq(E.lmapEither(a, f), a)
+      ))
     );
   });
 
@@ -119,6 +118,30 @@ describe('Prelude Either', () => {
           (t, f, g) => deepEq(E.either(f, g, t), g(t.value))
         )
       )
+    );
+  });
+
+  describe('altEither choose the right value', () => {
+    expect(E.altEither(E.right(0), E.left(1))).to.deep.equals(E.right(0));
+    expect(E.altEither(E.left(0), E.right(1))).to.deep.equals(E.right(1));
+    expect(E.altEither(E.left(0), E.left(1))).to.deep.equals(E.left(1));
+  });
+
+  describe('inspect Either constructor', () => {
+    it('isRight return false if given left', () =>
+      jsv.assert(jsv.forall(leftArb(jsv.nat), lf => E.isRight(lf) === false))
+    );
+
+    it('isRight return true if passed right', () =>
+      jsv.assert(jsv.forall(rightArb(jsv.nat), rg => E.isRight(rg) === true))
+    );
+
+    it('isLeft return false if given right', () =>
+      jsv.assert(jsv.forall(rightArb(jsv.nat), rg => E.isLeft(rg) === false))
+    );
+
+    it('isLeft return true if passed left', () =>
+      jsv.assert(jsv.forall(leftArb(jsv.nat), lf => E.isLeft(lf) === true))
     );
   });
 
