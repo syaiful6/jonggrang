@@ -1,4 +1,7 @@
-import * as P from '@jonggrang/prelude';
+import {
+  Either, left, right, bimapEither, mapEither, just, nothing, Maybe,
+  list as L
+} from '@jonggrang/prelude';
 
 import { Parser, defParser, tailRecParser, fail } from './parser';
 
@@ -6,22 +9,22 @@ import { Parser, defParser, tailRecParser, fail } from './parser';
 /**
  * Read ahead without consuming input.
 */
-export function lookAhead<A>(p: Parser<A>) {
+export function lookAhead<A>(p: Parser<A>): Parser<A> {
   return defParser(s =>
-    P.mapEither(p.fn(s), ({ result }) => ({ result, suffix: s }))
+    mapEither(p.fn(s), ({ result }) => ({ result, suffix: s }))
   );
 }
 
-export function many<A>(p: Parser<A>): Parser<A[]> {
-  function go(i: A[]): Parser<P.Either<A[], A[]>> {
-    return (p.map(P.left) as Parser<P.Either<A, null>>).alt(Parser.of(P.right(null)))
-      .map(aa => P.bimapEither(aa, x => withAppend(i, x), () => i));
+export function many<A>(p: Parser<A>): Parser<L.List<A>> {
+  function go(xs: L.List<A>): Parser<Either<L.List<A>, L.List<A>>> {
+    return (p.map(left) as Parser<Either<A, null>>).alt(Parser.of(right(null)))
+      .map(aa => bimapEither(aa, x => L.cons(x, xs), () => L.reverse(xs)));
   }
-  return tailRecParser([] as A[], go);
+  return tailRecParser(L.nil as L.List<A>, go);
 }
 
-export function many1<A>(p: Parser<A>): Parser<A[]> {
-  return p.chain(head => many(p).map(xs => consArr(head, xs)));
+export function many1<A>(p: Parser<A>): Parser<L.List<A>> {
+  return p.chain(head => many(p).map(xs => L.cons(head, xs)));
 }
 
 export function withError<A>(p: Parser<A>, msg: string): Parser<A> {
@@ -46,35 +49,35 @@ export function optional(p: Parser<any>): Parser<void> {
   return p.map(() => {}).alt(Parser.of(void 0));
 }
 
-export function optionMaybe<A>(p: Parser<A>): Parser<P.Maybe<A>> {
-  return option(P.nothing, p.map(P.just));
+export function optionMaybe<A>(p: Parser<A>): Parser<Maybe<A>> {
+  return option(nothing, p.map(just));
 }
 
-export function sepBy<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
-  return sepBy1(p, sep).alt(Parser.of([]));
+export function sepBy<A>(p: Parser<A>, sep: Parser<any>): Parser<L.List<A>> {
+  return sepBy1(p, sep).alt(Parser.of(L.nil));
 }
 
 // Parse one or more separated values.
-export function sepBy1<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
-  return p.chain(a => many(sep.chain(() => p)).map(as => consArr(a, as)));
+export function sepBy1<A>(p: Parser<A>, sep: Parser<any>): Parser<L.List<A>> {
+  return p.chain(a => many(sep.chain(() => p)).map(as => L.cons(a, as)));
 }
 
-export function sepEndBy<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
-  return sepEndBy1(p, sep).alt(Parser.of([]));
+export function sepEndBy<A>(p: Parser<A>, sep: Parser<any>): Parser<L.List<A>> {
+  return sepEndBy1(p, sep).alt(Parser.of(L.nil));
 }
 
-export function sepEndBy1<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
+export function sepEndBy1<A>(p: Parser<A>, sep: Parser<any>): Parser<L.List<A>> {
   return p.chain(a =>
-    sep.chain(() => sepEndBy(p, sep).map(as => consArr(a, as)))
-      .alt(Parser.of([a]))
+    sep.chain(() => sepEndBy(p, sep).map(as => L.cons(a, as)))
+      .alt(Parser.of(L.singleton(a)))
   );
 }
 
-export function endBy1<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
+export function endBy1<A>(p: Parser<A>, sep: Parser<any>): Parser<L.List<A>> {
   return many1(p.chain(a => sep.map(() => a)));
 }
 
-export function endBy<A>(p: Parser<A>, sep: Parser<any>): Parser<A[]> {
+export function endBy<A>(p: Parser<A>, sep: Parser<any>): Parser<L.List<A>> {
   return many(p.chain(a => sep.map(() => a)));
 }
 
@@ -84,25 +87,4 @@ export function choice<A>(xs: Parser<A>[]): Parser<A> {
 
 export function useDef<A>(a: A, p: Parser<any>): Parser<A> {
   return p.map(() => a);
-}
-
-function withAppend<A>(xs: A[], x: A): A[] {
-  const len = xs.length;
-  const ys = new Array(len + 1);
-  let i: number;
-  for (i = 0; i < len; i++) {
-    ys[i] = xs[i];
-  }
-  ys[i] = x;
-  return ys;
-}
-
-function consArr<A>(x: A, xs: A[]): A[] {
-  const len = xs.length;
-  const ys = new Array(len + 1);
-  ys[0] = x;
-  for (let i = 0; i < len; i++) {
-    ys[i + 1] = xs[i];
-  }
-  return ys;
 }

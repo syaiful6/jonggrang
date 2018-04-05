@@ -2,7 +2,7 @@ import { EitherType, Either, Left, Right, left, right } from '@jonggrang/prelude
 
 import {
   CoreTask, Pure, Throw, Except, Bind, Bracket, Sync, Async, Fork, Sequential,
-  ParTask, ParMap,createCoreTask, Task, Supervisor, Computation, Fiber, Canceler,
+  ParTask, ParMap, createCoreTask, Task, Supervisor, Computation, Fiber, Canceler,
   Fn1, IntMap, OnComplete, NodeCallback, Eff, nonCanceler
 } from './types';
 import { scheduler } from './scheduler';
@@ -257,7 +257,7 @@ class ParComputation<A> implements Computation<A> {
             head._3 = fail;
             tmp     = true;
             kid     = this._killId++;
-            this._kills[kid] = this.kill(new Error("[Paraller] Early exit"), fail === lhs ? head._2 : head._1, () => {
+            this._kills[kid] = this.kill(new Error('[Paraller] Early exit'), fail === lhs ? head._2 : head._1, () => {
               delete this._kills[kid as any];
               if (tmp) {
                 tmp = false;

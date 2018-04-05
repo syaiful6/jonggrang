@@ -1,4 +1,4 @@
-import * as P from '@jonggrang/prelude';
+import { just, nothing, Maybe, list as L } from '@jonggrang/prelude';
 import * as PS from '@jonggrang/parsing';
 
 import { URI, URIAuth, mkURI, mkURIAuth } from '../types';
@@ -25,7 +25,7 @@ const isHexTable = [
 
 const hexDigitChar: PS.Parser<string> = PS.satisfy(isHexDigitAt);
 
-const escaped: PS.Parser<string> = sequenceP([ PS.char('%'), hexDigitChar, hexDigitChar ]).map(joinStr);
+const escaped: PS.Parser<string> = sequenceP([ PS.char('%'), hexDigitChar, hexDigitChar ]).map(arrjoinStr);
 
 const subDelims = PS.oneOf(['!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '=']);
 
@@ -38,14 +38,14 @@ const uscheme: PS.Parser<string> = PS.co(function* () {
 });
 
 const userinfo: PS.Parser<string> = PS.co(function* () {
-  const uu: string[] = yield PS.many(uchar(';:&=+$,'));
+  const uu: L.List<string> = yield PS.many(uchar(';:&=+$,'));
   yield PS.char('@');
-  return PS.pure(uu.join('') + '@');
+  return PS.pure(joinStr(uu) + '@');
 });
 
 const ipvFuture: PS.Parser<string> = PS.co(function* () {
   const h: string = yield PS.between(PS.char('v'), PS.char('.'), hexDigitChar);
-  const a = yield PS.many1(PS.satisfy(isIpvFutureChar)).map(joinStr);
+  const a: string = yield PS.many1(PS.satisfy(isIpvFutureChar)).map(joinStr);
   return PS.pure(`v${h}.${a}`);
 });
 
@@ -94,24 +94,24 @@ function optNH4cH4(n: number): PS.Parser<string> {
 const ipv6address: PS.Parser<string> = PS.attempt(
   countP(6, h4c).chain(a2 => ls32.map(a3 => a2 + a3))
 ).alt(PS.attempt(
-  PS.string('::').chain(() => countP(5, h4c).map(joinStr))
+  PS.string('::').chain(() => countP(5, h4c).map(arrjoinStr))
     .chain(a2 => ls32.map(a3 => `::${a2}${a3}`))
 )).alt(PS.attempt(PS.co(function* () {
   const a1: string = yield optNH4cH4(0);
   yield PS.string('::');
-  const a2: string = yield countP(4, h4c).map(joinStr);
+  const a2: string = yield countP(4, h4c).map(arrjoinStr);
   const a3: string = yield ls32;
   return PS.pure(`${a1}::${a2}${a3}`);
 }))).alt(PS.attempt(PS.co(function* () {
   const a1: string = yield optNH4cH4(1);
   yield PS.string('::');
-  const a2: string = yield countP(3, h4c).map(joinStr);
+  const a2: string = yield countP(3, h4c).map(arrjoinStr);
   const a3: string = yield ls32;
   return PS.pure(`${a1}::${a2}${a3}`);
 }))).alt(PS.attempt(PS.co(function* () {
   const a1: string = yield optNH4cH4(2);
   yield PS.string('::');
-  const a2: string = yield countP(2, h4c).map(joinStr);
+  const a2: string = yield countP(2, h4c).map(arrjoinStr);
   const a3: string = yield ls32;
   return PS.pure(`${a1}::${a2}${a3}`);
 }))).alt(PS.attempt(PS.co(function* () {
@@ -170,7 +170,7 @@ const ufragment: PS.Parser<string> = PS.many(uchar(':@/?')).map(x => `#${joinStr
 
 const host: PS.Parser<string> = ipLiteral.alt(PS.attempt(ipv4address)).alt(regName);
 
-const port: PS.Parser<string> = PS.char(':').chain(() => PS.many(PS.anyDigit)).map(xs => `:${xs.join('')}`);
+const port: PS.Parser<string> = PS.char(':').chain(() => PS.many(PS.anyDigit)).map(xs => `:${joinStr(xs)}`);
 
 const segment = PS.many(pchar).map(joinStr);
 
@@ -182,12 +182,12 @@ const segmentNzc = PS.many1(uchar('@')).map(joinStr);
 
 const pathAbEmpty: PS.Parser<string> = PS.many(slashSegment).map(joinStr);
 
-const pathNoScheme: PS.Parser<string> = segmentNzc.chain(s1 => PS.many(slashSegment).map(ss => s1 + ss.join('')));
+const pathNoScheme: PS.Parser<string> = segmentNzc.chain(s1 => PS.many(slashSegment).map(ss => s1 + joinStr(ss)));
 
 const pathRootLess: PS.Parser<string> = PS.co(function* () {
   const s1: string = yield segmentNz;
-  const ss: string[] = yield PS.many(slashSegment);
-  return PS.pure(s1 + ss.join(''));
+  const ss: L.List<string> = yield PS.many(slashSegment);
+  return PS.pure(s1 + joinStr(ss));
 });
 
 const pathAbs: PS.Parser<string> = PS.co(function* () {
@@ -196,44 +196,44 @@ const pathAbs: PS.Parser<string> = PS.co(function* () {
   return PS.pure(`/${ss}`);
 });
 
-const uauthority: PS.Parser<P.Maybe<URIAuth>> = PS.co(function* () {
+const uauthority: PS.Parser<Maybe<URIAuth>> = PS.co(function* () {
   const uu: string = yield PS.option('', PS.attempt(userinfo));
   const uh: string = yield host;
   const up: string = yield PS.option('', port);
-  return PS.pure(P.just(mkURIAuth(uu, uh, up)));
+  return PS.pure(just(mkURIAuth(uu, uh, up)));
 });
 
-const relativePart: PS.Parser<[P.Maybe<URIAuth>, string]> = PS.co(function* () {
+const relativePart: PS.Parser<[Maybe<URIAuth>, string]> = PS.co(function* () {
   yield PS.attempt(PS.string('//'));
-  const ua: P.Maybe<URIAuth> = yield uauthority;
+  const ua: Maybe<URIAuth> = yield uauthority;
   const up: string = yield pathAbEmpty;
   return PS.pure([ua, up]);
 })
-  .alt(pathAbs.map(p => [P.nothing, p]))
-  .alt(pathNoScheme.map(p => [P.nothing, p]))
-  .alt(PS.pure([P.nothing, '']));
+  .alt(pathAbs.map(p => [nothing, p]))
+  .alt(pathNoScheme.map(p => [nothing, p]))
+  .alt(PS.pure([nothing, '']));
 
 export const relativeRef: PS.Parser<URI> = PS.co(function* () {
   yield notMatching(uscheme);
-  const [ua, path]: [P.Maybe<URIAuth>, string] = yield relativePart;
+  const [ua, path]: [Maybe<URIAuth>, string] = yield relativePart;
   const uq: string = yield PS.option('', PS.char('?').chain(() => uquery));
   const uf: string = yield PS.option('', PS.char('#').chain(() => ufragment));
   return PS.pure(mkURI('', ua, path, uq, uf));
 });
 
-const hierPart: PS.Parser<[P.Maybe<URIAuth>, string]> = PS.co(function* () {
+const hierPart: PS.Parser<[Maybe<URIAuth>, string]> = PS.co(function* () {
   yield PS.attempt(PS.string('//'));
-  const ua: P.Maybe<URIAuth> = yield uauthority;
+  const ua: Maybe<URIAuth> = yield uauthority;
   const up: string = yield pathAbEmpty;
   return PS.pure([ua, up]);
 })
-  .alt(pathAbs.map(ps => [P.nothing, ps]))
-  .alt(pathRootLess.map(ps => [P.nothing, ps]))
-  .alt(PS.pure([P.nothing, '']));
+  .alt(pathAbs.map(ps => [nothing, ps]))
+  .alt(pathRootLess.map(ps => [nothing, ps]))
+  .alt(PS.pure([nothing, '']));
 
 export const uri: PS.Parser<URI> = PS.co(function* () {
   const us: string = yield PS.attempt(uscheme);
-  const [ua, up]: [P.Maybe<URIAuth>, string] = yield hierPart;
+  const [ua, up]: [Maybe<URIAuth>, string] = yield hierPart;
   const uq: string = yield PS.option('', PS.char('?').chain(() => uquery));
   const uf: string = yield PS.option('', PS.char('#').chain(() => ufragment));
   return PS.pure(mkURI(us, ua, up, uq, uf));
@@ -241,15 +241,15 @@ export const uri: PS.Parser<URI> = PS.co(function* () {
 
 export const absoluteURI: PS.Parser<URI> = PS.co(function* () {
   const us: string = yield uscheme;
-  const [ua, up]: [P.Maybe<URIAuth>, string] = yield hierPart;
+  const [ua, up]: [Maybe<URIAuth>, string] = yield hierPart;
   const uq: string = yield PS.option('', PS.char('?').chain(() => uquery));
   return PS.pure(mkURI(us, ua, up, uq, ''));
 });
 
 export const uriReference: PS.Parser<URI> = uri.alt(relativeRef);
 
-function oneThenMany<A>(p: PS.Parser<A>, r: PS.Parser<A>): PS.Parser<A[]> {
-  return p.chain(x => PS.many(r).map(xs => [x].concat(xs)));
+function oneThenMany<A>(p: PS.Parser<A>, r: PS.Parser<A>): PS.Parser<L.List<A>> {
+  return p.chain(x => PS.many(r).map(xs => L.cons(x, xs)));
 }
 
 function countP<A>(n: number, p: PS.Parser<A>): PS.Parser<A[]> {
@@ -268,13 +268,13 @@ function notMatching(p: PS.Parser<any>): PS.Parser<void> {
   return PS.attempt(p).chain(x => PS.fail('unexpected')).alt(PS.pure(void 0));
 }
 
-function countMinMax<A>(m: number, n: number, p: PS.Parser<A>): PS.Parser<A[]> {
+function countMinMax<A>(m: number, n: number, p: PS.Parser<A>): PS.Parser<L.List<A>> {
   if (m > 0) {
-    return p.chain(x => countMinMax(m - 1, n - 1, p).map(ar => [x].concat(ar)));
+    return p.chain(x => countMinMax(m - 1, n - 1, p).map(ar => L.cons(x, ar)));
   } else if (n <= 0) {
-    return PS.pure([]);
+    return PS.pure(L.nil);
   }
-  return PS.option([], p.chain(x => countMinMax(0, n - 1, p).map(ar => [x].concat(ar))));
+  return PS.option(L.nil, p.chain(x => countMinMax(0, n - 1, p).map(ar => L.cons(x, ar))));
 }
 
 function concatArr<A>(xs: A[]) {
@@ -295,7 +295,11 @@ function ident<A>(a: A): A {
   return a;
 }
 
-function joinStr(xs: string[]) {
+function joinStr(xs: L.List<string>): string {
+  return L.joinWith(xs, ident);
+}
+
+function arrjoinStr(xs: string[]): string {
   return xs.join('');
 }
 
