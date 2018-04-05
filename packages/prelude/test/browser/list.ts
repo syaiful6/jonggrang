@@ -255,4 +255,9 @@ describe('Prelude list', () => {
       right: L.list(0, 2, 4, 6, 8, 10)
     });
   });
+
+  it('fromArray and toArray should isomorphic', () => {
+    let xs = [1, 2, 3, 4, 5];
+    expect(L.toArray(L.fromArray(xs))).to.deep.equals(xs);
+  });
 });

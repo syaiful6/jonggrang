@@ -1,6 +1,7 @@
 import { just, nothing, Maybe, mapMaybe, isNothing, isJust } from './maybe';
 import { Either, isLeft } from './either';
 
+
 export const enum ListType {
   NIL,
   CONS
@@ -27,6 +28,27 @@ export const nil: List<any> = { tag: ListType.NIL };
  */
 export function list<A>(...xs: A[]): List<A> {
   return xs.reduceRight((li, a) => cons(a, li), nil);
+}
+
+// to and from array
+
+/**
+ * Create a list from an array
+ */
+export function fromArray<A>(xs: A[]): List<A> {
+  return xs.reduceRight((xs, x) => cons(x, xs), nil);
+}
+
+/**
+ * convert a list to an array
+ */
+export function toArray<A>(xs: List<A>): A[] {
+  let out: A[] = [];
+  while (xs.tag === ListType.CONS) {
+    out.push(xs.head);
+    xs = xs.tail;
+  }
+  return out;
 }
 
 /**
@@ -367,6 +389,24 @@ export function joinWith<A>(xs: List<A>, f: (x: A) => string): string {
   while (xs.tag !== ListType.NIL) {
     out += f(xs.head);
     xs = xs.tail;
+  }
+  return out;
+}
+
+/**
+ * Joins the elements of list  with a separator between them.
+ */
+export function join(xs: List<string>, separator?: string): string {
+  let out = '';
+  let first = true;
+  separator = separator || '';
+  while (xs.tag === ListType.CONS) {
+    if (first) {
+      out += xs.head;
+      first = false;
+    } else {
+      out += separator + xs.head;
+    }
   }
   return out;
 }
