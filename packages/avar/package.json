@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/avar",
   "description": "An asynchronous variable to be used with Task module.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,8 +18,8 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/prelude": "0.1.4",
-    "@jonggrang/task": "0.2.2"
+    "@jonggrang/prelude": "0.1.5",
+    "@jonggrang/task": "0.2.3"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",

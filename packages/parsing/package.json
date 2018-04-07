@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/parsing",
   "description": "A monadic string parsing lib",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,7 +18,7 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/prelude": "0.1.4"
+    "@jonggrang/prelude": "0.1.5"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
