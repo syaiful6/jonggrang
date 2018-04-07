@@ -4,9 +4,10 @@ import * as R from '@jonggrang/ref';
 
 import { identity } from './utils';
 
+
 export interface Settings<W, I> {
   action: (workload: W) => T.Task<(workload: W) => W>;
-  delay: number;
+  delay: number; // number in miliseconds
   cons: (item: I, workload: W) => W;
   isNull: (workload: W) => boolean;
   empty: W;

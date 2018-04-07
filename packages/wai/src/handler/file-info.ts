@@ -7,6 +7,10 @@ import * as H from '@jonggrang/http-types';
 import { smInsertTuple } from './utils';
 import { Reaper, mkReaper } from './reaper';
 
+
+/**
+ * File information
+ */
 export class FileInfo {
   constructor(
     readonly name: string,
@@ -47,6 +51,10 @@ export function withFileInfoCache<A>(
     : T.bracket(initialize(delay), terminate, s => action(getAndRegisterInfo(s)));
 }
 
+/**
+ * Getting the file information corresponding to the file.
+ * @param path The path to file
+ */
 export function getFileInfo(path: string): T.Task<FileInfo> {
   return T.node(null, path, FS.stat)
     .chain(stat => {

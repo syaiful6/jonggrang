@@ -105,7 +105,7 @@ function fdcreateReadStream(fd: number, range: FileRange) {
 
 type PipeState = {
   onError: ((e: Error) => void) | null;
-  onSucces: (() => void) | null;
+  onSuccess: (() => void) | null;
   resolved: boolean;
 };
 
@@ -114,13 +114,13 @@ export function pipeStream<W extends Writable, T extends Readable>(ws: W, rs: T)
     rs.pipe(ws, { end: false });
     const state: PipeState = {
       onError: null,
-      onSucces: null,
+      onSuccess: null,
       resolved: false
     };
     state.onError = onError.bind(null, state, rs, cb);
-    state.onSucces = onSucces.bind(null, state, rs, cb);
+    state.onSuccess = onSuccess.bind(null, state, rs, cb);
     rs.once('error', state.onError as any);
-    rs.once('end', state.onSucces as any);
+    rs.once('end', state.onSuccess as any);
     return T.thunkCanceller(() => cleanUpListener(state, rs));
   });
 }
@@ -132,7 +132,7 @@ function onError<T extends Stream>(s: PipeState, st: T, cb: T.NodeCallback<void,
   }
 }
 
-function onSucces<T extends Stream>(s: PipeState, st: T, cb: T.NodeCallback<void, void>) {
+function onSuccess<T extends Stream>(s: PipeState, st: T, cb: T.NodeCallback<void, void>) {
   cb(null, void 0);
   if (!s.resolved) {
     cleanUpListener(s, st);
@@ -142,10 +142,10 @@ function onSucces<T extends Stream>(s: PipeState, st: T, cb: T.NodeCallback<void
 function cleanUpListener<T extends Stream>(s: PipeState, st: T) {
   if (s.resolved) return;
   st.removeListener('error', s.onError as any);
-  st.removeListener('end', s.onSucces as any);
+  st.removeListener('end', s.onSuccess as any);
 
   s.onError = null;
-  s.onSucces = null;
+  s.onSuccess = null;
   s.resolved = true;
 }
 
