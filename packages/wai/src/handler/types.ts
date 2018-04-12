@@ -4,7 +4,7 @@ import * as P from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
 import * as H from '@jonggrang/http-types';
 
-import { Request, Response, responseBuffer } from '../index';
+import { Request, Response, responseBuffer } from '../type';
 import { FileInfo } from './file-info';
 import { GetFd } from './fd-cache';
 import { ListenOptions } from 'net';
