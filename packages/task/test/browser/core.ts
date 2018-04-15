@@ -307,4 +307,39 @@ describe('Task.Core', () => {
       T.runTask(done, Q.equals(t, t));
     });
   });
+
+  describe('bothPar', () => {
+    it('wait both task to completed', done =>
+      T.runTask(
+        done,
+        Q.shouldBe(
+          ['a', 'b'],
+          T.bothPar([ T.node(null, 'a', timer), T.node(null, 'b', timer)])
+        )
+      )
+    );
+
+    it('if one fail, both task raised error', done =>
+      T.runTask(
+        done,
+        Q.assertTask(
+          T.attempt(
+            T.bothPar([ T.node(null, 'a', timer), T.raise(new Error('fail'))])
+          ).map(E.isLeft)
+        )
+      )
+    );
+  });
+
+  describe('both', () => {
+    it('complete the task with pair of result of two task', done =>
+      T.runTask(
+        done,
+        Q.shouldBe(
+          ['a', 1],
+          T.both([ T.delay(50).map(() => 'a'), T.delay(50).map(() => 1)])
+        )
+      )
+    );
+  });
 });

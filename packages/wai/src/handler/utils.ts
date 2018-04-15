@@ -3,6 +3,7 @@ import { Writable } from 'stream';
 import * as SM from '@jonggrang/object';
 import * as T from '@jonggrang/task';
 
+
 export function smInsertTuple<K extends string, A>(pair: [K, A], sm: SM.StrMap<K, A>): SM.StrMap<K, A> {
   return SM.insert(pair[0], pair[1], sm);
 }

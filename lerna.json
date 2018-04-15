@@ -8,5 +8,8 @@
       "*.md",
       "test/**"
     ]
-  }
+  },
+  "packages": [
+    "packages/*"
+  ]
 }
