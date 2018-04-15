@@ -33,14 +33,7 @@ export function conditionalRequest(
   hs0: H.ResponseHeaders,
   hm: H.RequestHeaders
 ): RspFileInfo {
-  const mcondition = (function () {
-    const im = ifModified(hm, finfo.size, finfo.time);
-    if (P.isJust(im)) return im;
-    const ium = ifUnmodifiedSince(hm, finfo.size, finfo.time);
-    if (P.isJust(ium)) return ium;
-    return ifRange(hm, finfo.size, finfo.time);
-  })();
-  const condition = P.fromMaybe_(() => unConditional(hm, finfo.size), mcondition);
+  const condition = P.fromMaybe_(() => unConditional(hm, finfo.size), conditionModifiedRange(finfo, hm));
   if (condition.tag === RspFileInfoType.WITHOUTBODY) return condition;
   let hs = addContentHeaders(hs0, condition.offset, condition.length, finfo.size);
   hs['Last-Modified'] = finfo.date;
@@ -49,6 +42,14 @@ export function conditionalRequest(
 
 export function addContentHeadersForFilePart(hs: H.ResponseHeaders, fp: FilePart) {
   return addContentHeaders(hs, fp.offset, fp.byteCount, fp.size);
+}
+
+function conditionModifiedRange(finfo: FileInfo, hm: H.RequestHeaders): P.Maybe<RspFileInfo> {
+  const im = ifModified(hm, finfo.size, finfo.time);
+  if (P.isJust(im)) return im;
+  const ium = ifUnmodifiedSince(hm, finfo.size, finfo.time);
+  if (P.isJust(ium)) return ium;
+  return ifRange(hm, finfo.size, finfo.time);
 }
 
 function ifModified(h: H.RequestHeaders, size: number, d: H.HttpDate): P.Maybe<RspFileInfo> {

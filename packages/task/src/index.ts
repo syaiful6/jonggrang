@@ -252,7 +252,7 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
 export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
   const fib = launchTask(t);
   fib.onComplete({
-    rethrow: false,
+    rethrow: true,
     handler: cb
   });
   return fib;
@@ -369,6 +369,20 @@ export function forInPar<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<B[]> {
  */
 export function mergePar<A>(xs: Task<A>[]): Task<A[]> {
   return forInPar(xs, id);
+}
+
+/**
+ * Wait both task to complete, that tasks will be executed in parallel
+ */
+export function bothPar<A, B>(xs: [Task<A>, Task<B>]): Task<[A, B]> {
+  return xs[0].map(pair as (a: A) => (b: B) => [A, B]).parallel().ap(xs[1].parallel()).sequential();
+}
+
+/**
+ * Wait both task to complete, the task will be executed in sequential
+ */
+export function both<A, B>(xs: [Task<A>, Task<B>]): Task<[A, B]> {
+  return xs[0].map(pair as (a: A) => (b: B) => [A, B]).ap(xs[1]);
 }
 
 /**
