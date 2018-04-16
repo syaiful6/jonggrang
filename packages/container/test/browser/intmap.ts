@@ -103,20 +103,6 @@ describe('Container IntMap', () => {
     P.isNothing(IM.lookup(k, IM.alter(() => P.nothing, k, IM.insert(k, v, im))))
   );
 
-  it('alter can be used to updating', () =>
-    jsv.assert(
-      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, jsv.number, (im, k, v1, v2) =>
-        P.maybe(
-          false,
-          ret => ret === (v1 + v2),
-          IM.lookup(
-            k,
-            IM.alter(mv => P.just(P.maybe(v2, v3 => v3 + v2, mv)), k, IM.insert(k, v1, im)))
-        )
-      )
-    )
-  );
-
   jsv.property('alter can be used for updating', intMapArb(jsv.number), jsv.integer,
                jsv.number, jsv.number, (im, k, v1, v2) =>
     P.maybe(

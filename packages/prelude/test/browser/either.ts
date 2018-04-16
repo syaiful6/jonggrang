@@ -63,26 +63,14 @@ describe('Prelude Either', () => {
   });
 
   describe('either', () => {
-    it('returns the value of a Left after applying the first function arg', () =>
-      jsv.assert(
-        jsv.forall(
-          leftArb(jsv.nat),
-          jsv.fn(jsv.nat),
-          jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(E.either(f, g, t), f(t.value))
-        )
-      )
+    jsv.property('returns the value of a Left after applying the first function arg',
+                 leftArb(jsv.nat), jsv.fn(jsv.nat), jsv.fn(jsv.nat), (t, f, g) =>
+      deepEq(E.either(f, g, t), f(t.value))
     );
 
-    it('returns the value of a Right after applying the second function arg', () =>
-      jsv.assert(
-        jsv.forall(
-          rightArb(jsv.nat),
-          jsv.fn(jsv.nat),
-          jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(E.either(f, g, t), g(t.value))
-        )
-      )
+    jsv.property('returns the value of a Right after applying the second function arg',
+                 rightArb(jsv.nat), jsv.fn(jsv.nat), jsv.fn(jsv.nat), (t, f, g) =>
+      deepEq(E.either(f, g, t), g(t.value))
     );
   });
 
@@ -93,21 +81,13 @@ describe('Prelude Either', () => {
   });
 
   describe('inspect Either constructor', () => {
-    it('isRight return false if given left', () =>
-      jsv.assert(jsv.forall(leftArb(jsv.nat), lf => E.isRight(lf) === false))
-    );
+    jsv.property('isRight return false if given left', leftArb(jsv.nat), t => E.isRight(t) === false);
 
-    it('isRight return true if passed right', () =>
-      jsv.assert(jsv.forall(rightArb(jsv.nat), rg => E.isRight(rg) === true))
-    );
+    jsv.property('isRight return true if passed right', rightArb(jsv.nat), t => E.isRight(t) === true);
 
-    it('isLeft return false if given right', () =>
-      jsv.assert(jsv.forall(rightArb(jsv.nat), rg => E.isLeft(rg) === false))
-    );
+    jsv.property('isLeft return false if given right', rightArb(jsv.nat), t => E.isLeft(t) === false);
 
-    it('isLeft return true if passed left', () =>
-      jsv.assert(jsv.forall(leftArb(jsv.nat), lf => E.isLeft(lf) === true))
-    );
+    jsv.property('isLeft return true if passed left', leftArb(jsv.nat), t => E.isLeft(t) === true);
   });
 
   describe('chainEither', () => {
