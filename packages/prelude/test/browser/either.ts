@@ -24,24 +24,13 @@ function eitherArb<A, B>(
 
 describe('Prelude Either', () => {
   describe('mapEither', () => {
-    it('functor identity', () =>
-      jsv.assert(
-        jsv.forall(
-          eitherArb(jsv.nat, jsv.string),
-          t => deepEq(t, E.mapEither(t, id))
-        )
-      )
+    jsv.property('functor identity', eitherArb(jsv.nat, jsv.string), t =>
+      deepEq(t, E.mapEither(t, id))
     );
 
-    it('functor compose', () =>
-      jsv.assert(
-        jsv.forall(
-          eitherArb(jsv.nat, jsv.string),
-          jsv.fn(jsv.nat),
-          jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(E.mapEither(t, x => f(g(x))), E.mapEither(E.mapEither(t, g), f))
-        )
-      )
+    jsv.property('functor compose', eitherArb(jsv.nat, jsv.string), jsv.fn(jsv.nat),
+                 jsv.fn(jsv.nat), (t, f, g) =>
+      deepEq(E.mapEither(t, x => f(g(x))), E.mapEither(E.mapEither(t, g), f))
     );
 
     it('Left value is untouched', () =>
@@ -56,44 +45,20 @@ describe('Prelude Either', () => {
   });
 
   describe('bimapEither', () => {
-    it('maps the first function over the left value', () =>
-      jsv.assert(
-        jsv.forall(
-          leftArb(jsv.nat),
-          jsv.fn(jsv.nat),
-          jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(E.bimapEither(t, f, g).value, f(t.value))
-        )
-      )
-    );
+    jsv.property('maps the first function over the left value', leftArb(jsv.nat), jsv.fn(jsv.nat),
+                 jsv.fn(jsv.nat), (t, f, g) => deepEq(E.bimapEither(t, f, g).value, f(t.value)));
 
-    it('maps the second function over the right value', () =>
-      jsv.assert(
-        jsv.forall(
-          rightArb(jsv.nat),
-          jsv.fn(jsv.nat),
-          jsv.fn(jsv.nat),
-          (t, f, g) => deepEq(E.bimapEither(t, f, g), E.mapEither(t, g))
-        )
-      )
-    );
+    jsv.property('maps the second function over the right value', rightArb(jsv.nat), jsv.fn(jsv.nat),
+                 jsv.fn(jsv.nat), (t, f, g) => deepEq(E.bimapEither(t, g, g), E.mapEither(t, g)));
   });
 
   describe('lmapEither', () => {
-    it('map the content of Left', () =>
-      jsv.assert(jsv.forall(
-        leftArb(jsv.nat),
-        jsv.fn(jsv.nat),
-        (a, f) => deepEq(E.lmapEither(a, f), E.left(f(a.value)))
-      ))
+    jsv.property('map the content of Left', leftArb(jsv.nat), jsv.fn(jsv.nat), (a, f) =>
+      deepEq(E.lmapEither(a, f), E.left(f(a.value)))
     );
 
-    it('Right value is untouched', () =>
-      jsv.assert(jsv.forall(
-        rightArb(jsv.nat),
-        jsv.fn(jsv.nat),
-        (a, f) => deepEq(E.lmapEither(a, f), a)
-      ))
+    jsv.property('Right value is untouched', rightArb(jsv.nat), jsv.fn(jsv.nat), (a, f) =>
+      deepEq(E.lmapEither(a, f), a)
     );
   });
 

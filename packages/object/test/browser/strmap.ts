@@ -3,6 +3,7 @@ import * as jsv from 'jsverify';
 import * as M from '../../src/strmap';
 import * as P from '@jonggrang/prelude';
 
+
 const enum InstructionType {
   INSERT,
   DELETE
@@ -37,6 +38,20 @@ function instructionArb<V>(arb: jsv.Arbitrary<V>): jsv.Arbitrary<Instruction<V>>
   });
 }
 
+function strMapGen<A>(arb: jsv.Arbitrary<A>): (n: number) => M.StrMap<string, A> {
+  return function (n: number) {
+    let arbs = jsv.array(instructionArb(arb));
+    let instruct = arbs.generator(n);
+    return runInstruction(instruct, {});
+  };
+}
+
+function strMapArb<A>(arb: jsv.Arbitrary<A>): jsv.Arbitrary<M.StrMap<string, A>> {
+  return jsv.bless({
+    generator: jsv.generator.bless(strMapGen(arb))
+  });
+}
+
 function runInstruction<V>(
   xs: Instruction<V>[],
   m: M.StrMap<string, V>
@@ -52,115 +67,51 @@ function stepIns<V>(
 }
 
 describe('StrMap', () => {
-  it('can inserting into empty tree', () =>
-    jsv.assert(
-      jsv.forall(jsv.string, jsv.number, (k, v) =>
-        P.maybe(
-          false,
-          vm => vm === v,
-          M.lookup(k, M.insert(k, v, {} as M.StrMap<string, number>))
-        )
-      )
+  jsv.property('can inserting into empty tree', jsv.string, jsv.number, (k, v) =>
+    P.maybe(
+      false,
+      v2 => v === v2,
+      M.lookup(k, M.insert(k, v, {} as M.StrMap<string, number>))
     )
   );
 
-  it('inserting value with same key keep the last one', () =>
-    jsv.assert(
-      jsv.forall(jsv.asciistring, jsv.number, jsv.number, (k, v1, v2) =>
-        P.maybe(
-          false,
-          mv => mv === v2,
-          M.lookup(k, M.insert(k, v2, M.insert(k, v1, {})))
-        )
-      )
+  jsv.property('inserting value with same key keep the last one', jsv.asciistring,
+               jsv.number, jsv.number, (k, v1, v2) =>
+    P.maybe(
+      false,
+      mv => mv === v2,
+      M.lookup(k, M.insert(k, v2, M.insert(k, v1, {})))
     )
   );
 
-  it('removing after inserting', () =>
-    jsv.assert(
-      jsv.forall(jsv.asciistring, jsv.number, (k, v) =>
-        M.isEmpty(M.remove(k, M.insert(k, v, {})))
-      )
-    )
+  jsv.property('removing after inserting', jsv.asciistring, jsv.number, (k, v) =>
+    M.isEmpty(M.remove(k, M.insert(k, v, {})))
   );
 
-  it('pop after insertiong', () =>
-    jsv.assert(
-      jsv.forall(
-        jsv.asciistring,
-        jsv.nat,
-        (k, v) =>
-          P.deepEq(
-            M.pop(k, M.insert(k, v, {})),
-            P.just([v, {}])
-          )
-      )
-    )
+  jsv.property('pop after inserting', jsv.asciistring, jsv.nat, (k, v) =>
+    P.deepEq(M.pop(k, M.insert(k, v, {})), P.just([v, {}]))
   );
 
-  it('Pop non-existent key returns Nothing', () =>
-    jsv.assert(
-      jsv.forall(
-        jsv.asciistring,
-        jsv.asciistring,
-        jsv.number,
-        (k1, k2, v) =>
-          k1 == k2 || P.deepEq(M.pop(k2, M.insert(k1, v, {})), P.nothing)
-      )
-    )
+  jsv.property('pop non-existent key return Nothing', jsv.asciistring, jsv.asciistring,
+               jsv.number, (k1, k2, v) =>
+    k1 === k2 || P.deepEq(M.pop(k2, M.insert(k1, v, {})), P.nothing)
   );
 
-  it('can random lookup', () =>
-    jsv.assert(
-      jsv.forall(
-        jsv.array(instructionArb(jsv.number)),
-        jsv.string,
-        jsv.number,
-        (instr, k, v) => {
-          let tree = M.insert(k, v, runInstruction(instr, {}));
-          return P.maybe(false, vm => vm === v, M.lookup(k, tree));
-        }
-      )
-    )
+  jsv.property('can random lookup', strMapArb(jsv.nat), jsv.string, jsv.number, (sm, k, v) =>
+    P.maybe(false, v2 => v === v2, M.lookup(k, M.insert(k, v, sm)))
   );
 
-  it('lookup from union', () =>
-    jsv.assert(
-      jsv.forall(
-        jsv.dict(jsv.number),
-        jsv.dict(jsv.number),
-        jsv.asciistring,
-        (m1, m2, k) => {
-          let mv = M.lookup(k, m1);
-          return P.deepEq(
-            M.lookup(k, M.union(m1, m2)),
-            P.isNothing(mv) ? M.lookup(k, m2) : mv
-          );
-        }
-      )
-    )
+  jsv.property('lookup from union', strMapArb(jsv.number), strMapArb(jsv.number),
+               jsv.asciistring, (m1, m2, k) => {
+    const mv = M.lookup(k, m1);
+    return P.deepEq(M.lookup(k, M.union(m1, m2)), P.isNothing(mv) ? M.lookup(k, m2) : mv);
+  });
+
+  jsv.property('lookup from emptry strMap return Nothing', jsv.string, k =>
+    P.isNothing(M.lookup(k, {}))
   );
 
-  it('lookup from empty strMap return Nothing', () =>
-    jsv.assert(
-      jsv.forall(
-        jsv.asciistring,
-        k => P.isNothing(M.lookup(k, {}))
-      )
-    )
-  );
-
-  it('Union is idempotent', () =>
-    jsv.assert(
-      jsv.forall(
-        jsv.dict(jsv.number),
-        jsv.dict(jsv.number),
-        (m1, m2) =>
-          P.deepEq(
-            M.union(m1, m2),
-            M.union(M.union(m1, m2), m2)
-          )
-      )
-    )
+  jsv.property('Union is idempotent', strMapArb(jsv.number), strMapArb(jsv.number), (m1, m2) =>
+    P.deepEq(M.union(m1, m2), M.union(M.union(m1, m2), m2))
   );
 });
