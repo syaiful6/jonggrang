@@ -170,6 +170,19 @@ describe('Task.Core', () => {
       T.runTask(done, Q.assertTask(testSupervise))
     );
 
+    it('kill fiber', done =>
+      T.runTask(
+        done,
+        Q.assertTask(
+          T.forkTask(T.never)
+          .chain(fiber =>
+            T.killFiber(new Error('nope'), fiber)
+              .chain(() => T.attempt(T.joinFiber(fiber)).map(E.isLeft))
+          )
+        )
+      )
+    );
+
     it('ChainRec', (done) => {
       T.runTask(done, Q.shouldBe(11, tsChaiRecAsync));
     });

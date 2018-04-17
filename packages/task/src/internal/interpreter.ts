@@ -146,7 +146,7 @@ class ParComputation<A> implements Computation<A> {
 
   private resolve(fib: Forked, err: Error | null | undefined, data: any) {
     delete this._fibers[fib._1];
-    let result: Either<Error, any> = err ? left(err) : right(data);
+    const result: Either<Error, any> = err != null ? left(err) : right(data);
     fib._3 = result;
     this.join(result, fib._2._1, (fib._2 as any)._2);
   }
@@ -164,14 +164,12 @@ class ParComputation<A> implements Computation<A> {
         case 'FORKED':
           if ((step as Forked)._3 === TEMPTY) {
             tmp = this._fibers[step._1];
-            if (tmp != null) {
-              kills[count++] = tmp.kill(error, function (err: any, data: any) {
-                  count--;
-                  if (count === 0) {
-                    cb(err, data);
-                  }
-                });
-            }
+            kills[count++] = tmp.kill(error, (err: any, data: any) => {
+              count--;
+              if (count === 0) {
+                cb(err, data);
+              }
+            });
           }
           // Terminal case.
           if (head === null) {
@@ -228,11 +226,14 @@ class ParComputation<A> implements Computation<A> {
       rhs = null;
       tmp = null;
       kid = null;
+      // We should never continue if the entire tree has been interrupted.
       if (this._interupt != null) {
         return;
       }
-      if (head == null) {
-        runHandler(this._callback, (fail || step) as Either<Error, any>);
+      // We've made it all the way to the root of the tree, which means
+      // the tree has fully evaluated.
+      if (head === null) {
+        runHandler(this._callback, (fail || step || left(new Error('early error'))) as Either<Error, any>);
         return;
       }
 
@@ -519,7 +520,11 @@ export class TaskFiber<A> implements Fiber<A> {
 
   run() {
     if (this._status === StateFiber.SUSPENDED) {
-      scheduler.enqueue(() => this.runRaw(this._runTick));
+      if (!scheduler.isDraining()) {
+        scheduler.enqueue(() => this.runRaw(this._runTick));
+      } else {
+        this.runRaw(this._runTick);
+      }
     }
   }
 
@@ -528,7 +533,7 @@ export class TaskFiber<A> implements Fiber<A> {
   }
 
   runRaw(localRunTick: number) {
-    let tmp: any, result: any, attempt: any, sync: boolean;
+    let tmp: any, result: any, attempt: any;
     while (true) {
       tmp       = null;
       result    = null;
@@ -622,25 +627,17 @@ export class TaskFiber<A> implements Fiber<A> {
 
             case 'ASYNC':
               this._status = StateFiber.PENDING;
-              sync = true;
               this._step = runAsync((this._step as Async<any>)._1, (er, v) => {
                 if (this._runTick !== localRunTick) {
                   return;
                 }
                 this._runTick++;
-                if (sync) {
-                  scheduler.enqueue(() => {
-                    this._status = StateFiber.STEP_RESULT;
-                    this._step = er != null ? left(er) : right(v);
-                    this.runRaw(this._runTick);
-                  });
-                } else {
+                scheduler.enqueue(() => {
                   this._status = StateFiber.STEP_RESULT;
                   this._step = er != null ? left(er) : right(v);
                   this.runRaw(this._runTick);
-                }
+                });
               });
-              sync = false; // mark to async
               return;
 
             case 'BRACKET':
