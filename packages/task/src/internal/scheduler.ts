@@ -37,6 +37,7 @@ export class Scheduler {
 
   private _drain() {
     let thunk: Eff<any> | void;
+    this._draining = false;
     while (this._size !== 0) {
       this._size--;
       thunk = this._queue[this._ix];
@@ -46,7 +47,6 @@ export class Scheduler {
         thunk();
       }
     }
-    this._draining = false;
   }
 
   enqueue(thunk: Eff<any>) {
@@ -109,7 +109,7 @@ export class Scheduler {
   }
 
   _useSetTimeout() {
-    return () => setTimeout(() => this._drain())
+    return () => setTimeout(() => this._drain());
   }
 
   isDraining() {

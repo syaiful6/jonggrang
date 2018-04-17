@@ -13,7 +13,7 @@ export function id<A>(a: A): A {
 export function withAppend(xs: any[], x: any): any[] {
   const len = xs.length;
   const ys = new Array(len + 1);
-  var i: number;
+  let i: number;
   for (i = 0; i < len; i++) {
     ys[i] = xs[i];
   }
