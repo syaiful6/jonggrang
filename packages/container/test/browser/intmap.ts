@@ -67,95 +67,49 @@ function stepIns<V>(
 }
 
 describe('Container IntMap', () => {
-  it('can inserting into empty intmap', () =>
-    jsv.assert(
-      jsv.forall(jsv.integer, jsv.number, (k, v) =>
-        P.maybe(
-          false,
-          v1 => v === v1,
-          IM.lookup(k, IM.insert(k, v, IM.empty))
-        )
+  jsv.property('can inserting into empty intmap', jsv.integer, jsv.number, (k, v) =>
+    P.maybe(false, v2 => v === v2, IM.lookup(k, IM.insert(k, v, IM.empty)))
+  );
+
+  jsv.property('inserting value with same key keep the last one', jsv.integer, jsv.number,
+               jsv.number, (k, v1, v2) =>
+    P.maybe(false, v3 => v2 === v3, IM.lookup(k, IM.insert(k, v2, IM.insert(k, v1, IM.empty))))
+  );
+
+  jsv.property('removing after inserting', jsv.integer, jsv.number, (k, v) =>
+    IM.isEmpty(IM.remove(k, IM.insert(k, v, IM.empty)))
+  );
+
+  jsv.property('random lookup', intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) =>
+    P.maybe(false, v1 => v === v1, IM.lookup(k, IM.insert(k, v, im)))
+  );
+
+  jsv.property('remove then lookup misses', intMapArb(jsv.number), jsv.integer, (im, k) =>
+    P.isNothing(IM.lookup(k, IM.remove(k, im)))
+  );
+
+  jsv.property('alter can be used for insert', intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) =>
+    P.maybe(
+      false,
+      v2 => v === v2,
+      IM.lookup(
+        k,
+        IM.alter(m => P.altMaybe(m, P.just(v)), k, IM.remove(k, im))
       )
     )
   );
 
-  it('inserting value with same key keep the last one', () =>
-    jsv.assert(
-      jsv.forall(jsv.integer, jsv.number, jsv.number, (k, v1, v2) =>
-        P.maybe(
-          false,
-          v3 => v2 === v3,
-          IM.lookup(k, IM.insert(k, v2, IM.insert(k, v1, IM.empty)))
-        )
-      )
-    )
+  jsv.property('alter can be used for deleting', intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) =>
+    P.isNothing(IM.lookup(k, IM.alter(() => P.nothing, k, IM.insert(k, v, im))))
   );
 
-  it('removing after inserting', () =>
-    jsv.assert(
-      jsv.forall(jsv.integer, jsv.number, (k, v) =>
-        IM.isEmpty(IM.remove(k, IM.insert(k, v, IM.empty)))
-      )
-    )
-  );
-
-  it('can random lookup', () =>
-    jsv.assert(
-      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) => {
-        const t = IM.insert(k, v, im);
-        return P.maybe(false, v1 => v === v1, IM.lookup(k, t));
-      })
-    )
-  );
-
-  it('remove then lookup misses', () =>
-    jsv.assert(
-      jsv.forall(intMapArb(jsv.number), jsv.integer, (im, k) =>
-        P.isNothing(IM.lookup(k, IM.remove(k, im)))
-      )
-    )
-  );
-
-  it('alter can be used to insert', () =>
-    jsv.assert(
-      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) =>
-        P.maybe(
-          false,
-          v2 => v === v2,
-          IM.lookup(
-            k,
-            IM.alter(
-              m => P.maybe(P.just(v), P.just, m) as P.Maybe<number>,
-              k,
-              IM.remove(k, im)
-            )
-          )
-        )
-      )
-    )
-  );
-
-  it('alter can be used to deleting', () =>
-    jsv.assert(
-      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, (im, k, v) =>
-        P.isNothing(
-          IM.lookup(k, IM.alter(() => P.nothing, k, IM.insert(k, v, im)))
-        )
-      )
-    )
-  );
-
-  it('alter can be used to updating', () =>
-    jsv.assert(
-      jsv.forall(intMapArb(jsv.number), jsv.integer, jsv.number, jsv.number, (im, k, v1, v2) =>
-        P.maybe(
-          false,
-          ret => ret === (v1 + v2),
-          IM.lookup(
-            k,
-            IM.alter(mv => P.just(P.maybe(v2, v3 => v3 + v2, mv)), k, IM.insert(k, v1, im)))
-        )
-      )
-    )
+  jsv.property('alter can be used for updating', intMapArb(jsv.number), jsv.integer,
+               jsv.number, jsv.number, (im, k, v1, v2) =>
+    P.maybe(
+      false,
+      v3 => v3 === (v1 + v2),
+      IM.lookup(
+        k,
+        IM.alter(mv => P.just(P.maybe(v2, v3 => v3 + v2, mv)), k, IM.insert(k, v1, im))))
   );
 });
