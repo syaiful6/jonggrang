@@ -130,6 +130,138 @@ describe('Task.Core', () => {
       );
     });
 
+    it('suspend', (done) => {
+      T.runTask(
+        done,
+        Q.assertTask(
+          Q.newRef('')
+          .chain(ref => {
+            return T.suspendTask(T.delay(10).chain(_ => Q.modifyRef(ref, (s) => s + 'child')))
+              .chain(fib => {
+                return Q.modifyRef(ref, (x) => x + 'go')
+                  .chain(_ => T.delay(20))
+                  .chain(_ => Q.modifyRef(ref, (x) => x + 'parent'))
+                  .chain(_ => T.joinFiber(fib))
+                  .chain(_ => Q.readRef(ref))
+                  .map(s => s === 'goparentchild');
+              });
+          })
+        )
+      );
+    });
+
+    it('supervise', done =>
+      T.runTask(done, Q.assertTask(testSupervise))
+    );
+
+    it('ChainRec', (done) => {
+      T.runTask(done, Q.shouldBe(11, tsChaiRecAsync));
+    });
+
+    it('test generator', (done) => {
+      T.runTask(done, Q.assertTask(tsGen));
+    });
+
+    it('Async work', (done) => {
+      T.runTask(done, Q.equals(T.delay(20).map(x => 2), T.Task.of(2)));
+    });
+
+    it('merge array of Tasks', (done) => {
+      T.runTask(done, Q.shouldBe([42, 99], T.merge([T.Task.of(42), T.Task.of(99)])));
+    });
+  });
+
+  describe('parallel task applicative', () => {
+    it('parallel', done =>
+      T.runTask(done, Q.assertTask(T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+        function action(s: string) {
+          return T.delay(10)
+            .chain(() => Q.modifyRef(ref, t => t + s))
+            .map(() => s);
+        }
+        function combine(a: string) {
+          return (b: string) => ({ a, b });
+        }
+        let f1: T.Fiber<{ a: string; b: string; }> = yield T.forkTask(T.sequential(
+          action('foo').parallel().map(combine).ap(action('bar').parallel())
+        ));
+        yield T.delay(15);
+        const r1: string = yield Q.readRef(ref);
+        const r2: { a: string; b: string; } = yield T.joinFiber(f1);
+        return T.pure(r1 === 'foobar' && r2.a === 'foo' && r2.b === 'bar');
+      })))
+    );
+
+    it('parallel throws', done =>
+      T.runTask(done, Q.assertTask(Q.withTimeout(100, T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+        function action(n: number, s: string) {
+          return T.delay(n)
+            .chain(() => Q.modifyRef(ref, t => t + s))
+            .map(() => s);
+        }
+        function combine(a: string) {
+          return (b: string) => ({ a, b });
+        }
+        let r1: E.Either<Error, { a: string; b: string; }> = yield T.attempt(T.sequential(
+          action(10, 'foo').chain(() => T.raise(new Error('Nope')))
+            .parallel()
+            .map(combine)
+            .ap(T.parallel(T.never))
+        ));
+        const r2: string = yield Q.readRef(ref);
+        return T.pure(E.isLeft(r1) && r2 === 'foo');
+      }))))
+    );
+
+    it('parallel alt', done =>
+      T.runTask(done, Q.assertTask(T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+        function action(n: number, s: string) {
+          return T.delay(n)
+            .chain(() => Q.modifyRef(ref, t => t + s))
+            .map(() => s);
+        }
+        const f1: T.Fiber<string> = yield T.forkTask(T.sequential(
+          T.parallel(action(10, 'foo')).alt(T.parallel(action(5, 'bar')))
+        ));
+        yield T.delay(10);
+        const r1: string = yield Q.readRef(ref);
+        const r2: string = yield T.joinFiber(f1);
+        return T.pure(r1 === 'bar' && r2 === 'bar');
+      })))
+    );
+
+    it('merge parallel array of Tasks', (done) => {
+      T.runTask(done, Q.shouldBe([42, 99], T.mergePar([T.Task.of(42), T.Task.of(99)])));
+    });
+
+    it('kill parallel alt', done => T.runTask(done, Q.assertTask(testKillParallelAlt)));
+
+    it('kill parallel alt finalizer', done =>
+      T.runTask(done, Q.assertTask(T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+        let f1: T.Fiber<void> = yield T.forkTask(T.sequential(
+          T.parallel(T.delay(10)).alt(T.parallel(T.bracket(
+            T.pure(void 0),
+            () => T.delay(10).chain(() => Q.modifyRef(ref, s => s + 'killed')),
+            () => T.delay(20)
+          )))
+        ));
+        let f2: T.Fiber<void> = yield T.forkTask(T.co(function* () {
+          yield T.delay(15);
+          yield T.killFiber(new Error('nope'), f1);
+          return Q.modifyRef(ref, s => s + 'done');
+        }));
+        yield T.attempt(T.joinFiber(f1));
+        yield T.attempt(T.joinFiber(f2));
+        return Q.readRef(ref).map(s => s === 'killeddone');
+      })))
+    );
+  });
+
+  describe('forking Task', () => {
     it('fork', (done) => {
       T.runTask(
         done,
@@ -159,31 +291,9 @@ describe('Task.Core', () => {
         )
       )
     );
+  });
 
-    it('suspend', (done) => {
-      T.runTask(
-        done,
-        Q.assertTask(
-          Q.newRef('')
-          .chain(ref => {
-            return T.suspendTask(T.delay(10).chain(_ => Q.modifyRef(ref, (s) => s + 'child')))
-              .chain(fib => {
-                return Q.modifyRef(ref, (x) => x + 'go')
-                  .chain(_ => T.delay(20))
-                  .chain(_ => Q.modifyRef(ref, (x) => x + 'parent'))
-                  .chain(_ => T.joinFiber(fib))
-                  .chain(_ => Q.readRef(ref))
-                  .map(s => s === 'goparentchild');
-              });
-          })
-        )
-      );
-    });
-
-    it('supervise', done =>
-      T.runTask(done, Q.assertTask(testSupervise))
-    );
-
+  describe('Kill fiber', () => {
     it('kill fiber', done =>
       T.runTask(
         done,
@@ -194,52 +304,6 @@ describe('Task.Core', () => {
               .chain(() => T.attempt(T.joinFiber(fiber)).map(E.isLeft))
           )
         )
-      )
-    );
-
-    it('ChainRec', (done) => {
-      T.runTask(done, Q.shouldBe(11, tsChaiRecAsync));
-    });
-
-    it('test generator', (done) => {
-      T.runTask(done, Q.assertTask(tsGen));
-    });
-
-    it('Async work', (done) => {
-      T.runTask(done, Q.equals(T.delay(20).map(x => 2), T.Task.of(2)));
-    });
-
-    it('merge array of Tasks', (done) => {
-      T.runTask(done, Q.shouldBe([42, 99], T.merge([T.Task.of(42), T.Task.of(99)])));
-    });
-
-    it('merge parallel array of Tasks', (done) => {
-      T.runTask(done, Q.shouldBe([42, 99], T.mergePar([T.Task.of(42), T.Task.of(99)])));
-    });
-
-    it('parallel/throw', done =>
-      T.runTask(
-        done,
-        Q.assertTask(Q.withTimeout(100, T.co(function* () {
-          let ref = yield Q.newRef('');
-          const action = (n: number, s: string) =>
-            T.delay(n).then(Q.modifyRef(ref, x => x + s)).then(T.pure(s));
-
-          let r1 = yield T.attempt(T.sequential(
-            T.parallel(action(10, 'foo').then(T.raise(new Error('nope'))))
-              .map((a: string) => (b: string) => ({a, b}))
-              .ap(T.parallel(T.never))
-          ));
-          let r2 = yield Q.readRef(ref);
-          return T.pure(E.isLeft(r1) && r2 === 'foo');
-        })))
-      )
-    );
-
-    it('kill parallel alt', done =>
-      T.runTask(
-        done,
-        Q.assertTask(testKillParallelAlt)
       )
     );
   });

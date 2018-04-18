@@ -166,12 +166,16 @@ class ParComputation<A> implements Computation<A> {
         case 'FORKED':
           if ((step as Forked)._3 === TEMPTY) {
             tmp = this._fibers[step._1];
-            kills[count++] = tmp.kill(error, (err: any, data: any) => {
-              count--;
-              if (count === 0) {
-                cb(err, data);
-              }
-            });
+            kills[count++] = (function (s: Fiber<any>) {
+              return () => {
+                return s.kill(error, (err: any, data: any) => {
+                  count--;
+                  if (count === 0) {
+                    cb(err, data);
+                  }
+                });
+              };
+            })(tmp);
           }
           // Terminal case.
           if (head === null) {
@@ -261,9 +265,9 @@ class ParComputation<A> implements Computation<A> {
             if (tmp) {
               tmp = false;
             } else if (tail === null) {
-              this.join(fail, null, null);
+              this.join(step, null, null);
             } else {
-              this.join(fail, tail._1, (tail as any)._2);
+              this.join(step, tail._1, (tail as any)._2);
             }
           });
           if (tmp) {
