@@ -4,6 +4,7 @@ import * as E from '@jonggrang/prelude';
 import * as T from '../../src';
 import * as Q from './utils';
 
+
 const testTry = Q.assertTask(T.attempt(T.Task.of(42)).chain(x => {
   if (x.tag === E.EitherType.RIGHT && x.value === 42) {
     return T.Task.of(true);
@@ -145,6 +146,19 @@ describe('Task.Core', () => {
         )
       );
     });
+
+    it('forked bracket', done =>
+      T.runTask(
+        done,
+        Q.assertTask(
+          T.bracket(
+            T.forkTask(T.pure(void 0)),
+            () => T.pure(void 0),
+            () => T.pure(true)
+          )
+        )
+      )
+    );
 
     it('suspend', (done) => {
       T.runTask(
