@@ -141,6 +141,56 @@ describe('Task.Core', () => {
     test('merge array of tasks', Q.shouldBe([42, 99], T.merge([ T.pure(42), T.pure(99)])));
   });
 
+  describe('Bracket', () => {
+    test('correctly run acquire, release and run', Q.assertTask(T.co(function* () {
+      let ref: Q.Ref<string[]> = yield Q.newRef([]);
+      function action(s: string) {
+        return T.delay(10)
+          .chain(() => Q.modifyRef(ref, xs => xs.concat([s])))
+          .map(() => s);
+      }
+      yield T.bracket(
+        action('foo'),
+        s => action(s + '/release').map(() => {}),
+        s => action(s + '/run')
+      );
+      return Q.readRef(ref).map(xs => E.deepEq(xs, [ 'foo', 'foo/run', 'foo/release' ]));
+    })));
+
+    test('correctly run acquire, release and run in nested bracket', Q.assertTask(T.co(function* () {
+      let ref: Q.Ref<string[]> = yield Q.newRef([]);
+      function action(s: string) {
+        return T.delay(10)
+          .chain(() => Q.modifyRef(ref, xs => xs.concat([s])))
+          .map(() => s);
+      }
+      function bracketAction(s: string) {
+        return T.bracket(
+          action(s + '/bar'),
+          t => action(t + '/release').map(() => {}),
+          t => action(t + '/run')
+        );
+      }
+      yield T.bracket(
+        bracketAction('foo'),
+        s => bracketAction(s + '/release').map(() => {}),
+        s => bracketAction(s + '/run')
+      );
+      return Q.readRef(ref).map(xs =>
+        E.deepEq(xs, [
+          'foo/bar',
+          'foo/bar/run',
+          'foo/bar/release',
+          'foo/bar/run/run/bar',
+          'foo/bar/run/run/bar/run',
+          'foo/bar/run/run/bar/release',
+          'foo/bar/run/release/bar',
+          'foo/bar/run/release/bar/run',
+          'foo/bar/run/release/bar/release'
+      ]));
+    })));
+  });
+
   describe('parallel task applicative', () => {
     test('parallel', Q.assertTask(T.co(function* () {
       let ref: Q.Ref<string> = yield Q.newRef('');
@@ -254,6 +304,31 @@ describe('Task.Core', () => {
             .chain(() => T.attempt(T.joinFiber(fiber)).map(E.isLeft))
         )
     ));
+
+    test('killing fiber call task\'s canceller', Q.assertTask(T.co(function* () {
+      let ref: Q.Ref<string> = yield Q.newRef('');
+      let fib: T.Fiber<void> = yield T.forkTask(T.makeTask(() => {
+        return () => T.delay(20).chain(() => Q.modifyRef(ref, () => 'cancel'));
+      }).chain(() => Q.modifyRef(ref, () => 'done')));
+      yield T.delay(10);
+      yield T.killFiber(new Error('nope'), fib);
+      let ret: E.Either<Error, void> = yield T.attempt(T.joinFiber(fib));
+      let s: string = yield Q.readRef(ref);
+      return T.pure(s === 'cancel' && E.isLeft(ret) && ret.value.message === 'nope');
+    })));
+
+    test('kill fiber that have supervised context', Q.assertTask(T.co(function* () {
+      const sup = T.makeSupervisor();
+      function action(s: string) {
+        return T.delay(20).map(() => s);
+      }
+      let fib: T.Fiber<string> = yield T.forkWith(sup, action('bar'));
+      let fib2: T.Fiber<string> = yield T.forkWith(sup, action('foo'));
+      yield T.killAll(new Error('kill All'), sup);
+      const s1: E.Either<Error, string> = yield T.attempt(T.joinFiber(fib));
+      const s2: E.Either<Error, string> = yield T.attempt(T.joinFiber(fib2));
+      return T.pure(E.isLeft(s1) && E.isLeft(s2));
+    })));
   });
 
   describe('Error handling & Joining forked Task', () => {
@@ -330,7 +405,7 @@ describe('Task.Core', () => {
   });
 
   describe('bothPar', () => {
-    test('wai both task to completed', Q.shouldBe(
+    test('wait both task to completed', Q.shouldBe(
       ['a', 'b'],
       T.bothPar([ T.node(null, 'a', timer), T.node(null, 'b', timer)])
     ));
