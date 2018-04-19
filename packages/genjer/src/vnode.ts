@@ -86,7 +86,7 @@ export function mapVNode<A, B>(f: (_: A) => B, v: VNode<A>): VNode<B> {
           prepatch: prepatchMapHook
         }
       }),
-      v.children, v.text, v.elm as Element)
+      v.children, v.text, v.elm as Element);
   }
   return V.vnode(v.sel,
     T.assign({}, data as any, {
@@ -96,7 +96,7 @@ export function mapVNode<A, B>(f: (_: A) => B, v: VNode<A>): VNode<B> {
         prepatch: prepatchMapHook
       }
     }),
-    v.children, v.text, v.elm as Element)
+    v.children, v.text, v.elm as Element);
 }
 
 function initMapHook(vnode: VNode<any>) {

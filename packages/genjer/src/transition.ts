@@ -9,7 +9,7 @@ export function purely<M, S>(model: S): Transition<M, S, any> {
 }
 
 export function mapEffect<M, S, A, B>(f: (_: A) => B, t: Transition<M, S, A>): Transition<M, S, B> {
-  return transition(t.model, t.effects.map(v => v.map(f) as M & Functor<B>)) // ugly
+  return transition(t.model, t.effects.map(v => v.map(f) as M & Functor<B>)); // ugly
 }
 
 export function bimapTransition<M, S, T, A, B>(
@@ -17,5 +17,5 @@ export function bimapTransition<M, S, T, A, B>(
   g: (a: A) => B,
   t: Transition<M, S, A>
 ): Transition<M, T, B> {
-  return transition(f(t.model), t.effects.map(v => v.map(g) as M & Functor<B>))
+  return transition(f(t.model), t.effects.map(v => v.map(g) as M & Functor<B>));
 }

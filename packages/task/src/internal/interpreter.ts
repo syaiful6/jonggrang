@@ -127,9 +127,11 @@ class ParComputation<A> implements Computation<A> {
     this._interupt = left(error);
     let table: IntMap<Eff<void>>;
     for (let kid in this._kills) {
-      table = this._kills[kid];
-      for (let k in table) {
-        table[k]();
+      if (Object.hasOwnProperty.call(this._kills, kid)) {
+        table = this._kills[kid];
+        for (let k in table) {
+          if (Object.hasOwnProperty.call(this._kills, kid)) table[k]();
+        }
       }
     }
     this._kills = Object.create(null);
@@ -138,7 +140,7 @@ class ParComputation<A> implements Computation<A> {
     return (kerr) => {
       return createCoreTask('SYNC', () => {
         for (let kid in newKills) {
-          newKills[kid]();
+          if (Object.hasOwnProperty.call(newKills, kid)) newKills[kid]();
         }
       }, [], null);
     };
@@ -164,12 +166,16 @@ class ParComputation<A> implements Computation<A> {
         case 'FORKED':
           if ((step as Forked)._3 === TEMPTY) {
             tmp = this._fibers[step._1];
-            kills[count++] = tmp.kill(error, (err: any, data: any) => {
-              count--;
-              if (count === 0) {
-                cb(err, data);
-              }
-            });
+            kills[count++] = (function (s: Fiber<any>) {
+              return () => {
+                return s.kill(error, (err: any, data: any) => {
+                  count--;
+                  if (count === 0) {
+                    cb(err, data);
+                  }
+                });
+              };
+            })(tmp);
           }
           // Terminal case.
           if (head === null) {
@@ -212,7 +218,7 @@ class ParComputation<A> implements Computation<A> {
   }
 
   private join(result: Either<Error, any>, head: InterpretTask | null, tail: InterpretTask | null) {
-    let fail, step: any, lhs, rhs, tmp: any, kid: number | null;
+    let fail: any, step: any, lhs: any, rhs: any, tmp: any, kid: number | null;
     if (isLeft(result)) {
       fail = result;
       step = null;
@@ -220,20 +226,19 @@ class ParComputation<A> implements Computation<A> {
       step = result;
       fail = null;
     }
-
     while (true) {
       lhs = null;
       rhs = null;
       tmp = null;
       kid = null;
       // We should never continue if the entire tree has been interrupted.
-      if (this._interupt != null) {
+      if (this._interupt !== null) {
         return;
       }
       // We've made it all the way to the root of the tree, which means
       // the tree has fully evaluated.
       if (head === null) {
-        runHandler(this._callback, (fail || step || left(new Error('early error'))) as Either<Error, any>);
+        runHandler(this._callback, (fail || step) as Either<Error, any>);
         return;
       }
 
@@ -241,25 +246,64 @@ class ParComputation<A> implements Computation<A> {
         return;
       }
 
-      switch (head.tag) {
-        case 'APMAP':
-          if (fail == null) {
-            head._3 = right((head._1 as any)((step as Right<any>).value));
-            step = head._3;
-          } else {
-            head._3 = fail;
+      if (head.tag === 'APMAP') {
+        if (fail === null) {
+          head._3 = right((head._1 as any)((step as Right<any>).value));
+          step = head._3;
+        } else {
+          head._3 = fail;
+        }
+      } else if (head.tag === 'APAPPLY') {
+        lhs = (head._1 as any)._3;
+        rhs = (head._2 as any)._3;
+        if (fail) {
+          head._3 = fail;
+          tmp     = true;
+          kid     = this._killId++;
+          this._kills[kid] = this.kill(new Error('[Paraller] Early exit'), fail === lhs ? head._2 : head._1, () => {
+            delete this._kills[kid as any];
+            if (tmp) {
+              tmp = false;
+            } else if (tail === null) {
+              this.join(step, null, null);
+            } else {
+              this.join(step, tail._1, (tail as any)._2);
+            }
+          });
+          if (tmp) {
+            tmp = false;
+            return;
           }
-          break;
-
-        case 'APAPPLY':
-          lhs = (head._1 as any)._3;
-          rhs = (head._2 as any)._3;
-          if (fail) {
-            head._3 = fail;
-            tmp     = true;
-            kid     = this._killId++;
-            this._kills[kid] = this.kill(new Error('[Paraller] Early exit'), fail === lhs ? head._2 : head._1, () => {
-              delete this._kills[kid as any];
+        } else if (lhs === TEMPTY || rhs === TEMPTY) {
+          return;
+        } else {
+          step    = right(lhs.value(rhs.value));
+          head._3 = step;
+        }
+      } else if (head.tag === 'APALT') {
+        lhs = (head._1 as any)._3;
+        rhs = (head._2 as any)._3;
+        // We can only proceed if both have resolved or we have a success
+        if (lhs === TEMPTY && isLeft(rhs) || rhs === TEMPTY && isLeft(lhs)) {
+          return;
+        }
+        // If both sides resolve with an error, we should continue with the
+        // first error
+        if (lhs !== TEMPTY && isLeft(lhs) && rhs !== TEMPTY && isLeft(rhs)) {
+          fail    = step === lhs ? rhs : lhs;
+          step    = null;
+          head._3 = fail;
+        } else {
+          head._3 = step as Right<any>;
+          tmp     = true;
+          kid     = this._killId++;
+          // Once a side has resolved, we need to cancel the side that is still
+          // pending before we can continue.
+          this._kills[kid] = this.kill(
+            new Error('early'),
+            step === lhs ? (head as ApAlt)._2 : (head as ApAlt)._1,
+            () => {
+              delete this._kills[kid as number];
               if (tmp) {
                 tmp = false;
               } else if (tail === null) {
@@ -267,65 +311,21 @@ class ParComputation<A> implements Computation<A> {
               } else {
                 this.join(step, tail._1, (tail as any)._2);
               }
-            });
-            if (tmp) {
-              tmp = false;
-              return;
-            }
-          } else if (lhs === TEMPTY || rhs === TEMPTY) {
-            return;
-          } else {
-            step    = right(lhs.value(rhs.value));
-            head._3 = step;
-          }
-          break;
+          });
 
-        case 'APALT':
-          lhs = (head._1 as any)._3;
-          rhs = (head._2 as any)._3;
-          // We can only proceed if both have resolved or we have a success
-          if (lhs === TEMPTY && isLeft(rhs) || rhs === TEMPTY && isLeft(lhs)) {
+          if (tmp) {
+            tmp = false;
             return;
           }
-          // If both sides resolve with an error, we should continue with the
-          // first error
-          if (lhs !== TEMPTY && isLeft(lhs) && rhs !== TEMPTY && isLeft(rhs)) {
-            fail    = step === lhs ? rhs : lhs;
-            step    = null;
-            head._3 = fail;
-          } else {
-            head._3 = step as Right<any>;
-            tmp     = true;
-            kid     = this._killId++;
-            // Once a side has resolved, we need to cancel the side that is still
-            // pending before we can continue.
-            this._kills[kid] = this.kill(
-              new Error('early'),
-              step === lhs ? (head as ApAlt)._2 : (head as ApAlt)._1,
-              (/* unused */) => {
-                delete this._kills[kid as number];
-                if (tmp) {
-                  tmp = false;
-                } else if (tail === null) {
-                  this.join(step, null, null);
-                } else {
-                  this.join(step, tail._1, (tail as any)._2);
-                }
-            });
+        }
+      }
 
-            if (tmp) {
-              tmp = false;
-              return;
-            }
-          }
-          break;
-        }
-        if (tail === null) {
-          head = null;
-        } else {
-          head = (tail as any)._1;
-          tail = (tail as any)._2;
-        }
+      if (tail === null) {
+        head = null;
+      } else {
+        head = (tail as any)._1;
+        tail = (tail as any)._2;
+      }
     }
   }
 
@@ -421,7 +421,7 @@ export class TaskFiber<A> implements Fiber<A> {
   private _interrupt: Either<Error, any> | null;
   private _bracketCount: number;
   private _joinId: number;
-  private _joins: IntMap<OnComplete<A>>;
+  private _joins: IntMap<OnComplete<A>> | null;
   private _rethrow: boolean;
   private _attempts: InterpretTask | null;
 
@@ -437,7 +437,7 @@ export class TaskFiber<A> implements Fiber<A> {
     this._attempts = null;
     this._bracketCount = 0;
     this._joinId = 0;
-    this._joins = Object.create(null);
+    this._joins = null;
     this._rethrow = true;
   }
 
@@ -448,9 +448,11 @@ export class TaskFiber<A> implements Fiber<A> {
       return doNothing;
     }
     let jid          = this._joinId++;
-    this._joins[jid] = join;
+    if (this._joins == null) this._joins = Object.create(null);
+    (this._joins as any)[jid] = join;
     return () => {
-      delete this._joins[jid];
+      if (this._joins !== null)
+        delete this._joins[jid];
     };
   }
 
@@ -533,7 +535,7 @@ export class TaskFiber<A> implements Fiber<A> {
   }
 
   runRaw(localRunTick: number) {
-    let tmp: any, result: any, attempt: any;
+    let tmp: any, result: any, attempt: any, sync: boolean;
     while (true) {
       tmp       = null;
       result    = null;
@@ -627,17 +629,25 @@ export class TaskFiber<A> implements Fiber<A> {
 
             case 'ASYNC':
               this._status = StateFiber.PENDING;
+              sync = true;
               this._step = runAsync((this._step as Async<any>)._1, (er, v) => {
                 if (this._runTick !== localRunTick) {
                   return;
                 }
                 this._runTick++;
-                scheduler.enqueue(() => {
+                if (sync) {
+                  scheduler.enqueue(() => {
+                    this._status = StateFiber.STEP_RESULT;
+                    this._step = er != null ? left(er) : right(v);
+                    this.runRaw(this._runTick);
+                  });
+                } else {
                   this._status = StateFiber.STEP_RESULT;
                   this._step = er != null ? left(er) : right(v);
                   this.runRaw(this._runTick);
-                });
+                }
               });
+              sync = false;
               return;
 
             case 'BRACKET':
@@ -662,7 +672,7 @@ export class TaskFiber<A> implements Fiber<A> {
               break;
 
             case 'FORK':
-              this._status = StateFiber.STEP_BIND;
+              this._status = StateFiber.STEP_RESULT;
               const sup = (this._step as Fork)._3 != null
                         ? ((this._step as Fork)._3 as Supervisor)
                         : this._supervisor;
@@ -673,7 +683,7 @@ export class TaskFiber<A> implements Fiber<A> {
               if ((this._step as Fork)._1) {
                 tmp.run();
               }
-              this._step = tmp;
+              this._step = right(tmp);
               break;
 
             case 'SEQUENTIAL':
@@ -768,11 +778,13 @@ export class TaskFiber<A> implements Fiber<A> {
           break;
 
         case StateFiber.COMPLETED:
-          for (let k in this._joins) {
-            this._rethrow = this._rethrow && (this._joins[k] as OnComplete<any>).rethrow;
-            runHandler(this._joins[k].handler , this._step as Either<any, any>);
+          if (this._joins != null) {
+            for (let k in this._joins) {
+              this._rethrow = this._rethrow && (this._joins[k] as OnComplete<any>).rethrow;
+              runHandler(this._joins[k].handler , this._step as Either<any, any>);
+            }
           }
-          this._joins = Object.create(null);
+          this._joins = null;
           // If we have an interrupt and a fail, then the thread threw while
           // running finalizers. This should always rethrow in a fresh stack.
           if (this._interrupt && this._fail) {

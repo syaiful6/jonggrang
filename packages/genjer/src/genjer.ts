@@ -64,7 +64,7 @@ export function makeAppQueue<M, Q, S, I>(
         return T.forInPar(subs, q => {
           return readRef(ref)
             .chain(k => k.loop(E.right(q)))
-            .chain(nq => writeRef(ref, nq))
+            .chain(nq => writeRef(ref, nq));
         }).then(readRef(ref));
       });
     }
@@ -82,8 +82,8 @@ export function makeAppQueue<M, Q, S, I>(
             .chain(ni => {
               return T.pure(S.assign({}, state, {
                 interpret: ni
-              }))
-            })
+              }));
+            });
 
         case AppActionType.ACTION:
           next = app.update(state.model, action.payload);
@@ -93,7 +93,7 @@ export function makeAppQueue<M, Q, S, I>(
             model: next.model
           });
           appChange = { old: state.model, action: action.payload, model: nextState.model };
-          return onChange(appChange).then(T.forInPar(next.effects, pushEffect)).map(() => nextState)
+          return onChange(appChange).then(T.forInPar(next.effects, pushEffect)).map(() => nextState);
 
         case AppActionType.RESTORE:
           needsRender = state.needsRender || state.model !== action.payload;
@@ -111,10 +111,10 @@ export function makeAppQueue<M, Q, S, I>(
               , model: state.model
               , interpret: nextInterpret
               , needsRender: false})))
-        )
+        );
     }
     function emit(a: I) {
-      T.launchTask(pushAction(a).then(self.run))
+      T.launchTask(pushAction(a).then(self.run));
     }
     return T.liftEff(null, emit, app.render, app.init.model, el, snabbdomStep)
       .chain(snabbdom =>
@@ -123,21 +123,20 @@ export function makeAppQueue<M, Q, S, I>(
       ).chain(it2 => {
         return T.forInPar(app.init.effects, pushEffect)
           .chain(() => {
-            let st: AppState<M, Q, S> =
-              { snabbdom
-              , interpret: it2
-              , needsRender: false
-              , model: app.init.model };
-            return T.pure({ update, commit, init: st})
-          })
+            let st: AppState<M, Q, S> = { snabbdom
+                                        , interpret: it2
+                                        , needsRender: false
+                                        , model: app.init.model };
+            return T.pure({ update, commit, init: st});
+          });
       })
-    )
-  })
+    );
+  });
 }
 
 function commitRender<M, Q, S>(state: AppState<M, Q, S>) {
   if (state.needsRender) {
-    state.snabbdom(state.model)
+    state.snabbdom(state.model);
   }
 }
 
@@ -167,7 +166,7 @@ export function make<M, Q, S, I>(
           return writeRef(stateRef, ac.model)
             .then(readRef(subsRef))
             .chain(sbs => T.forInPar(S.recordValues(sbs.cbs), cb => cb(ac)))
-            .then(T.pure(void 0))
+            .then(T.pure(void 0));
         }
         function subscribe_(cb: (_: AppChange<S, I>) => T.Task<void>): T.Task<T.Task<void>> {
           return readRef(subsRef)
@@ -178,15 +177,15 @@ export function make<M, Q, S, I>(
                 sbs: S.assign({}, sbs.cbs, {
                   [nkey]: cb
                 })
-              })).map(v => remove(nkey))
-            })
+              })).map(v => remove(nkey));
+            });
         }
         function remove(key: string): T.Task<void> {
           return modifyRef(subsRef, sbs => {
             let nbs = S.assign({}, sbs);
             delete nbs.cbs[key];
-            return nbs
-          })
+            return nbs;
+          });
         }
         return fix(makeAppQueue(handleChange, interpreter, app, el))
           .map(queue =>
@@ -198,14 +197,14 @@ export function make<M, Q, S, I>(
             })
           );
       })
-    )
+    );
 }
 
 const enum RenderStep {
   NOREQUEST,
   PENDINGREQUEST,
   EXTRAREQUEST
-};
+}
 
 function renderStep<A, S>(
   patch: (old: VNode<A> | Element, vnode: VNode<A>) => VNode<A>,
@@ -238,5 +237,5 @@ function renderStep<A, S>(
     }
     state = RenderStep.PENDINGREQUEST;
     nextModel = s;
-  }
+  };
 }
