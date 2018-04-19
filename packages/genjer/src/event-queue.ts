@@ -17,7 +17,7 @@ export type EvAccum<S, I> = {
   init: S;
   update: (s: S, i: I) => T.Task<S>;
   commit: (s: S) => T.Task<S>;
-}
+};
 
 export function stepper<I, O>(k: (_: I) => T.Task<O>): EvQueue<I, O> {
   return function queue(next) {
@@ -29,11 +29,11 @@ export function stepper<I, O>(k: (_: I) => T.Task<O>): EvQueue<I, O> {
       return k(i)
         .chain(v => next.push(v))
         .then(next.run)
-        .then(T.pure({ loop, tick }))
+        .then(T.pure({ loop, tick }));
     }
 
     return tick();
-  }
+  };
 }
 
 export function withCont<I, O>(k: (ei: EvInstance<O>, i: I) => T.Task<void>): EvQueue<I, O> {
@@ -42,7 +42,7 @@ export function withCont<I, O>(k: (ei: EvInstance<O>, i: I) => T.Task<void>): Ev
       return k(next, i);
     }
     function loop(i: I) {
-      return push(i).then(T.pure({ loop, tick }))
+      return push(i).then(T.pure({ loop, tick }));
     }
 
     function tick() {
@@ -50,7 +50,7 @@ export function withCont<I, O>(k: (ei: EvInstance<O>, i: I) => T.Task<void>): Ev
     }
 
     return tick();
-  }
+  };
 }
 
 export function withAccum<S, I, O>(
@@ -62,17 +62,17 @@ export function withAccum<S, I, O>(
         return {
           loop: (i: I) => update(s, i),
           tick: commit(s)
-        }
+        };
       }
       function update(s: S, i: I) {
         return spec.update(s, i).map(tick);
       }
       function commit(s: S) {
-        return () => spec.commit(s).map(tick)
+        return () => spec.commit(s).map(tick);
       }
       return tick(spec.init);
-    })
-  }
+    });
+  };
 }
 
 export function withAccumArray<I, O>(
@@ -83,13 +83,13 @@ export function withAccumArray<I, O>(
       function update(b: I[], i: I) {
         let b2 = b.slice();
         b2.push(i);
-        return T.pure(b2)
+        return T.pure(b2);
       }
       function commit(buf: I[]) {
         return spec(buf).map(() => []);
       }
       return { commit, update, init: [] };
-    })
+    });
   });
 }
 
@@ -105,7 +105,7 @@ export function fix<I>(
               let xs = ys.slice();
               xs.push(i);
               return xs;
-            })
+            });
           }
           const run: T.Task<void> =
             R.modifyRef_(machine, x => [void 0, x]).chain(i => traverse_(loop, i));
@@ -116,7 +116,7 @@ export function fix<I>(
                   let head = q[0],
                     tail = q.slice(1);
                   return R.writeRef(queue, tail)
-                    .chain(() => mc.loop(head).chain(loop))
+                    .chain(() => mc.loop(head).chain(loop));
                 }
                 return mc.tick()
                   .chain(st => {
@@ -124,19 +124,19 @@ export function fix<I>(
                       .chain(q2 => {
                         if (q2.length === 0) {
                           return R.writeRef(machine, st)
-                            .then(R.writeRef(queue, []))
+                            .then(R.writeRef(queue, []));
                         }
                         return loop(st);
-                      })
-                  })
-              })
+                      });
+                  });
+              });
           }
           const inst: EvInstance<I> = { run, push };
           return proc(inst)
             .chain(step => {
-              return R.writeRef(machine, step).then(T.pure(inst))
+              return R.writeRef(machine, step).then(T.pure(inst));
             });
-        })
+        });
     });
 }
 
@@ -153,5 +153,5 @@ function traverse_<A, B>(
   f: (_: A) => T.Task<B>,
   fa: A | null | undefined
 ): T.Task<void> {
-  return foldr_((a, b) => f(a).then(b), T.pure(void 0), fa)
+  return foldr_((a, b) => f(a).then(b), T.pure(void 0), fa);
 }
