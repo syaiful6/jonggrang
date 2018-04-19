@@ -3,9 +3,9 @@ import * as H from 'snabbdom/h';
 
 export { VNode } from './vnode';
 export type VNodes<A> = Array<VNode<A>>;
-export type VNodeChildElement<A> = VNode<A> | string | number | undefined | null
+export type VNodeChildElement<A> = VNode<A> | string | number | undefined | null;
 export type ArrayOrElement<T> = T | T[];
-export type VNodeChildren<A> = ArrayOrElement<VNodeChildElement<A>>
+export type VNodeChildren<A> = ArrayOrElement<VNodeChildElement<A>>;
 
 export function h<A>(sel: string): VNode<A>;
 export function h<A>(sel: string, data: VNodeData<A>): VNode<A>;
@@ -18,7 +18,7 @@ export function h<A>(sel: any, b?: any, c?: any): VNode<A> {
 export function lazy<S, A>(
   sel: string, st: S, fn: (_: S) => VNode<A>, key?: string | undefined
 ): VNode<A> {
-  return thunk(sel, key, fn, [st])
+  return thunk(sel, key, fn, [st]);
 }
 
 export function lazy2<S, T, A>(
