@@ -35,6 +35,10 @@ function test-browser() {
   karma start
 }
 
+function clean-build() {
+  rm -r -f packages/*/lib && rm -r -f packages/*/es6
+}
+
 function build() {
   node bin/build.js
 }

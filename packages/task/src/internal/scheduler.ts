@@ -23,6 +23,8 @@ export class Scheduler {
 
   private _draining: boolean;
 
+  private _requestedDrain: boolean;
+
   private _queue: (Eff<void> | void)[];
 
   private _flusFn: Eff<void> | undefined;
@@ -31,13 +33,14 @@ export class Scheduler {
     this._size  = 0;
     this._ix    = 0;
     this._draining = false;
+    this._requestedDrain = false;
     this._flusFn = void 0;
     this._queue = new Array(_limit);
   }
 
   private _drain() {
     let thunk: Eff<any> | void;
-    this._draining = false;
+    this._draining = true;
     while (this._size !== 0) {
       this._size--;
       thunk = this._queue[this._ix];
@@ -47,6 +50,8 @@ export class Scheduler {
         thunk();
       }
     }
+    this._draining = false;
+    this._requestedDrain = false;
   }
 
   enqueue(thunk: Eff<any>) {
@@ -59,9 +64,9 @@ export class Scheduler {
 
     this._queue[(this._ix + this._size) % this._limit] = thunk;
     this._size++;
-    if (!this._draining) {
+    if (!this._requestedDrain) {
       this._requestdrain();
-      this._draining = true;
+      this._requestedDrain = true;
     }
   }
 
