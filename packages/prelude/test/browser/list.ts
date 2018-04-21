@@ -118,6 +118,12 @@ describe('Prelude list', () => {
     expect(L.joinWith(L.nil, toString)).to.equal('');
   });
 
+  it('join return joined string', () => {
+    expect(L.join(L.list('a', 'b', 'c', 'd'), '')).to.equals(['a', 'b', 'c', 'd'].join(''));
+    expect(L.join(L.list('a', 'b', 'c', 'd'), ',')).to.equals(['a', 'b', 'c', 'd'].join(','));
+    expect(L.join(L.fromArray([]), ',')).to.equals([].join(''));
+  });
+
   it('index should return Just x when the index is within the bounds of the list', () => {
     expect(L.index(L.list(1, 2, 3), 0)).to.deep.equal(just(1));
     expect(L.index(L.list(1, 2, 3), 1)).to.deep.equal(just(2));

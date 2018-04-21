@@ -21,6 +21,9 @@ export function cons<A>(head: A, tail: List<A>): List<A> {
   return { head, tail, tag: ListType.CONS };
 }
 
+/**
+ * The empty list
+ */
 export const nil: List<any> = { tag: ListType.NIL };
 
 /**
@@ -407,6 +410,7 @@ export function join(xs: List<string>, separator?: string): string {
     } else {
       out += separator + xs.head;
     }
+    xs = xs.tail;
   }
   return out;
 }
