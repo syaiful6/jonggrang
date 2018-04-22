@@ -21,53 +21,58 @@ export class Scheduler {
 
   private _ix: number;
 
-  private _draining: boolean;
-
-  private _requestedDrain: boolean;
-
-  private _queue: (Eff<void> | void)[];
+  private _bitField: number;
 
   private _flusFn: Eff<void> | undefined;
+
+  [key: string]: any;
 
   constructor(private _limit: number) {
     this._size  = 0;
     this._ix    = 0;
-    this._draining = false;
-    this._requestedDrain = false;
+    this._bitField = 0;
     this._flusFn = void 0;
-    this._queue = new Array(_limit);
   }
 
   private _drain() {
     let thunk: Eff<any> | void;
-    this._draining = true;
+    this._setIsDraining();
     while (this._size !== 0) {
       this._size--;
-      thunk = this._queue[this._ix];
-      this._queue[this._ix] = void 0;
+      thunk = this[this._ix];
+      this[this._ix] = void 0;
       this._ix = (this._ix + 1) % this._limit;
-      if (thunk != null) {
-        thunk();
-      }
+      if (thunk != null) thunk();
     }
-    this._draining = false;
-    this._requestedDrain = false;
+    this._bitField = 0;
   }
 
   enqueue(thunk: Eff<any>) {
-    let tmp: boolean;
+    let tmp: number;
     if (this._size === this._limit) {
-      tmp = this._draining;
+      tmp = this._bitField;
       this._drain();
-      this._draining = tmp;
+      this._bitField = tmp;
     }
 
-    this._queue[(this._ix + this._size) % this._limit] = thunk;
+    this[(this._ix + this._size) % this._limit] = thunk;
     this._size++;
-    if (!this._requestedDrain) {
+    if (!this._isRequestedDrain()) {
       this._requestdrain();
-      this._requestedDrain = true;
+      this._setIsRequestedDrain();
     }
+  }
+
+  _setIsDraining() {
+    this._bitField = this._bitField | 1;
+  }
+
+  _isRequestedDrain() {
+    return (this._bitField & 2) !== 0;
+  }
+
+  _setIsRequestedDrain() {
+    this._bitField = this._bitField | 2;
   }
 
   _requestdrain() {
@@ -118,7 +123,7 @@ export class Scheduler {
   }
 
   isDraining() {
-    return this._draining;
+    return (this._bitField & 1) !== 0;
   }
 }
 
