@@ -103,12 +103,35 @@ export function parseCookies(str: string): Cookie[] {
 
 export const enum CookieLifeType {
   SESSION,
-  MAXAGE
+  MAXAGE,
+  EXPIRES,
+  EXPIRED
 }
 
 export type CookieLife
-  = { tag: CookieLifeType.SESSION }
-  | { tag: CookieLifeType.MAXAGE, maxAge: number };
+  = { tag: CookieLifeType.SESSION } // session cookie - expires when browser is closed
+  | { tag: CookieLifeType.MAXAGE; maxAge: number } // life time of cookie in seconds
+  | { tag: CookieLifeType.EXPIRES; expires: Date } // cookie expiration date
+  | { tag: CookieLifeType.EXPIRED }; // cookie already expired
+
+export function calculateCookieList(clife: CookieLife): E.Maybe<[number, Date]> {
+  let now: number;
+  switch (clife.tag) {
+    case CookieLifeType.SESSION:
+      return E.nothing;
+
+    case CookieLifeType.MAXAGE:
+      now = Date.now();
+      return E.just([clife.maxAge, new Date(now + (clife.maxAge * 1000))] as [number, Date]);
+
+    case CookieLifeType.EXPIRES:
+      now = Date.now();
+      return E.just([ (clife.expires.getTime() - now) / 1000, clife.expires ] as [number, Date]);
+
+    case CookieLifeType.EXPIRED:
+      return E.just([ 0, new Date(0) ] as [number, Date]);
+  }
+}
 
 export const enum CookieErrorType {
   NOCOOKIEFOUND,
