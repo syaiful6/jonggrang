@@ -160,22 +160,24 @@ class ParComputation<A> implements Computation<A> {
       count = 0,
       kills: any = Object.create(null),
       tmp: any, kid: any, len: any;
+
+    function killHelper(s: Fiber<any>) {
+      return () => {
+        return s.kill(error, (err: any, data: any) => {
+          count--;
+          if (count === 0) {
+            cb(err, data);
+          }
+        });
+      };
+    }
     loop: while (true) {
       tmp = null;
       switch (step.tag) {
         case 'FORKED':
           if ((step as Forked)._3 === TEMPTY) {
             tmp = this._fibers[step._1];
-            kills[count++] = (function (s: Fiber<any>) {
-              return () => {
-                return s.kill(error, (err: any, data: any) => {
-                  count--;
-                  if (count === 0) {
-                    cb(err, data);
-                  }
-                });
-              };
-            })(tmp);
+            kills[count++] = killHelper(tmp);
           }
           // Terminal case.
           if (head === null) {
