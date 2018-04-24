@@ -332,7 +332,6 @@ describe('Task.Core', () => {
   });
 
   describe('Error handling & Joining forked Task', () => {
-
     test(
       'joining an error task should rethrown in current context',
       Q.assertTask(T.co(function* () {

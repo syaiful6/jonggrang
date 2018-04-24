@@ -106,6 +106,21 @@ export function responseReadable(
   return createResponse(status, headers, createHttpContent(ContentType.READABLE, body));
 }
 
+export function redirect(path: string, status?: 300 | 301 | 302 | 303 | 304 | 305 | 306 | 307 | 308): Response {
+  return responseBuffer(status || 302, {
+    'Content-Type': 'text/plain',
+    Location: path
+  }, Buffer.from(`redirecting to ${path}`));
+}
+
+export function responseUtf8(
+  status: H.Status,
+  headers: H.ResponseHeaders,
+  body: string
+): Response {
+  return responseBuffer(status, headers, Buffer.from(body, 'utf8'));
+}
+
 export function createResponse(
   status: H.Status,
   headers: H.ResponseHeaders,
