@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/uri",
   "description": "URI manipulation, parsing and unparsing URIs, and creating and resolving relative URI references, closely following the URI spec (RFC 3986).",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,8 +18,8 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/parsing": "0.1.5",
-    "@jonggrang/prelude": "0.1.5"
+    "@jonggrang/parsing": "0.1.6",
+    "@jonggrang/prelude": "0.1.6"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",

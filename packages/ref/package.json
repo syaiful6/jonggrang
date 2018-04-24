@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/ref",
   "description": "Mutable value references that run as Task.",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,8 +18,8 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/prelude": "0.1.5",
-    "@jonggrang/task": "0.2.3"
+    "@jonggrang/prelude": "0.1.6",
+    "@jonggrang/task": "0.2.4"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",

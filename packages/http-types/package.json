@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/http-types",
   "description": "Generic HTTP types for Typescript.",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,8 +18,8 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/parsing": "0.1.5",
-    "@jonggrang/prelude": "0.1.5"
+    "@jonggrang/parsing": "0.1.6",
+    "@jonggrang/prelude": "0.1.6"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
