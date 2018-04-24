@@ -68,7 +68,7 @@ function sendRsp(
       if (rsp.part != null) {
         const part = rsp.part;
         return sendRspFile2XX(conn, ii, status, addContentHeadersForFilePart(headers, part),
-          rsp.path, part.offset, part.byteCount, rsp.isHead);
+                              rsp.path, part.offset, part.byteCount, rsp.isHead);
       }
       return T.attempt(ii.getFinfo(rsp.path))
         .chain(efinfo => {
@@ -79,7 +79,7 @@ function sendRsp(
           switch (rspFile.tag) {
             case  RspFileInfoType.WITHBODY:
               return sendRspFile2XX(conn, ii, rspFile.status, rspFile.header, rsp.path,
-                rspFile.offset, rspFile.length, rsp.isHead);
+                                    rspFile.offset, rspFile.length, rsp.isHead);
 
             case RspFileInfoType.WITHOUTBODY:
               return sendRsp(conn, ii, rspFile.status, headers, { tag: RspType.RSPNOBODY });
@@ -90,7 +90,6 @@ function sendRsp(
       return conn.writeHead(status, headers)
         .chain(_ => rsp.body(buff => conn.sendAll(buff), conn.sendAll(Buffer.from([]))))
         .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
-
 
     default:
       throw new TypeError('last argument to sendRsp must be Rsp');
