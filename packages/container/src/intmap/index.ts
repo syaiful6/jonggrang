@@ -48,14 +48,15 @@ export function singleton<A>(k: number, v: A): IntMap<A> {
 }
 
 /**
- * build an `InMap` from an associative array from integer keys to values
+ * build an `IntMap` from an associative array from integer keys to values
  */
 export function fromAssocArray<A>(xs: Array<[number, A]>): IntMap<A> {
   return xs.reduce((m, [k, v]) => insert(k, v, m), empty);
 }
 
 /**
- *
+ * build an `IntMap` from associative array from integer keys to values
+ * with splatting function.
  */
 export function fromAssocArrayWith<A>(xs: Array<[number, A]>, f: (v1: A, v2: A) => A): IntMap<A> {
   return xs.reduce((m, [k, v]) => insertWith(f, k, v, m), empty as IntMap<A>);
@@ -198,10 +199,16 @@ export function alter<A>(f: (m: P.Maybe<A>) => P.Maybe<A>, k: number, t: IntMap<
   return op.run(t);
 }
 
+/**
+ * Difference between two maps (based on keys).
+ */
 export function difference<A, B>(t1: IntMap<A>, t2: IntMap<B>): IntMap<A> {
   return mergeWithKey(combineDiff, id, alwaysEmpty, t1, t2);
 }
 
+/**
+ * Difference with a combining function.
+ */
 export function differenceWith<A, B>(
   combine: (a: A, b: B) => P.Maybe<A>,
   t1: IntMap<A>,
@@ -210,6 +217,12 @@ export function differenceWith<A, B>(
   return differenceWithKey((_, a, b) => combine(a, b), t1, t2);
 }
 
+/**
+ * Difference with a combining function. When two equal keys
+ * are encountered, the combining function is applied to the key and
+ * both values. If it returns 'Nothing', the elements is discarded.
+ * If it returns (`Just y`), the element is updated with a new value `y`.
+ */
 export function differenceWithKey<A, B>(
   f: (k: number, a: A, b: B) => P.Maybe<A>,
   t1: IntMap<A>,
@@ -268,6 +281,86 @@ export function mapWithKey<A, B>(fn: (i: number, v: A) => B, im: IntMap<A>): Int
   return go(im);
 }
 
+/**
+ * A version of `foldl` which provides key values during the mapping.
+ */
+export function foldlWithKey<A, B>(
+  f: (k: number, b: B, a: A) => B,
+  b: B,
+  t: IntMap<A>
+): B {
+  function go(z: B, t2: IntMap<A>): B {
+    return t2.tag === IntMapType.NIL ? z
+      : t2.tag === IntMapType.TIP ? f(t2.key, z, t2.value)
+        : go(go(z, t2.left), t2.right);
+  }
+  return go(b, t);
+}
+
+/**
+ * A version of `foldr` which provides key values during the mapping.
+ */
+export function foldrWithKey<A, B>(
+  f: (k: number, a: A, b: B) => B,
+  b: B,
+  t: IntMap<A>
+): B {
+  function go(z: B, t2: IntMap<A>): B {
+    return t2.tag === IntMapType.NIL ? z
+      : t2.tag === IntMapType.TIP ? f(t2.key, t2.value, z)
+        : go(go(z, t2.right), t2.left);
+  }
+  return go(b, t);
+}
+
+/**
+ * Gather all of the indicies stored in an `IntMap`
+ */
+export function indices(t: IntMap<any>): number[] {
+  return foldrWithKey(accumulateIndices, [] as number[], t);
+}
+
+/**
+ * Filter all values satisfying the predicate.
+ */
+export function filter<A>(p: (a: A) => boolean, t: IntMap<A>): IntMap<A> {
+  return filterWithKey((_, a) => p(a), t);
+}
+
+/**
+ * Filter all keys-values satysfying the predicate.
+ */
+export function filterWithKey<A>(p: (k: number, a: A) => boolean, t: IntMap<A>): IntMap<A> {
+  return filterMapWithKey((k, a) => p(k, a) ? P.just(a) : P.nothing, t);
+}
+
+/**
+ * Allow you to transform a value inside IntMap<A> or remove them with a function from
+ * `A` to `Maybe<B>`. If the function return `Just<B>` the value inside just will replace
+ * the existing value, it it return `Nothing` then that item will be removed.
+ */
+export function filterMap<A, B>(f: (a: A) => P.Maybe<B>, t: IntMap<A>): IntMap<B> {
+  return filterMapWithKey((_, a) => f(a), t);
+}
+
+/**
+ * like `filterMap` but the function passing here have access to the key as well
+ */
+export function filterMapWithKey<A, B>(p: (k: number, a: A) => P.Maybe<B>, t: IntMap<A>): IntMap<B> {
+  let ret: P.Maybe<B>;
+  switch (t.tag) {
+    case IntMapType.BIN:
+      return BinNE(t.prefix, t.mask, filterMapWithKey(p, t.left), filterMapWithKey(p, t.right));
+
+    case IntMapType.TIP:
+      ret = p(t.key, t.value);
+      return P.isJust(ret) ? TipIM(t.key, ret.value) : empty;
+
+    case IntMapType.NIL:
+      return empty;
+  }
+}
+
 export function link<A>(k1: number, t1: IntMap<A>, k2: number, t2: IntMap<A>): IntMap<A> {
   const m = I.branchMask(k1, k2);
   const p = I.mask(m, k1);
@@ -322,6 +415,10 @@ function id<A>(a: A) {
 
 function alwaysEmpty(t2: IntMap<any>): IntMap<any> {
   return empty;
+}
+
+function accumulateIndices(k: number, a: any, xs: number[]): number[] {
+  return [k].concat(xs);
 }
 
 class InsertWithKey<A> {

@@ -1,6 +1,6 @@
 {
   "name": "@jonggrang/container",
-  "description": "A fontend application framework",
+  "description": "Contains efficient general-purpose implementations of various immutable container types.",
   "version": "0.1.5",
   "author": {
     "name": "Syaiful Bahri"

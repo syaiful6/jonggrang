@@ -112,4 +112,16 @@ describe('Container IntMap', () => {
         k,
         IM.alter(mv => P.just(P.maybe(v2, v3 => v3 + v2, mv)), k, IM.insert(k, v1, im))))
   );
+
+  jsv.property('filter drop all', intMapArb(jsv.number), im =>
+    IM.isEmpty(IM.filter(() => false, im))
+  );
+
+  jsv.property('filter keep all', intMapArb(jsv.number), im =>
+    P.deepEq(im, IM.filter(() => true, im))
+  );
+
+  jsv.property('difference with itself is empty', intMapArb(jsv.nat), t =>
+    IM.isEmpty(IM.difference(t, t))
+  );
 });
