@@ -59,71 +59,66 @@ describe('HTTP Cookie', () => {
 
   describe('renderCookie', () => {
     it('render basic Cookie', () => {
-      expect(CO.renderCookie(CO.createCookieKV('foo', 'bar'))).to.be.deep.equals(
+      expect(CO.renderCookie(P.nothing, CO.createCookieKV('foo', 'bar'))).to.be.deep.equals(
         P.right('foo=bar; Path=/; HttpOnly')
       );
-      expect(CO.renderCookie(CO.createCookieKV('foo', 'bar baz'))).to.be.deep.equals(
+      expect(CO.renderCookie(P.nothing, CO.createCookieKV('foo', 'bar baz'))).to.be.deep.equals(
         P.right('foo=bar%20baz; Path=/; HttpOnly')
       );
-      expect(CO.renderCookie(CO.createCookieKV('foo', ''))).to.be.deep.equals(
+      expect(CO.renderCookie(P.nothing, CO.createCookieKV('foo', ''))).to.be.deep.equals(
         P.right('foo=; Path=/; HttpOnly')
       );
       // return left
-      expect(CO.renderCookie(CO.createCookieKV('foo\n', 'bar')).value)
+      expect(CO.renderCookie(P.nothing, CO.createCookieKV('foo\n', 'bar')).value)
         .to.be.match(/Cookie name is invalid/);
-      expect(CO.renderCookie(CO.createCookieKV('foo\u280a', 'baz')).value)
+      expect(CO.renderCookie(P.nothing, CO.createCookieKV('foo\u280a', 'baz')).value)
         .to.be.match(/Cookie name is invalid/);
     });
 
     it('can render all options', () => {
-      const cookie = CO.createCookie('foo', 'baz', 60 * 3600, '/', 'example.com', true, true, 'LAX');
+      const cookie = CO.createCookie('foo', 'baz', '/', 'example.com', true, true, 'LAX');
       /* tslint:disable */
       const RE = /foo=baz; Domain=example\.com; Path=\/; Max-Age=([0-9]{1,}); Expires=(\w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT); HttpOnly; Secure; SameSite=LAX$/;
       /* tslint:enable */
-      expect(CO.renderCookie(cookie).value).to.be.match(RE);
+      const life = CO.calculateCookieLife(Date.now(), CO.cookieLifeExpired);
+      expect(CO.renderCookie(life, cookie).value).to.be.match(RE);
     });
 
     it('can render Cookie path', () => {
-      const cookie = CO.createCookie('foo', 'bar', undefined, '/', undefined, false, false, undefined);
-      expect(CO.renderCookie(cookie)).to.be.deep.equals(P.right('foo=bar; Path=/'));
+      const cookie = CO.createCookie('foo', 'bar', '/', undefined, false, false, undefined);
+      expect(CO.renderCookie(P.nothing, cookie)).to.be.deep.equals(P.right('foo=bar; Path=/'));
 
-      const cookieInvalidPath = CO.createCookie('foo', 'bar', undefined, '/\n', undefined,
-                                  false, false, undefined);
-      expect(CO.renderCookie(cookieInvalidPath).value).to.be.match(/Cookie path is invalid/);
+      const cookieInvalidPath = CO.createCookie('foo', 'bar', '/\n', undefined, false, false, undefined);
+      expect(CO.renderCookie(P.nothing, cookieInvalidPath).value).to.be.match(/Cookie path is invalid/);
     });
 
     it('can render Cookie secure', () => {
-      const cookieSecure = CO.createCookie('foo', 'baz', undefined, undefined, undefined,
-                            true, false, undefined);
-      expect(CO.renderCookie(cookieSecure)).to.be.deep.equals(P.right('foo=baz; Secure'));
+      const cookieSecure = CO.createCookie('foo', 'baz', undefined, undefined, true, false, undefined);
+      expect(CO.renderCookie(P.nothing, cookieSecure)).to.be.deep.equals(P.right('foo=baz; Secure'));
 
-      const cookieNonSecure = CO.createCookie('foo', 'baz', undefined, undefined, undefined,
-                                false, false, undefined);
-      expect(CO.renderCookie(cookieNonSecure)).to.be.deep.equals(P.right('foo=baz'));
+      const cookieNonSecure = CO.createCookie('foo', 'baz', undefined, undefined, false, false, undefined);
+      expect(CO.renderCookie(P.nothing, cookieNonSecure)).to.be.deep.equals(P.right('foo=baz'));
     });
 
     it('can render Cookie domain', () => {
-      const cookie = CO.createCookie('foo', 'baz', undefined, undefined, 'example.com', false,
-                      false, undefined);
-      expect(CO.renderCookie(cookie)).to.be.deep.equals(P.right('foo=baz; Domain=example.com'));
+      const cookie = CO.createCookie('foo', 'baz', undefined, 'example.com', false, false, undefined);
+      expect(CO.renderCookie(P.nothing, cookie)).to.be.deep.equals(P.right('foo=baz; Domain=example.com'));
 
-      const cookieDI = CO.createCookie('foo', 'baz', undefined, undefined, 'example.com\n', false,
-                        false, undefined);
-      expect(CO.renderCookie(cookieDI).value).to.be.match(/Cookie domain is invalid/);
+      const cookieDI = CO.createCookie('foo', 'baz', undefined, 'example.com\n', false, false, undefined);
+      expect(CO.renderCookie(P.nothing, cookieDI).value).to.be.match(/Cookie domain is invalid/);
     });
 
     it('can render Cookie HttpOnly', () => {
-      const cookie = CO.createCookie('foo', 'baz', undefined, undefined, undefined,
-                      false, true, undefined);
-      expect(CO.renderCookie(cookie)).to.be.deep.equals(P.right('foo=baz; HttpOnly'));
+      const cookie = CO.createCookie('foo', 'baz', undefined, undefined, false, true, undefined);
+      expect(CO.renderCookie(P.nothing, cookie)).to.be.deep.equals(P.right('foo=baz; HttpOnly'));
     });
 
     it('can render Cookie expires', () => {
       // if cookie expires is set, both expires and maxAge will be set
-      const cookie = CO.createCookie('foo', 'bar', 60 * 3600,
-                      undefined, undefined, false, false, undefined);
+      const cookie = CO.createCookie('foo', 'bar', undefined, undefined, false, false, undefined);
       const RE = /foo=bar; Max-Age=([0-9]{1,}); Expires=(\w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT)$/;
-      expect(CO.renderCookie(cookie).value).to.be.match(RE);
+      const life = CO.calculateCookieLife(Date.now(), CO.cookieLifeMaxAge(86400));
+      expect(CO.renderCookie(life, cookie).value).to.be.match(RE);
     });
   });
 });

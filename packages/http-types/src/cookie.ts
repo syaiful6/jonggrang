@@ -5,7 +5,6 @@ export type SameSite = 'LAX' | 'STRICT';
 export interface Cookie {
   name: string;
   value: string;
-  expires?: number; // number in seconds
   path?: string;
   domain?: string;
   secure: boolean;
@@ -13,10 +12,10 @@ export interface Cookie {
   sameSite?: SameSite;
 }
 
-export function createCookie(name: string, value: string, expires: number | undefined,
-                             path: string | undefined, domain: string | undefined,
-                             secure: boolean, httpOnly: boolean, sameSite: SameSite | undefined): Cookie {
-  return { name, value, expires, path, domain, secure, httpOnly, sameSite };
+export function createCookie(name: string, value: string, path: string | undefined,
+                             domain: string | undefined, secure: boolean, httpOnly: boolean,
+                             sameSite: SameSite | undefined): Cookie {
+  return { name, value, path, domain, secure, httpOnly, sameSite };
 }
 
 /**
@@ -26,14 +25,14 @@ export function createCookie(name: string, value: string, expires: number | unde
  * @param value string The cookie value
  */
 export function createCookieKV(name: string, value: string): Cookie {
-  return createCookie(name, value, undefined, '/', undefined, false, true, undefined);
+  return createCookie(name, value, '/', undefined, false, true, undefined);
 }
 
 /**
  * render cookie to string, if it success it will return `Right`, `Left` otherwise.
  * @param cookie Cookie to serialize to string
  */
-export function renderCookie(cookie: Cookie): E.Either<string, string> {
+export function renderCookie(mlife: E.Maybe<[number, Date]>, cookie: Cookie): E.Either<string, string> {
   if (checkInvalidHeaderChar(cookie.name)) {
     return E.left('Cookie name is invalid');
   }
@@ -54,14 +53,10 @@ export function renderCookie(cookie: Cookie): E.Either<string, string> {
     }
     str += `; Path=${cookie.path}`;
   }
-  if (cookie.expires != null) {
-    const maxAge = Math.floor(cookie.expires - 0);
-    if (isNaN(maxAge)) {
-      return E.left('Cookie expires should be a Number');
-    }
-    str += `; Max-Age=${maxAge}`;
-    const expires = new Date(Date.now() + (maxAge * 1000));
-    str += `; Expires=${expires.toUTCString()}`;
+  if (E.isJust(mlife)) {
+    const { value: life } = mlife;
+    str += `; Max-Age=${life[0]}`;
+    str += `; Expires=${life[1].toUTCString()}`;
   }
   if (cookie.httpOnly) {
     str += '; HttpOnly';
@@ -114,18 +109,37 @@ export type CookieLife
   | { tag: CookieLifeType.EXPIRES; expires: Date } // cookie expiration date
   | { tag: CookieLifeType.EXPIRED }; // cookie already expired
 
-export function calculateCookieList(clife: CookieLife): E.Maybe<[number, Date]> {
-  let now: number;
+export const cookieLifeSession = createCookieLife(CookieLifeType.SESSION);
+
+export const cookieLifeExpired = createCookieLife(CookieLifeType.EXPIRED);
+
+export function cookieLifeMaxAge(maxAge: number): CookieLife {
+  return createCookieLife(CookieLifeType.MAXAGE, maxAge);
+}
+
+export function cookieLifeExpires(expires: Date): CookieLife {
+  return createCookieLife(CookieLifeType.EXPIRES, expires);
+}
+
+export function createCookieLife(tag: CookieLifeType.SESSION): CookieLife;
+export function createCookieLife(tag: CookieLifeType.EXPIRED): CookieLife;
+export function createCookieLife(tag: CookieLifeType.MAXAGE, maxAge: number): CookieLife;
+export function createCookieLife(tag: CookieLifeType.EXPIRES, expires: Date): CookieLife;
+export function createCookieLife(tag: any, a?: any): any {
+  let maxAge: any = tag === CookieLifeType.MAXAGE ? a : void 0;
+  let expires: any = tag === CookieLifeType.EXPIRES ? a : void 0;
+  return { tag, maxAge, expires };
+}
+
+export function calculateCookieLife(now: number, clife: CookieLife): E.Maybe<[number, Date]> {
   switch (clife.tag) {
     case CookieLifeType.SESSION:
       return E.nothing;
 
     case CookieLifeType.MAXAGE:
-      now = Date.now();
       return E.just([clife.maxAge, new Date(now + (clife.maxAge * 1000))] as [number, Date]);
 
     case CookieLifeType.EXPIRES:
-      now = Date.now();
       return E.just([ (clife.expires.getTime() - now) / 1000, clife.expires ] as [number, Date]);
 
     case CookieLifeType.EXPIRED:
