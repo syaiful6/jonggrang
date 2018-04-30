@@ -8,7 +8,6 @@
       "es2015.iterable",
       "es2015.generator"
     ],
-    "allowSyntheticDefaultImports": true,
     "removeComments": false,
     "sourceMap": true,
     "declaration": true,

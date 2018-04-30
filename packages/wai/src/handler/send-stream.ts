@@ -1,7 +1,6 @@
 import * as FS from 'fs';
 import { ServerResponse } from 'http';
 import { Writable, Readable, Stream } from 'stream';
-import onFinished from 'on-finished';
 
 import * as T from '@jonggrang/task';
 import * as P from '@jonggrang/prelude';
@@ -39,13 +38,11 @@ export function sendFileFd(ws: ServerResponse, fd: number, range: FileRange, hoo
 
 export function sendFilePath(ws: ServerResponse, path: string, range: FileRange, hook: T.Task<void>): T.Task<void> {
   const stream = pathCreateReadStream(path, range);
-  onFinished(ws, destroyStream.bind(null, stream));
-  return pipeStream(ws, stream).then(hook);
+  return T.ensure(T.liftEff(null, stream, destroyStream), pipeStream(ws, stream).then(hook));
 }
 
 export function sendStream(ws: ServerResponse, read: Readable): T.Task<void> {
-  onFinished(ws, destroyStream.bind(null, read));
-  return pipeStream(ws, read);
+  return T.ensure(T.liftEff(null, read, destroyStream), pipeStream(ws, read));
 }
 
 export function destroyStream<T extends Readable>(stream: T) {
