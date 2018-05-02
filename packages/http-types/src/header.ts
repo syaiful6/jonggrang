@@ -98,7 +98,7 @@ export function byteRange(tag: ByteRangeType, from: number, to?: number): any {
     suffix: tag === ByteRangeType.RANGESUFFIX ? from : undefined,
     from: tag === ByteRangeType.RANGESUFFIX ? undefined : from,
     to: to
-  }
+  };
 }
 
 export function parseByteRanges(bs: string): M.Maybe<ByteRanges> {

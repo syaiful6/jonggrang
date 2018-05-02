@@ -34,6 +34,7 @@ describe('HTTP Header', () => {
 
       it('should parse string', () => {
         const parsed = H.parseByteRanges('bytes=0-555');
+        /*tslint:disable */
         expect(M.isJust(parsed)).to.be.true;
         expect(M.maybe(
           false,
@@ -41,11 +42,13 @@ describe('HTTP Header', () => {
             ranges.length === 1 &&
             ranges[0].tag === H.ByteRangeType.RANGEFROMTO &&
             (ranges[0] as any).from === 0 &&
-            (ranges[0] as any).to === 555, parsed)).to.be.true
+            (ranges[0] as any).to === 555, parsed)).to.be.true;
+        /*tslint:enable */
       });
 
       it('should parse range suffix', () => {
         const parsed = H.parseByteRanges('bytes=-500');
+        /*tslint:disable */
         expect(M.isJust(parsed)).to.be.true;
         expect(M.maybe(
           false,
@@ -54,7 +57,8 @@ describe('HTTP Header', () => {
             ranges[0].tag === H.ByteRangeType.RANGESUFFIX &&
             (ranges[0] as H.ByteRangeSuffix).suffix === 500,
             parsed)).to.be.true;
-      })
+         /*tslint:enable */
+      });
     });
   });
 });

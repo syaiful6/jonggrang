@@ -53,7 +53,7 @@ export function withApplicationSettings(
 export function withApplication(
   server: Server | HServer,
   createApp: T.Task<W.Application>
-) {
+): T.Task<void> {
   return withApplicationSettings(server, createApp, identity);
 }
 
@@ -302,27 +302,27 @@ class Conn {
   constructor(private response: ServerResponse) {
   }
 
-  sendAll(buf: Buffer) {
+  sendAll(buf: Buffer): T.Task<void> {
     return writeSock(this.response, buf);
   }
 
-  sendMany(bs: Buffer[]) {
-    return T.forIn(bs, buf => writeSock(this.response, buf)).map(() => {});
+  sendMany(bs: Buffer[]): T.Task<void> {
+    return T.forIn(bs, buf => writeSock(this.response, buf)) as any;
   }
 
-  sendStream(stream: Readable) {
+  sendStream(stream: Readable): T.Task<void> {
     return SF.sendStream(this.response, stream);
   }
 
-  writeHead(st: H.Status, headers: H.ResponseHeaders) {
+  writeHead(st: H.Status, headers: H.ResponseHeaders): T.Task<void> {
     return T.liftEff(this.response, st, headers, this.response.writeHead);
   }
 
-  sendFile(fid: Z.FileId, start: number, end: number, hook: T.Task<void>) {
+  sendFile(fid: Z.FileId, start: number, end: number, hook: T.Task<void>): T.Task<void> {
     return SF.sendFile(this.response, fid, start, end, hook);
   }
 
-  get close() {
+  get close(): T.Task<void> {
     return endSock(this.response);
   }
 }

@@ -115,7 +115,7 @@ function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
 function terminate(md: MutableFdCache): T.Task<void> {
   return md.stop.chain(t => {
     return T.forInPar(SM.toPairs(t), ps => closeFile(ps[1].fd));
-  }).map(() => {});
+  }) as any;
 }
 
 function prune(fd: FdEntry): T.Task<P.Maybe<FdEntry>> {

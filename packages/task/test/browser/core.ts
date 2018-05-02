@@ -95,7 +95,9 @@ function timer(text: string, cb: (err: Error | null, t: string) => void): void {
 }
 
 function test(desc: string, t: T.Task<any>) {
-  it(desc, done => T.runTask(done, t));
+  it(desc, done => {
+    T.runTask(done, t);
+  });
 }
 
 describe('Task.Core', () => {
