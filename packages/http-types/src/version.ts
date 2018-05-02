@@ -16,7 +16,6 @@ export class HttpVersion {
 
 /**
  * Construct http version
- * 
  * @param major number
  * @param minor number
  */
