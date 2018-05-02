@@ -14,7 +14,7 @@ import { sendResponse } from './response';
 import * as SF from './send-stream';
 import * as Z from './types';
 import { writeSock, endSock, identity } from './utils';
-import * as W from '../index';
+import * as W from '../type';
 
 
 /**
@@ -251,7 +251,7 @@ function serveConnection(
   settings: Z.Settings, app: W.Application
 ): T.Task<void> {
   return T.rescue(
-    app(request, response =>
+    app(W.createHttpContext(request), response =>
       sendResponse(settings, conn, ii, request, response)
     ),
     err =>

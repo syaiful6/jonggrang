@@ -12,6 +12,13 @@ export interface Response {
   content: HttpContent;
 }
 
+export interface HttpContext {
+  // request for this http context
+  request: Request;
+  // user state in this context, you should store your state here
+  state: Record<string, any>;
+}
+
 export interface FilePart {
   offset: number;
   byteCount: number;
@@ -58,11 +65,22 @@ export interface StreamingBody {
   (send: (b: Buffer) => Task<void>, flush: Task<void>): Task<void>;
 }
 
+/**
+ * The type of our application, take an `HttpContext` and `callback` to call with
+ * `Response`
+ */
 export interface Application {
-  <A>(req: Request, send: (_: Response) => Task<A>): Task<A>;
+  <A>(ctx: HttpContext, send: (_: Response) => Task<A>): Task<A>;
 }
 
 export type Middleware = (app: Application) => Application;
+
+/**
+ * Create `HttpContext` for the given request and set empty state.
+ */
+export function createHttpContext(request: Request): HttpContext {
+  return { request, state: {} };
+}
 
 /**
  * Create response file
