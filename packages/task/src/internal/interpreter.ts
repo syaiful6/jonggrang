@@ -539,28 +539,21 @@ export class TaskFiber<A> implements Fiber<A> {
 }
 
 function runFiber(fib: TaskFiber<any>, localRunTick: number) {
-  while (true) {
+  while (fib._status !== StateFiber.COMPLETED && fib._status !== StateFiber.PENDING) {
     switch (fib._status) {
-      case StateFiber.STEP_BIND:
-        stepBindLoop(fib);
-        break;
-      case StateFiber.STEP_RESULT:
-        stepResultLoop(fib);
-        break;
       case StateFiber.CONTINUE:
         if (stepContinueLoop(fib, localRunTick)) return;
         break;
-      case StateFiber.RETURN:
-        stepReturnLoop(fib);
-        break;
-      case StateFiber.COMPLETED:
-        return stepCompleted(fib);
+      case StateFiber.STEP_BIND: stepBindLoop(fib); break;
+      case StateFiber.STEP_RESULT: stepResultLoop(fib); break;
+      case StateFiber.RETURN: stepReturnLoop(fib); break;
       case StateFiber.SUSPENDED:
         fib._status = StateFiber.CONTINUE;
         break;
-      case StateFiber.PENDING:
-        return;
     }
+  }
+  if (fib._status === StateFiber.COMPLETED) {
+    return stepCompleted(fib);
   }
 }
 
@@ -662,24 +655,12 @@ function stepReturnLoop(fib: TaskFiber<any>) {
     let attempt: any  = fib._attempts._1;
     fib._attempts = (fib._attempts as any)._2;
     switch (attempt.tag) {
-      case 'EXCEPT':
-        stepReturnExcept(fib, tmp, attempt);
-        break;
-      case 'RESUME':
-        stepReturnResume(fib, tmp, attempt);
-        break;
-      case 'BRACKET':
-        stepReturnBracket(fib, tmp, attempt);
-        break;
-      case 'RELEASE':
-        stepReturnRelease(fib, tmp, attempt);
-        break;
-      case 'FINALIZER':
-        stepReturnFinalizer(fib, attempt);
-        break;
-      case 'FINALIZED':
-        stepReturnFinalized(fib, attempt);
-        break;
+      case 'EXCEPT': stepReturnExcept(fib, tmp, attempt); break;
+      case 'RESUME': stepReturnResume(fib, tmp, attempt); break;
+      case 'BRACKET': stepReturnBracket(fib, tmp, attempt); break;
+      case 'RELEASE': stepReturnRelease(fib, tmp, attempt); break;
+      case 'FINALIZER': stepReturnFinalizer(fib, attempt); break;
+      case 'FINALIZED': stepReturnFinalized(fib, attempt); break;
     }
   }
 }
