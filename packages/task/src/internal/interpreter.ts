@@ -525,11 +525,7 @@ export class TaskFiber<A> implements Fiber<A> {
 
   run() {
     if (this._status === StateFiber.SUSPENDED) {
-      if (!scheduler.isDraining()) {
-        scheduler.enqueue(() => runFiber(this, this._runTick));
-      } else {
-        runFiber(this, this._runTick);
-      }
+      runFiber(this, this._runTick);
     }
   }
 
@@ -723,25 +719,15 @@ function stepContinueSync(fib: TaskFiber<any>) {
 
 function stepContinueAsyc(fib: TaskFiber<any>, localRunTick: number) {
   fib._status = StateFiber.PENDING;
-  let sync = true;
   fib._step = runAsync((fib._step as Async<any>)._1, (er, v) => {
     if (fib._runTick !== localRunTick) {
       return;
     }
     fib._runTick++;
-    if (sync) {
-      scheduler.enqueue(() => {
-        fib._status = StateFiber.STEP_RESULT;
-        fib._step = er != null ? left(er) : right(v);
-        runFiber(fib, fib._runTick);
-      });
-    } else {
-      fib._status = StateFiber.STEP_RESULT;
-      fib._step = er != null ? left(er) : right(v);
-      runFiber(fib, fib._runTick);
-    }
+    fib._status = StateFiber.STEP_RESULT;
+    fib._step = er != null ? left(er) : right(v);
+    runFiber(fib, fib._runTick);
   });
-  sync = false;
 }
 
 function stepContinueBracket(fib: TaskFiber<any>) {
@@ -864,12 +850,10 @@ function isLeft<A>(b: CoreTask<A> | null | Either<Error, A> | Computation<A> | C
 }
 
 function isComputation<A>(b: any): b is Computation<A> {
-  if (b == null) return false;
-  if (typeof b === 'function') return false;
-  if (typeof (b as any).cancel === 'function' && typeof (b as any).handle === 'function') {
-    return true;
-  }
-  return false;
+  return (
+    typeof b === 'object' && b != null && typeof (b as any).cancel === 'function'
+      && typeof (b as any).handle === 'function'
+  );
 }
 
 function runSync<A>(f: (...args: any[]) => A, args: any[], ctx: any): Either<Error, A> {
