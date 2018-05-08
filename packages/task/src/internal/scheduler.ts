@@ -7,7 +7,7 @@ declare var importScripts: any;
 
 const browserWindow = (typeof window !== 'undefined') ? window : undefined;
 const browserGlobal: any = browserWindow || {};
-const BrowserMutationObserver = browserGlobal.MutationObserver || browserGlobal.WebKitMutationObserver;
+const BrowserMutationObserver: any = browserGlobal.MutationObserver || browserGlobal.WebKitMutationObserver;
 const isNode = typeof self === 'undefined' &&
   typeof process !== 'undefined' && {}.toString.call(process) === '[object process]';
 
@@ -16,10 +16,17 @@ const isWorker = typeof Uint8ClampedArray !== 'undefined' &&
   typeof importScripts !== 'undefined' &&
   typeof MessageChannel !== 'undefined';
 
-export class Scheduler {
-  private _size: number;
+function arrayMove(src: Scheduler, srcIndex: number, dst: Scheduler, dstIndex: number, len: number) {
+  for (let j = 0; j < len; ++j) {
+    dst[j + dstIndex] = src[j + srcIndex];
+    src[j + srcIndex] = void 0;
+  }
+}
 
-  private _ix: number;
+export class Scheduler {
+  private _length: number;
+
+  private _front: number;
 
   private _bitField: number;
 
@@ -27,40 +34,91 @@ export class Scheduler {
 
   [key: string]: any;
 
-  constructor(private _limit: number) {
-    this._size  = 0;
-    this._ix    = 0;
+  constructor(private _capacity: number) {
+    this._length = 0;
+    this._front = 0;
     this._bitField = 0;
     this._flusFn = void 0;
   }
 
-  private _drain() {
-    let thunk: Eff<any> | void;
-    this._setIsDraining();
-    while (this._size !== 0) {
-      this._size--;
-      thunk = this[this._ix];
-      this[this._ix] = void 0;
-      this._ix = (this._ix + 1) % this._limit;
-      if (thunk != null) thunk();
-    }
-    this._bitField = 0;
+  _isOverCapacity(size: number) {
+    return this._capacity < size;
   }
 
-  enqueue(thunk: Eff<any>) {
-    let tmp: number;
-    if (this._size === this._limit) {
-      tmp = this._bitField;
-      this._drain();
-      this._bitField = tmp;
-    }
+  _pushOne(item: any) {
+    const length = this.length();
+    this._checkCapacity(length + 1);
+    const i = (this._front + length) & (this._capacity - 1);
+    this[i] = item;
+    this._length = length + 1;
+  }
 
-    this[(this._ix + this._size) % this._limit] = thunk;
-    this._size++;
+  length() {
+    return this._length;
+  }
+
+  _checkCapacity(size: number) {
+    if (this._capacity < size) {
+      this._resizeTo(this._capacity << 1);
+    }
+  }
+
+  _resizeTo(capacity: number) {
+    let oldCapacity = this._capacity;
+    this._capacity = capacity;
+    let front = this._front;
+    let length = this._length;
+    let moveItemsCount = (front + length) & (oldCapacity - 1);
+    arrayMove(this, 0, this, oldCapacity, moveItemsCount);
+  }
+
+  push(fn: Function, ctx: any, arg: any) {
+    const length = this.length() + 3;
     if (!this._isRequestedDrain()) {
       this._requestdrain();
       this._setIsRequestedDrain();
     }
+    if (this._isOverCapacity(length)) {
+      this._pushOne(fn);
+      this._pushOne(ctx);
+      this._pushOne(arg);
+      return;
+    }
+    const j = this._front + length - 3;
+    this._checkCapacity(length);
+    const wrapMask = this._capacity - 1;
+    this[(j + 0) & wrapMask] = fn;
+    this[(j + 1) & wrapMask] = ctx;
+    this[(j + 2) & wrapMask] = arg;
+    this._length = length;
+  }
+
+  shift() {
+    let front = this._front;
+    let ret = this[front];
+    this[front] = undefined;
+    this._front = (front + 1) & (this._capacity - 1);
+    this._length--;
+    return ret;
+  }
+
+  private _drain() {
+    let thunk: Function, ctx: any, arg: any;
+    this._setIsDraining();
+    while (this._length > 0) {
+      thunk = this.shift();
+      if (typeof thunk !== 'function') {
+        throw new Error('Invalid scheduler state');
+      }
+      ctx = this.shift();
+      arg = this.shift();
+      thunk.call(ctx, arg);
+    }
+    this._bitField = 0;
+  }
+
+  enqueue(thunk: Function) {
+    this.push(thunk, null, void 0);
   }
 
   _setIsDraining() {
@@ -82,7 +140,8 @@ export class Scheduler {
       let flushFn: Eff<void> = doNothing;
       if (isNode) {
         flushFn = this._useNextTick();
-      } else if (BrowserMutationObserver) {
+      } else if (BrowserMutationObserver && !(browserGlobal.navigator &&
+                  (browserGlobal.navigator.standalone || browserGlobal.cordova))) {
         flushFn = this._useMutationObserver();
       } else if (isWorker) {
         flushFn = this._useMessageChannel();
@@ -104,12 +163,31 @@ export class Scheduler {
   }
 
   _useMutationObserver() {
-    let iterations = 0;
-    let observer = new BrowserMutationObserver(() => this._drain());
-    let node = document.createTextNode('');
-    observer.observe(node, { characterData: true });
+    // Using 2 mutation observers to batch multiple updates into one.
+    let div = document.createElement('div');
+    let opts = { attributes: true };
+    let toggleScheduled = false;
+    let div2 = document.createElement('div');
+    let o2 = new BrowserMutationObserver(() => {
+        div.classList.toggle('foo');
+        toggleScheduled = false;
+    });
+    o2.observe(div2, opts);
 
-    return () => (node as any).data = (iterations = ++iterations % 2);
+    function scheduleToggle() {
+      if (toggleScheduled) return;
+      toggleScheduled = true;
+      div2.classList.toggle('foo');
+    }
+
+    return () => {
+      let o = new BrowserMutationObserver(() => {
+        o.disconnect();
+        this._drain();
+      });
+      o.observe(div, opts);
+      scheduleToggle();
+    };
   }
 
   _useMessageChannel() {
@@ -197,7 +275,8 @@ export class SimpleSupervisor implements Supervisor {
 export const scheduler = function () {
   let sc = new Scheduler(1024);
   return {
-    enqueue: (th: Eff<any>) => sc.enqueue(th),
+    enqueue: (th: Function) => sc.enqueue(th),
+    push: (fn: Function, ctx: any, arg: any) => sc.push(fn, ctx, arg),
     isDraining: () => sc.isDraining()
   };
 }();

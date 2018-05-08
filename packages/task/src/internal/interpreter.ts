@@ -525,13 +525,17 @@ export class TaskFiber<A> implements Fiber<A> {
 
   run() {
     if (this._status === StateFiber.SUSPENDED) {
-      runFiber(this, this._runTick);
+      scheduler.push(scheduleRun, this, this._runTick);
     }
   }
 
   isSuspended() {
     return this._status === StateFiber.SUSPENDED;
   }
+}
+
+function scheduleRun(this: TaskFiber<any>, localRunTick: number) {
+  runFiber(this, localRunTick);
 }
 
 function runFiber(fib: TaskFiber<any>, localRunTick: number) {
