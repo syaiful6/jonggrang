@@ -427,4 +427,25 @@ describe('Task.Core', () => {
       )
     );
   });
+
+  describe('Semigroup', () => {
+    test('associativity (old Semigroup)', (function () {
+      const a = T.pure(Q.WrappedString.from('foo'));
+      const b = T.pure(Q.WrappedString.from('bar'));
+      const c = T.pure(Q.WrappedString.from('baz'));
+
+      return Q.equals(a.concat(b).concat(c), a.concat(b.concat(c)));
+    }()));
+
+    test('associativity (new Semigroup)', (function () {
+      const a = T.pure(Q.WrappedString.from('foo'));
+      const b = T.pure(Q.WrappedString.from('bar'));
+      const c = T.pure(Q.WrappedString.from('baz'));
+
+      return Q.equals(
+        a['fantasy-land/concat'](b)['fantasy-land/concat'](c),
+        a['fantasy-land/concat'](b['fantasy-land/concat'](c))
+      );
+    }()));
+  });
 });

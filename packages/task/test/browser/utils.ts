@@ -63,3 +63,24 @@ export function modifyRef<A>(ref: Ref<A>, f: (_: A) => A): T.Task<void> {
     return;
   });
 }
+
+export class WrappedString {
+  constructor(readonly str: string) {
+  }
+
+  static from(str: string) {
+    return new WrappedString(str);
+  }
+
+  equals(s: WrappedString) {
+    return this.str === s.str;
+  }
+
+  concat(s: WrappedString): WrappedString {
+    return new WrappedString(this.str + s.str);
+  }
+
+  'fantasy-land/concat'(s: WrappedString) {
+    return this.concat(s);
+  }
+}
