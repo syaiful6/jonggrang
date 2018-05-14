@@ -144,6 +144,14 @@ export interface Supervisor {
   killAll(err: Error, cb: NodeCallback<any, any>): Canceler;
 }
 
+export interface OldSemigroup<A> {
+  concat(a: A): A;
+}
+
+export interface Semigroup<A> {
+  'fantasy-land/concat'(a: A): A;
+}
+
 export interface IntMap<A> {
   [key: string]: A;
 }
@@ -287,6 +295,14 @@ export class Task<A> {
 
   parallel(): Parallel<A> {
     return new Parallel(this.tag, this._1, this._2, this._3);
+  }
+
+  concat<B extends OldSemigroup<B>>(this: Task<B>, other: Task<B>): Task<B> {
+    return this.chain(a => other.map(b => a.concat(b)));
+  }
+
+  'fantasy-land/concat'<B extends Semigroup<B>>(this: Task<B>, other: Task<B>): Task<B> {
+    return this.chain(a => other.map(b => a['fantasy-land/concat'](b)));
   }
 }
 
