@@ -527,7 +527,7 @@ class AVarTake<A> {
 
   handle(cb: NodeCallback<A, void>) {
     this.cell = putLast(this.avar.takes, createAVarAction(AVarAction.TAKE, cb));
-    drainAVar(this.avar);
+    scheduler.push(drainAVar, null, this.avar);
   }
 
   _cancel() {
@@ -550,7 +550,7 @@ class AVarRead<A> {
 
   handle(cb: NodeCallback<A, void>) {
     this.cell = putLast(this.avar.reads, createAVarAction(AVarAction.READ, cb));
-    drainAVar(this.avar);
+    scheduler.push(drainAVar, null, this.avar);
   }
 
   _cancel() {
@@ -573,7 +573,7 @@ class AVarPut<A> {
 
   handle(cb: NodeCallback<void, void>) {
     this.cell = putLast(this.avar.puts, createAVarAction(AVarAction.PUT, this.value, cb));
-    drainAVar(this.avar);
+    scheduler.push(drainAVar, null, this.avar);
   }
 
   _cancel() {
