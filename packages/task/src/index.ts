@@ -1,4 +1,4 @@
-import { Either, left, right } from '@jonggrang/prelude';
+import { Either, left, right, identity, constant } from '@jonggrang/prelude';
 
 import {
   Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
@@ -6,7 +6,7 @@ import {
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
 import { SimpleSupervisor } from './internal/scheduler';
-import { id, withAppend } from './internal/utils';
+import { withAppend, foldrArr, o } from './internal/utils';
 
 
 // re-export
@@ -373,11 +373,67 @@ export function forInPar<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<B[]> {
 }
 
 /**
+ * Traverse an array, performing some effects at each value in parallel, ignoring the final result.
+ */
+export function forInPar_<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<void> {
+  return foldrArr((a, b) => apSecond(f(a).parallel(), b), Parallel.of(void 0), xs).sequential();
+}
+
+/**
  * Like `forInPar` but take an array of Task.
  * @param xs
  */
 export function mergePar<A>(xs: Task<A>[]): Task<A[]> {
-  return forInPar(xs, id);
+  return forInPar(xs, identity);
+}
+
+/**
+ * Like `mergePar` but ignoring final result
+ */
+export function mergePar_<A>(xs: Task<A>[]): Task<void> {
+  return forInPar_(xs, identity);
+}
+
+/**
+ * Traverse the `A[]` with function from `A` to `Task<B>`, collect the result
+ * and run all `Task<B>` in sequence, meaning it wait previous `Task` before running
+ * the next one.
+ * @param xs
+ * @param f
+ */
+export function forIn<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<B[]> {
+  function go(idx: number, n: number): Task<B[]> {
+    switch (n) {
+      case 0: return Task.of([]);
+      case 2: return f(xs[idx]).map(pair).ap(f(xs[idx + 1]));
+      default:
+        let m = Math.floor(n / 4) * 2;
+        return go(idx, m).map(concatArr).ap(go(idx + m, n - m));
+    }
+  }
+  return xs.length % 2 === 1
+    ? f(xs[0]).map(singletonArr).map(concatArr).ap(go(1, xs.length - 1))
+    : go(0, xs.length);
+}
+
+/**
+ * Traverse an array, performing some effects at each value in sequential order,
+ * ignoring the final result.
+ */
+export function forIn_<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<void> {
+  return foldrArr((a, b) => apSecond(f(a), b), pure(void 0), xs);
+}
+
+/**
+ * like `forIn` but take an array of Task instead.
+ * @param xs Task<A>[]
+ */
+export function merge<A>(xs: Task<A>[]): Task<A[]> {
+  return forIn(xs, identity);
+}
+
+export function merge_<A>(xs: Task<A>[]): Task<void> {
+  return forIn_(xs, identity);
 }
 
 /**
@@ -392,6 +448,24 @@ export function bothPar<A, B>(xs: [Task<A>, Task<B>]): Task<[A, B]> {
  */
 export function both<A, B>(xs: [Task<A>, Task<B>]): Task<[A, B]> {
   return xs[0].map(pair as (a: A) => (b: B) => [A, B]).ap(xs[1]);
+}
+
+/**
+ * Combine two effectful actions, keeping only the result of the first.
+ */
+export function apFirst<A, B>(fa: Parallel<A>, fb: Parallel<B>): Parallel<A>;
+export function apFirst<A, B>(fa: Task<A>, fb: Task<B>): Task<A>;
+export function apFirst<A, B>(fa: any, fb: any): any {
+  return fa.map(constant).ap(fb);
+}
+
+/**
+ * Combine two effectful actions, keeping only the result of the second.
+ */
+export function apSecond<A, B>(fa: Parallel<A>, fb: Parallel<B>): Parallel<B>;
+export function apSecond<A, B>(fa: Task<A>, fb: Task<B>): Task<B>;
+export function apSecond<A, B>(fa: any, fb: any): any {
+  return fa.map(constant(identity)).ap(fb) as Task<B>;
 }
 
 /**
@@ -433,36 +507,6 @@ export function node(ctx: any, ...args: any[]): Task<any> {
   let params = args.slice(0, -1);
   let fn = args[args.length - 1];
   return makeTask(new FromNodeBack(fn, params, ctx));
-}
-
-/**
- * Traverse the `A[]` with function from `A` to `Task<B>`, collect the result
- * and run all `Task<B>` in sequence, meaning it wait previous `Task` before running
- * the next one.
- * @param xs
- * @param f
- */
-export function forIn<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<B[]> {
-  function go(idx: number, n: number): Task<B[]> {
-    switch (n) {
-      case 0: return Task.of([]);
-      case 2: return f(xs[idx]).map(pair).ap(f(xs[idx + 1]));
-      default:
-        let m = Math.floor(n / 4) * 2;
-        return go(idx, m).map(concatArr).ap(go(idx + m, n - m));
-    }
-  }
-  return xs.length % 2 === 1
-    ? f(xs[0]).map(singletonArr).map(concatArr).ap(go(1, xs.length - 1))
-    : go(0, xs.length);
-}
-
-/**
- * like `forIn` but take an array of Task instead.
- * @param xs Task<A>[]
- */
-export function merge<A>(xs: Task<A>[]): Task<A[]> {
-  return forIn(xs, id);
 }
 
 function makeFiber<A>(t: Task<A>): Fiber<A> {
