@@ -89,6 +89,18 @@ describe('Property Test', () => {
           T.pure(a)['fantasy-land/chain'](x => fn(x)['fantasy-land/chain'](gn))
         ]).map(tEquals));
       });
+
+      jsv.property('#chain(f) ignore failure', jsv.string, jsv.nat, jsv.fn(jsv.nat), (m, a, f) => {
+        function transform(n: number) {
+          return T.pure(f(n));
+        }
+        const err = new Error(m);
+
+        return Q.toPromise(T.bothPar([
+          T.attempt(T.raise(err)['fantasy-land/chain'](transform)),
+          T.attempt(T.raise(err))
+        ]).map(tEquals));
+      });
     });
 
     describe('Monad instance', () => {
