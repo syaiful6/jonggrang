@@ -304,6 +304,10 @@ export class Task<A> {
   'fantasy-land/concat'<B extends Semigroup<B>>(this: Task<B>, other: Task<B>): Task<B> {
     return this.chain(a => other.map(b => a['fantasy-land/concat'](b)));
   }
+
+  static defer<B>(fn: () => Task<B>): Task<B> {
+    return new Task('BIND', Task.of(null), fn);
+  }
 }
 
 export class Parallel<A> {

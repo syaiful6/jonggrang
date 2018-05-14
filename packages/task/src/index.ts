@@ -274,6 +274,13 @@ export function delay(ms: number): Task<void> {
 }
 
 /**
+ * Lazy task
+ */
+export function defer<B>(fn: () => Task<B>): Task<B> {
+  return Task.defer(fn);
+}
+
+/**
  * Guarantees resource acquisition and cleanup. The first effect may acquire
  * some resource, while the second will dispose of it. The third effect makes
  * use of the resource. Disposal is always run last, regardless. Neither
@@ -317,20 +324,22 @@ export function generalBracket<A, B>(
  * @param fn
  */
 export function co(fn: () => Iterator<Task<any>>): Task<any> {
-  let gen: null | Iterator<Task<any>> = null;
-  function go(i?: any): Task<any> {
-    if (gen == null) {
-      gen = fn();
+  return defer(() => {
+    let gen: null | Iterator<Task<any>> = null;
+    function go(i?: any): Task<any> {
+      if (gen == null) {
+        gen = fn();
+      }
+      let { done, value } = gen.next(i);
+      if (done) {
+        gen = null;
+        return value;
+      } else {
+        return value.chain(go);
+      }
     }
-    let { done, value } = gen.next(i);
-    if (done) {
-      gen = null;
-      return value;
-    } else {
-      return value.chain(go);
-    }
-  }
-  return go();
+    return go();
+  });
 }
 
 /**
