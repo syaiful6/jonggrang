@@ -1,5 +1,6 @@
 import { just, nothing, Maybe, mapMaybe, isNothing, isJust } from './maybe';
 import { Either, isLeft } from './either';
+import { identity } from './combinators';
 
 
 export const enum ListType {
@@ -284,7 +285,7 @@ export function alterAt<A>(ix: number, f: (x: A) => Maybe<A>, xs: List<A>): Mayb
  * Flatten a list of lists.
  */
 export function concat<A>(xxs: List<List<A>>): List<A> {
-  return concatMap(id as any, xxs);
+  return concatMap(identity as any, xxs);
 }
 
 /**
@@ -421,10 +422,6 @@ function _increment(a: number) {
 
 function _takeInit<A>(un: { init: List<A>, last: A }): List<A> {
   return un.init;
-}
-
-function id<A>(x: A): A {
-  return x;
 }
 
 function arrTuple<A, B>(x: A, y: B): [A, B] {
