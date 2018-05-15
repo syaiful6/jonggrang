@@ -252,10 +252,26 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
 export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
   const fib = launchTask(t);
   fib.onComplete({
-    rethrow: true,
+    rethrow: false,
     handler: cb
   });
   return fib;
+}
+
+/**
+ * convert a task to promise
+ */
+export function toPromise<A>(t: Task<A>): Promise<A> {
+  return new Promise((resolve, reject) => {
+    const fib = launchTask(t);
+    fib.onComplete({
+      rethrow: false,
+      handler: (err, v) => {
+        if (err) return reject(err);
+        resolve(v);
+      }
+    });
+  });
 }
 
 /**
