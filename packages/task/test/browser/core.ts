@@ -72,8 +72,6 @@ describe('Task Core', function () {
     });
 
     it('can forked bracket task', function () {
-      this.timeout(40);
-
       return Q.assertTask(
         T.bracket(
           T.forkTask(T.delay(10)),
@@ -282,12 +280,10 @@ describe('Task Core', function () {
 
   describe('Race', function () {
     it('select the first success', function () {
-      this.timeout(40);
       return Q.shouldBe(2, T.race([ after(20, 1), after(10, 2), after(60, 3) ]));
     });
 
     it('work even if some task throw an error', function () {
-      this.timeout(40);
       return Q.shouldBe(4, T.race([
         raiseAfter(10),
         after(100, 2),
@@ -367,6 +363,119 @@ describe('Task Core', function () {
           T.delay(10).chain(() => Q.modifyRef(ref, xs => xs.concat('b'))),
         ]);
         return Q.readRef(ref);
+      }));
+    });
+  });
+
+  describe('Parallel task', function () {
+    it('parallel', function () {
+      return Q.assertTask(T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+        function action(s: string) {
+          return T.delay(10)
+            .chain(() => Q.modifyRef(ref, t => t + s))
+            .map(() => s);
+        }
+        function combine(a: string) {
+          return (b: string) => ({ a, b });
+        }
+        let f1: T.Fiber<{ a: string; b: string; }> = yield T.forkTask(T.sequential(
+          action('foo').parallel().map(combine).ap(action('bar').parallel())
+        ));
+        yield T.delay(15);
+        const r1: string = yield Q.readRef(ref);
+        const r2: { a: string; b: string; } = yield T.joinFiber(f1);
+        return T.pure(r1 === 'foobar' && r2.a === 'foo' && r2.b === 'bar');
+      }));
+    });
+
+    it('raise error if one Parallel failed', function () {
+      this.timeout(100);
+
+      return Q.assertTask(T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+
+        function action(n: number, s: string) {
+          return T.delay(n)
+            .chain(() => Q.modifyRef(ref, t => t + s))
+            .map(() => s);
+        }
+
+        function combine(a: string) {
+          return (b: string) => ({ a, b });
+        }
+
+        let r1: P.Either<Error, { a: string; b: string; }> = yield T.attempt(T.sequential(
+          action(10, 'foo').chain(() => T.raise(new Error('Nope')))
+            .parallel()
+            .map(combine)
+            .ap(T.parallel(T.never))
+        ));
+        const r2: string = yield Q.readRef(ref);
+
+        return T.pure(P.isLeft(r1) && r2 === 'foo');
+      }));
+    });
+
+    it('Alt instance is select the first task to resolve', function () {
+      return Q.assertTask(T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+        function action(n: number, s: string) {
+          return T.delay(n)
+            .chain(() => Q.modifyRef(ref, t => t + s))
+            .map(() => s);
+        }
+        const f1: T.Fiber<string> = yield T.forkTask(T.sequential(
+          T.parallel(action(10, 'foo')).alt(T.parallel(action(5, 'bar')))
+        ));
+        yield T.delay(10);
+        const r1: string = yield Q.readRef(ref);
+        const r2: string = yield T.joinFiber(f1);
+        return T.pure(r1 === 'bar' && r2 === 'bar');
+      }));
+    });
+
+    it('can kill Parallel when using .alt', function () {
+      return Q.assertTask(T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+        const action = (n: number, s: string) =>
+          T.bracket(
+            T.pure(void 0),
+            () => Q.modifyRef(ref, s2 => s2 + 'killed' + s),
+            () => T.delay(n).then(Q.modifyRef(ref, s2 => s2 + s))
+          );
+        let f1: T.Fiber<void> = yield T.forkTask(T.sequential(
+          action(10, 'foo').parallel().alt(action(20, 'bar').parallel())
+        ));
+        let f2: T.Fiber<void> = yield T.forkTask(T.co(function* () {
+          yield T.delay(5);
+          yield T.killFiber(new Error('Nope'), f1);
+          return Q.modifyRef(ref, s => s + 'done');
+        }));
+        yield T.attempt(T.joinFiber(f1));
+        yield T.attempt(T.joinFiber(f2));
+        return Q.readRef(ref).map(s => s === 'killedfookilledbardone');
+      }));
+    });
+
+    it('can kill Parallel .alt - finalizer', function () {
+      return Q.assertTask(T.co(function* () {
+        let ref: Q.Ref<string> = yield Q.newRef('');
+        let f1: T.Fiber<void> = yield T.forkTask(T.sequential(
+          T.parallel(T.delay(10)).alt(T.parallel(T.bracket(
+            T.pure(void 0),
+            () => T.delay(10).chain(() => Q.modifyRef(ref, s => s + 'killed')),
+            () => T.delay(20)
+          )))
+        ));
+        let f2: T.Fiber<void> = yield T.forkTask(T.co(function* () {
+          yield T.delay(15);
+          yield T.killFiber(new Error('nope'), f1);
+          return Q.modifyRef(ref, s => s + 'done');
+        }));
+        yield T.attempt(T.joinFiber(f1));
+        yield T.attempt(T.joinFiber(f2));
+        return Q.readRef(ref).map(s => s === 'killeddone');
       }));
     });
   });
