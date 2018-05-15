@@ -448,4 +448,22 @@ describe('Task.Core', () => {
       );
     }()));
   });
+
+  describe('Traversing (ignore result)', () => {
+    test('forIn_ correctly run in order', Q.shouldBe(['a', 'b', 'c'], T.co(function* () {
+      const ref: Q.Ref<string[]> = yield Q.newRef([]);
+      yield T.forIn_(['a', 'b', 'c'], item =>
+        T.delay(10).chain(() => Q.modifyRef(ref, xs => xs.concat(item))));
+      return Q.readRef(ref);
+    })));
+
+    test('merge_ correctly run in order', Q.shouldBe(['a', 'b'], T.co(function* () {
+      const ref: Q.Ref<string[]> = yield Q.newRef([]);
+      yield T.merge_([
+        T.delay(10).chain(() => Q.modifyRef(ref, xs => xs.concat('a'))),
+        T.delay(10).chain(() => Q.modifyRef(ref, xs => xs.concat('b'))),
+      ]);
+      return Q.readRef(ref);
+    })));
+  });
 });

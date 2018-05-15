@@ -122,6 +122,18 @@ describe('Property Test', () => {
         ]).map(tEquals))
       );
     });
+
+    describe('apFirst()', () => {
+      jsv.property('keeping only the result of the first', jsv.nat, jsv.nat, (a, b) =>
+        Q.toPromise(T.apFirst(T.pure(a), T.pure(b)).map(x => deepEq(a, x)))
+      );
+    });
+
+    describe('apSecond()', () => {
+      jsv.property('keeping only the result of the second', jsv.nat, jsv.nat, (a, b) =>
+        Q.toPromise(T.apSecond(T.pure(a), T.pure(b)).map(x => deepEq(b, x)))
+      );
+    });
   });
 
   describe('Parallel applicative', () => {

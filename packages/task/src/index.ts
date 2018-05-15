@@ -6,7 +6,7 @@ import {
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
 import { SimpleSupervisor } from './internal/scheduler';
-import { withAppend, foldrArr, o } from './internal/utils';
+import { withAppend, foldrArr } from './internal/utils';
 
 
 // re-export
