@@ -191,6 +191,13 @@ describe('Property Test', () => {
           Par.of(f)['fantasy-land/ap'](Par.of((g: (_: number) => number) => g(a))).sequential()
         ]).map(tEquals))
       );
+
+      jsv.property('mergePar', jsv.array(jsv.nat), xs =>
+        T.toPromise(T.bothPar([
+          T.mergePar(xs.map(T.pure)),
+          T.pure(xs)
+        ]).map(tEquals))
+      );
     });
   });
 });
