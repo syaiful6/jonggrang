@@ -124,10 +124,10 @@ describe('Task Core', function () {
           return T.pure(20);
         }));
 
-        return T.both([
+        return T.both(
           T.forIn([f1, f1, f1, f2], T.joinFiber).map(sum),
           Q.readRef(ref)
-        ]);
+        );
       }));
     });
   });
@@ -207,7 +207,7 @@ describe('Task Core', function () {
           return T.pure('done');
         }));
         yield T.delay(20);
-        return T.both([T.pure(r1), Q.readRef(ref)]);
+        return T.both(T.pure(r1), Q.readRef(ref));
       }));
     });
   });
@@ -310,17 +310,17 @@ describe('Task Core', function () {
 
   describe('both', function () {
     it('wait complete the task with pair of result of two task', function () {
-      return Q.shouldBe([1, 'foo'], T.both([after(10, 1), after(20, 'foo')]));
+      return Q.shouldBe([1, 'foo'], T.both(after(10, 1), after(20, 'foo')));
     });
   });
 
   describe('bothPar', function () {
     it('wait both task to completed', function () {
-      return Q.shouldBe([1, 'foo'], T.bothPar([after(10, 1), after(20, 'foo')]));
+      return Q.shouldBe([1, 'foo'], T.bothPar(after(10, 1), after(20, 'foo')));
     });
 
     it('if one fail, it raise an error', function () {
-      return Q.assertTask(T.attempt(T.bothPar([ after(10, 'a'), raiseAfter(20)])).map(P.isLeft));
+      return Q.assertTask(T.attempt(T.bothPar( after(10, 'a'), raiseAfter(20))).map(P.isLeft));
     });
   });
 

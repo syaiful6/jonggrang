@@ -453,15 +453,15 @@ export function merge_<A>(xs: Task<A>[]): Task<void> {
 /**
  * Wait both task to complete, that tasks will be executed in parallel
  */
-export function bothPar<A, B>(xs: [Task<A>, Task<B>]): Task<[A, B]> {
-  return xs[0].map(pair as (a: A) => (b: B) => [A, B]).parallel().ap(xs[1].parallel()).sequential();
+export function bothPar<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
+  return fa.map(pair as (a: A) => (b: B) => [A, B]).parallel().ap(fb.parallel()).sequential();
 }
 
 /**
  * Wait both task to complete, the task will be executed in sequential
  */
-export function both<A, B>(xs: [Task<A>, Task<B>]): Task<[A, B]> {
-  return xs[0].map(pair as (a: A) => (b: B) => [A, B]).ap(xs[1]);
+export function both<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
+  return fa.map(pair as (a: A) => (b: B) => [A, B]).ap(fb);
 }
 
 /**

@@ -169,8 +169,8 @@ export class Scheduler {
     let toggleScheduled = false;
     let div2 = document.createElement('div');
     let o2 = new BrowserMutationObserver(() => {
-        div.classList.toggle('foo');
-        toggleScheduled = false;
+      div.classList.toggle('foo');
+      toggleScheduled = false;
     });
     o2.observe(div2, opts);
 
