@@ -1,7 +1,8 @@
 import * as T from '@jonggrang/task';
 
+
 export interface Ref<A> {
-  value: A
+  value: A;
 }
 
 /**
