@@ -216,9 +216,7 @@ export function sequential<A>(p: Parallel<A>): Task<A> {
  * Race tasks.
  */
 export function race<A>(xs: Task<A>[]): Task<A> {
-  return xs.reduce((result, t) => {
-    return result.alt(t.parallel());
-  }, never.parallel()).sequential();
+  return foldrArr(altComb as any, never.parallel(), xs).sequential();
 }
 
 /**
@@ -252,10 +250,26 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
 export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
   const fib = launchTask(t);
   fib.onComplete({
-    rethrow: true,
+    rethrow: false,
     handler: cb
   });
   return fib;
+}
+
+/**
+ * convert a task to promise
+ */
+export function toPromise<A>(t: Task<A>): Promise<A> {
+  return new Promise((resolve, reject) => {
+    const fib = launchTask(t);
+    fib.onComplete({
+      rethrow: false,
+      handler: (err, v) => {
+        if (err) return reject(err);
+        resolve(v);
+      }
+    });
+  });
 }
 
 /**
@@ -439,15 +453,15 @@ export function merge_<A>(xs: Task<A>[]): Task<void> {
 /**
  * Wait both task to complete, that tasks will be executed in parallel
  */
-export function bothPar<A, B>(xs: [Task<A>, Task<B>]): Task<[A, B]> {
-  return xs[0].map(pair as (a: A) => (b: B) => [A, B]).parallel().ap(xs[1].parallel()).sequential();
+export function bothPar<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
+  return fa.map(pair as (a: A) => (b: B) => [A, B]).parallel().ap(fb.parallel()).sequential();
 }
 
 /**
  * Wait both task to complete, the task will be executed in sequential
  */
-export function both<A, B>(xs: [Task<A>, Task<B>]): Task<[A, B]> {
-  return xs[0].map(pair as (a: A) => (b: B) => [A, B]).ap(xs[1]);
+export function both<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
+  return fa.map(pair as (a: A) => (b: B) => [A, B]).ap(fb);
 }
 
 /**
@@ -527,6 +541,10 @@ function singletonArr<A>(a: A): A[] {
 
 function pair<A>(a: A): (b: A) => A[] {
   return (b: A) => [a, b];
+}
+
+function altComb<A>(t: Task<A>, p: Parallel<A>): Parallel<A> {
+  return t.parallel().alt(p);
 }
 
 class TimerComputation {
