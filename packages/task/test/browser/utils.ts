@@ -60,15 +60,6 @@ export function modifyRef<A>(ref: Ref<A>, f: (_: A) => A): T.Task<void> {
   });
 }
 
-export function toPromise<A>(t: T.Task<A>): Promise<A> {
-  return new Promise((resolve: any, reject: any) => {
-    T.runTask((err, v) => {
-      if (err) return reject(err);
-      resolve(v);
-    }, t);
-  });
-}
-
 export class WrappedString {
   constructor(readonly str: string) {
   }

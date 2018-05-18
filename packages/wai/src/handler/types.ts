@@ -10,6 +10,9 @@ import { GetFd } from './fd-cache';
 import { ListenOptions } from 'net';
 
 
+/**
+ * Data type to abstract file identifiers
+ */
 export interface FileId {
   path: string;
   fd: P.Maybe<number>;
@@ -19,6 +22,9 @@ export function fileId(path: string, fd: P.Maybe<number>): FileId {
   return { path, fd };
 }
 
+/**
+ * A function for sending `FileId`
+ */
 export interface SendFile {
   (fid: FileId, start: number, end: number, hook: T.Task<void>): T.Task<void>;
 }
@@ -27,6 +33,9 @@ export interface WriteHead {
   (st: H.Status, headers: H.ResponseHeaders): T.Task<void>;
 }
 
+/**
+ * Data type to manipulate Task actions for connections
+ */
 export interface Connection {
   sendMany(bs: Buffer[]): T.Task<void>;
   sendAll(buf: Buffer): T.Task<void>;

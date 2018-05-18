@@ -20,7 +20,7 @@ export class FileInfo {
   ) {
   }
 
-  compare(other: FileInfo) {
+  compare(other: FileInfo): -1 | 0 | 1 {
     return this.name < other.name ? -1 : this.name === other.name ? 0 : 1;
   }
 

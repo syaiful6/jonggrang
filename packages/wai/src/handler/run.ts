@@ -307,7 +307,7 @@ class Conn {
   }
 
   sendMany(bs: Buffer[]): T.Task<void> {
-    return T.forIn(bs, buf => writeSock(this.response, buf)) as any;
+    return T.forIn_(bs, buf => writeSock(this.response, buf));
   }
 
   sendStream(stream: Readable): T.Task<void> {
