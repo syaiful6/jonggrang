@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/wai",
   "description": "A web application interface for node.js.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,12 +18,12 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/avar": "0.1.6",
-    "@jonggrang/http-types": "0.1.6",
-    "@jonggrang/object": "0.1.6",
-    "@jonggrang/prelude": "0.1.6",
-    "@jonggrang/ref": "0.1.6",
-    "@jonggrang/task": "0.2.4"
+    "@jonggrang/avar": "0.1.7",
+    "@jonggrang/http-types": "0.1.7",
+    "@jonggrang/object": "0.1.7",
+    "@jonggrang/prelude": "0.1.7",
+    "@jonggrang/ref": "0.1.7",
+    "@jonggrang/task": "0.2.5"
   },
   "devDependencies": {
     "@types/chai": "^4.1.3",
