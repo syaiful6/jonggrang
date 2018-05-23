@@ -1,5 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
+import * as jsv from 'jsverify';
 import * as H from '../../src/date';
 import * as P from '@jonggrang/prelude';
 
@@ -17,12 +18,8 @@ describe('HTTP Date', () => {
   });
 
   describe('formatHttpDate', () => {
-    it('behave like model', () => {
-      for (let i = 0; i < 100000; i += 10000000000) {
-        const date = new Date(i);
-        const hdate = H.fromDate(date);
-        expect(date.toUTCString()).to.be.equals(H.formatHttpDate(hdate));
-      }
-    });
+    jsv.property('behave like model', jsv.datetime, date =>
+      H.formatHttpDate(H.fromDate(date)) === date.toUTCString()
+    );
   });
 });

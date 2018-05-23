@@ -4,21 +4,6 @@ export type Query = {
   [k: string]: string | string[];
 };
 
-export function pathSegments(str: string): string[] {
-  return str === '' || str === '/' ? [] : normalizePath(str.split('/'));
-}
-
-function normalizePath(paths: string[]) {
-  let start = 0, end = paths.length;
-  if (paths.length > 0 && paths[0] === '') {
-    start = 1;
-  }
-  if (paths[paths.length - 1] === '') {
-    end = paths.length - 1;
-  }
-  return paths.slice(start, end);
-}
-
 const unhexTable = [
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 0 - 15
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 16 - 31
@@ -80,7 +65,7 @@ function unescapeBuffer(s: string, decodeSpaces?: boolean): Uint8Array {
   return hasHex ? out.slice(0, outIndex) : out;
 }
 
-function qsUnescape(s: string, decodeSpaces?: boolean) {
+export function qsUnescape(s: string, decodeSpaces?: boolean): string {
   try {
     return decodeURIComponent(s);
   } catch (e) {

@@ -2,7 +2,7 @@ export function createUint8(len: number) {
   return new Uint8Array(len);
 }
 
-export function utf8Slice(buf: Uint8Array, start: number, end: number) {
+export function utf8Slice(buf: Uint8Array, start: number, end: number): string {
   end = Math.min(buf.length, end);
   let res = [];
 
@@ -77,7 +77,7 @@ export function utf8Slice(buf: Uint8Array, start: number, end: number) {
 
 const MAX_ARGUMENTS_LENGTH = 0x1000;
 
-function decodeCodePointsArray (codePoints: number[]) {
+function decodeCodePointsArray (codePoints: number[]): string {
   let len = codePoints.length;
   if (len <= MAX_ARGUMENTS_LENGTH) {
     return String.fromCharCode.apply(String, codePoints); // avoid extra slice()
