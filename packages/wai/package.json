@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/wai",
   "description": "A web application interface for node.js.",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -19,7 +19,7 @@
   ],
   "dependencies": {
     "@jonggrang/avar": "0.1.7",
-    "@jonggrang/http-types": "0.1.7",
+    "@jonggrang/http-types": "0.1.8",
     "@jonggrang/object": "0.1.7",
     "@jonggrang/prelude": "0.1.7",
     "@jonggrang/ref": "0.1.7",
