@@ -123,14 +123,14 @@ export function pipeStream<W extends Writable, T extends Readable>(ws: W, rs: T)
 }
 
 function onError<T extends Stream>(s: PipeState, st: T, cb: T.NodeCallback<void, void>, e: Error) {
-  cb(e);
+  process.nextTick(cb, e);
   if (!s.resolved) {
     cleanUpListener(s, st);
   }
 }
 
 function onSuccess<T extends Stream>(s: PipeState, st: T, cb: T.NodeCallback<void, void>) {
-  cb(null, void 0);
+  process.nextTick(cb);
   if (!s.resolved) {
     cleanUpListener(s, st);
   }

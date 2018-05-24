@@ -33,5 +33,5 @@ function handleWriteSock<W extends Writable>(this: { writable: W, buffer: Buffer
   if (!this.writable.write(this.buffer)) {
     return this.writable.once('drain', cb);
   }
-  return cb(null, void 0);
+  return process.nextTick(cb);
 }
