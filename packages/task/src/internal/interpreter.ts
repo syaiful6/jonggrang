@@ -104,7 +104,7 @@ class ParComputation<A> implements Computation<A> {
   private _killId: number;
   private _kills: IntMap<IntMap<Eff<void>>>;
   private _interupt: Either<Error, any> | null;
-  private _callback: NodeCallback<A, void>;
+  private _callback: NodeCallback<A>;
 
   constructor(private par: ParTask<A>, private supervisor?: Supervisor) {
     this._fiberId = 0;
@@ -119,12 +119,12 @@ class ParComputation<A> implements Computation<A> {
   }
 
   cancel(err: Error): Task<void> {
-    return createCoreTask('ASYNC', (killCb: NodeCallback<void, void>) => {
+    return createCoreTask('ASYNC', (killCb: NodeCallback<void>) => {
       return this._cancelAll(err, killCb);
     });
   }
 
-  private _cancelAll(error: Error, killCb: NodeCallback<void, void>): Canceler {
+  private _cancelAll(error: Error, killCb: NodeCallback<void>): Canceler {
     this._interupt = left(error);
     let table: IntMap<Eff<void>>;
     for (let kid in this._kills) {
@@ -154,7 +154,7 @@ class ParComputation<A> implements Computation<A> {
     this.join(result, fib._2._1, (fib._2 as any)._2);
   }
 
-  private kill(error: Error, par: InterpretTask, cb: NodeCallback<any, void>) {
+  private kill(error: Error, par: InterpretTask, cb: NodeCallback<any>) {
     let step  = par,
       head  = null,
       tail  = null,
@@ -332,7 +332,7 @@ class ParComputation<A> implements Computation<A> {
     }
   }
 
-  handle(cb: NodeCallback<any, void>) {
+  handle(cb: NodeCallback<any>) {
     let status = StateFiber.CONTINUE;
     let step: InterpretTask  = this.par;
     let head   = null;
@@ -459,7 +459,7 @@ export class TaskFiber<A> implements Fiber<A> {
     };
   }
 
-  kill(e: Error, cb: NodeCallback<void, void>) {
+  kill(e: Error, cb: NodeCallback<void>) {
     if (this._status === StateFiber.COMPLETED) {
       cb(null, void 0);
       return doNothing;
@@ -512,7 +512,7 @@ export class TaskFiber<A> implements Fiber<A> {
     return canceler;
   }
 
-  join(cb: NodeCallback<A, void>) {
+  join(cb: NodeCallback<A>) {
     let canceler = this.onComplete({
       rethrow: false,
       handler: cb
@@ -869,7 +869,7 @@ function runSync<A>(f: (...args: any[]) => A, args: any[], ctx: any): Either<Err
   }
 }
 
-function runAsync<A, B>(f: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>, k: NodeCallback<A, B>): Computation<A> | Canceler {
+function runAsync<A>(f: Fn1<NodeCallback<A>, Canceler> | Computation<A>, k: NodeCallback<A>): Computation<A> | Canceler {
   try {
     if (isComputation(f)) {
       f.handle(k);
@@ -882,7 +882,7 @@ function runAsync<A, B>(f: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>
   }
 }
 
-function runHandler(handler: NodeCallback<any, any>, r: Either<Error, any>) {
+function runHandler(handler: NodeCallback<any>, r: Either<Error, any>) {
   try {
     if (isLeft(r)) {
       return handler(r.value);

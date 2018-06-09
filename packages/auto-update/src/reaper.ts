@@ -1,11 +1,19 @@
+/**
+ * This module provides the ability to create reapers: dedicated cleanup `threads`. These
+ * `threads` will automatically spawn and die based on the presence of a workload to process on.
+ * Example uses:
+ * - Killing long-running jobs
+ * - Closing unused connections in a connection pool
+ * - Pruning a cache of old items
+ */
+
+import { identity } from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
 import * as AV from '@jonggrang/avar';
 import * as R from '@jonggrang/ref';
 
-import { identity } from './utils';
 
-
-export interface Settings<W, I> {
+export interface ReaperSettings<W, I> {
   action: (workload: W) => T.Task<(workload: W) => W>;
   delay: number; // number in miliseconds
   cons: (item: I, workload: W) => W;
@@ -30,7 +38,7 @@ export type State<W>
   | { tag: StateType.WORKLOAD, workload: W };
 
 export function mkReaper<W, I>(
-  settings: Settings<W, I>
+  settings: ReaperSettings<W, I>
 ): T.Task<Reaper<W, I>> {
   return R.newRef<State<W>>({ tag: StateType.NOREAPER })
     .chain(stateRef =>
@@ -49,7 +57,7 @@ export function mkReaper<W, I>(
 
 function addItem<W, I>(
   lock: AV.AVar<void>,
-  settings: Settings<W, I>,
+  settings: ReaperSettings<W, I>,
   stateRef: R.Ref<State<W>>,
   tidRef: R.Ref<T.Fiber<void> | undefined>
 ) {
@@ -70,7 +78,7 @@ function addItem<W, I>(
 
 function spawn<W, I>(
   lock: AV.AVar<void>,
-  settings: Settings<W, I>,
+  settings: ReaperSettings<W, I>,
   stateRef: R.Ref<State<W>>,
   tidRef: R.Ref<T.Fiber<void> | undefined>
 ): T.Task<void> {
@@ -80,7 +88,7 @@ function spawn<W, I>(
 
 function reaper<W, I>(
   lock: AV.AVar<void>,
-  settings: Settings<W, I>,
+  settings: ReaperSettings<W, I>,
   stateRef: R.Ref<State<W>>,
   tidRef: R.Ref<T.Fiber<void> | undefined>
 ) {

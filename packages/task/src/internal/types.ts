@@ -16,8 +16,8 @@ export type Eff<A> = {
  * only take 2 parameters. The first one is Error, if the async
  * operation success, it should set to null or undefined.
  */
-export type NodeCallback<A, B> = {
-  (error: Error | null | undefined, data?: A): B
+export type NodeCallback<A> = {
+  (error: Error | null | undefined, data?: A): void;
 };
 
 export interface Pure<A> {
@@ -45,7 +45,7 @@ export interface Sync<A> {
 
 export interface Async<A> {
   tag: 'ASYNC';
-  _1: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>;
+  _1: Fn1<NodeCallback<A>, Canceler> | Computation<A>;
 }
 
 export interface Bind<A> {
@@ -97,7 +97,7 @@ export type GeneralBracket<A, B> = {
  * The computation of async operation.
  */
 export interface Computation<A> {
-  handle(cb: NodeCallback<A, void>): void;
+  handle(cb: NodeCallback<A>): void;
   cancel(error: Error): CoreTask<void>;
 }
 
@@ -128,20 +128,20 @@ export type ParTask<A>
 
 export interface OnComplete<A> {
   rethrow: boolean;
-  handler: NodeCallback<A, void>;
+  handler: NodeCallback<A>;
 }
 
 export interface Fiber<A> {
   run: Eff<void>;
-  kill(e: Error, cb: NodeCallback<void, void>): Eff<void>;
-  join(a: NodeCallback<A, void>): Eff<void>;
+  kill(e: Error, cb: NodeCallback<void>): Eff<void>;
+  join(a: NodeCallback<A>): Eff<void>;
   onComplete(on: OnComplete<A>): Eff<void>;
   isSuspended: Eff<boolean>;
 }
 
 export interface Supervisor {
   register(fiber: Fiber<any>): void;
-  killAll(err: Error, cb: NodeCallback<any, any>): Canceler;
+  killAll(err: Error, cb: NodeCallback<any>): Canceler;
 }
 
 export interface OldSemigroup<A> {
@@ -160,7 +160,7 @@ export function createCoreTask<A>(tag: 'PURE', _1: A): Task<A>;
 export function createCoreTask(tag: 'THROW', _1: Error): Task<any>;
 export function createCoreTask<A>(tag: 'SEQUENTIAL', _1: ParTask<A>): Task<A>;
 export function createCoreTask<A>(tag: 'SYNC', _1: (...args: any[]) => A, _2: any[], _3: any): Task<A>;
-export function createCoreTask<A>(tag: 'ASYNC', _1: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>): Task<A>;
+export function createCoreTask<A>(tag: 'ASYNC', _1: Fn1<NodeCallback<A>, Canceler> | Computation<A>): Task<A>;
 export function createCoreTask<A>(tag: 'EXCEPT', _1: CoreTask<A>, _2: Fn1<Error, CoreTask<A>>): Task<A>;
 export function createCoreTask(tag: 'FORK', _1: boolean, _2: CoreTask<any>, _3?: Supervisor): Task<any>;
 export function createCoreTask<A, B>(tag: 'BIND', _1: CoreTask<A>, _2: Fn1<A, CoreTask<B>>): Task<B>;

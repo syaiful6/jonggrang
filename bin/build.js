@@ -88,7 +88,8 @@ let allPackages = [
   'http-types',
   'uri',
   'wai',
-  'genjer'
+  'genjer',
+  'auto-update'
 ]
 
 if (readdirSync(PACKAGES_DIRECTORY).length > allPackages.length) {

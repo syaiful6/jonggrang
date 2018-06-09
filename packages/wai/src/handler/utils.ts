@@ -29,7 +29,7 @@ function doNothingTask() {
   return T.pure(void 0);
 }
 
-function handleWriteSock<W extends Writable>(this: { writable: W, buffer: Buffer }, cb: T.NodeCallback<void, void>) {
+function handleWriteSock<W extends Writable>(this: { writable: W, buffer: Buffer }, cb: T.NodeCallback<void>) {
   if (!this.writable.write(this.buffer)) {
     return this.writable.once('drain', cb);
   }

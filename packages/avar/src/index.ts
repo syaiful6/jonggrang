@@ -29,18 +29,18 @@ export const enum AVarAction {
 
 export interface TakeAVar<A> {
   kind: AVarAction.TAKE;
-  cb: NodeCallback<A, void>;
+  cb: NodeCallback<A>;
 }
 
 export interface PutAVar<A> {
   kind: AVarAction.PUT;
   value: A;
-  cb: NodeCallback<void, void>;
+  cb: NodeCallback<void>;
 }
 
 export interface ReadAVar<A> {
   kind: AVarAction.READ;
-  cb: NodeCallback<A, void>;
+  cb: NodeCallback<A>;
 }
 
 /**
@@ -219,7 +219,7 @@ function deleteCell<A>(cell: MutableCell<A>) {
 
 function drainAVar<A>(avar: AVar<A>) {
   if (avar.draining) {
-    return;
+    return scheduler.push(drainAVar, null, avar);
   }
   let ps = avar.puts;
   let ts = avar.takes;
@@ -283,7 +283,7 @@ function drainAVar<A>(avar: AVar<A>) {
   avar.draining = false;
 }
 
-function runHandler<A, B>(cb: NodeCallback<A, B>, error: null | Error, v?: A) {
+function runHandler<A>(cb: NodeCallback<A>, error: null | Error, v?: A) {
   try {
     if (error != null) {
       return cb(error);
@@ -498,9 +498,9 @@ function _isEmptyStatus(st: Status<any>): st is Empty {
   return st.kind === AVarStatus.EMPTY;
 }
 
-function createAVarAction<A>(op: AVarAction.TAKE, cb: NodeCallback<A, void>): TakeAVar<A>;
-function createAVarAction<A>(op: AVarAction.READ, cb: NodeCallback<A, void>): ReadAVar<A>;
-function createAVarAction<A>(op: AVarAction.PUT, value: A, cb: NodeCallback<void, void>): PutAVar<A>;
+function createAVarAction<A>(op: AVarAction.TAKE, cb: NodeCallback<A>): TakeAVar<A>;
+function createAVarAction<A>(op: AVarAction.READ, cb: NodeCallback<A>): ReadAVar<A>;
+function createAVarAction<A>(op: AVarAction.PUT, value: A, cb: NodeCallback<void>): PutAVar<A>;
 function createAVarAction(op: any, value: any, cb?: any): any {
   switch (op) {
     case AVarAction.TAKE:
@@ -525,9 +525,9 @@ class AVarTake<A> {
   constructor(private avar: AVar<A>) {
   }
 
-  handle(cb: NodeCallback<A, void>) {
+  handle(cb: NodeCallback<A>) {
     this.cell = putLast(this.avar.takes, createAVarAction(AVarAction.TAKE, cb));
-    scheduler.push(drainAVar, null, this.avar);
+    drainAVar(this.avar);
   }
 
   _cancel() {
@@ -548,9 +548,9 @@ class AVarRead<A> {
   constructor(private avar: AVar<A>) {
   }
 
-  handle(cb: NodeCallback<A, void>) {
+  handle(cb: NodeCallback<A>) {
     this.cell = putLast(this.avar.reads, createAVarAction(AVarAction.READ, cb));
-    scheduler.push(drainAVar, null, this.avar);
+    drainAVar(this.avar);
   }
 
   _cancel() {
@@ -571,9 +571,9 @@ class AVarPut<A> {
   constructor(private avar: AVar<A>, private value: A) {
   }
 
-  handle(cb: NodeCallback<void, void>) {
+  handle(cb: NodeCallback<void>) {
     this.cell = putLast(this.avar.puts, createAVarAction(AVarAction.PUT, this.value, cb));
-    scheduler.push(drainAVar, null, this.avar);
+    drainAVar(this.avar);
   }
 
   _cancel() {

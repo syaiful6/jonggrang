@@ -1,7 +1,7 @@
 {
-  "name": "@jonggrang/wai",
-  "description": "A web application interface for node.js.",
-  "version": "0.1.8",
+  "name": "@jonggrang/auto-update",
+  "description": "Efficiently run periodic, on-demand actions.",
+  "version": "0.0.1",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,13 +18,10 @@
     "es6/"
   ],
   "dependencies": {
+    "@jonggrang/prelude": "0.1.7",
+    "@jonggrang/task": "0.2.5",
     "@jonggrang/avar": "^0.1.7",
-    "@jonggrang/http-types": "^0.1.8",
-    "@jonggrang/object": "^0.1.7",
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/ref": "^0.1.7",
-    "@jonggrang/task": "^0.2.5",
-    "@jonggrang/auto-update": "^0.0.1"
+    "@jonggrang/ref": "^0.1.7"
   },
   "devDependencies": {
     "@types/chai": "^4.1.3",

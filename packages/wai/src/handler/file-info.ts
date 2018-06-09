@@ -5,7 +5,7 @@ import { isEmpty } from '@jonggrang/object';
 import * as H from '@jonggrang/http-types';
 
 import { smInsertTuple } from './utils';
-import { Reaper, mkReaper } from './reaper';
+import { Reaper, mkReaper } from '@jonggrang/auto-update';
 
 
 /**

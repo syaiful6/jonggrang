@@ -51,7 +51,7 @@ export function killAll(err: Error, sup: Supervisor): Task<void> {
  * Smart constructor for creating Task, it take a function that accept a Node.js callback
  * and return a `canceler`, or an object with shape look like Computation interface.
  */
-export function makeTask<A>(f: Fn1<NodeCallback<A, void>, Canceler> | Computation<A>): Task<A> {
+export function makeTask<A>(f: Fn1<NodeCallback<A>, Canceler> | Computation<A>): Task<A> {
   return new Task('ASYNC', f);
 }
 
@@ -247,7 +247,7 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
  * @param cb
  * @param t
  */
-export function runTask<A>(cb: NodeCallback<A, void>, t: Task<A>) {
+export function runTask<A>(cb: NodeCallback<A>, t: Task<A>) {
   const fib = launchTask(t);
   fib.onComplete({
     rethrow: false,
@@ -485,37 +485,38 @@ export function apSecond<A, B>(fa: any, fb: any): any {
 /**
  * Turn a node js callback style to Task
  */
-export function node<A, B>(ctx: any, a: A, fn: (a: A, cb: NodeCallback<B, void>) => void): Task<B>;
-export function node<A, B, C>(ctx: any, a: A, b: B, fn: (a: A, b: B, cb: NodeCallback<C, void>) => void): Task<C>;
-export function node<A, B, C, D>(ctx: any, a: A, b: B, c: C, fn: (a: A, b: B, c: C, cb: NodeCallback<D, void>) => void): Task<D>;
-export function node<A, B, C, D, E>(ctx: any, a: A, b: B, c: C, d: D, fn: (a: A, b: B, c: C, d: D, cb: NodeCallback<E, void>) => void): Task<E>;
+export function node<A>(ctx: any, fn: (cb: NodeCallback<A>) => void): Task<A>;
+export function node<A, B>(ctx: any, a: A, fn: (a: A, cb: NodeCallback<B>) => void): Task<B>;
+export function node<A, B, C>(ctx: any, a: A, b: B, fn: (a: A, b: B, cb: NodeCallback<C>) => void): Task<C>;
+export function node<A, B, C, D>(ctx: any, a: A, b: B, c: C, fn: (a: A, b: B, c: C, cb: NodeCallback<D>) => void): Task<D>;
+export function node<A, B, C, D, E>(ctx: any, a: A, b: B, c: C, d: D, fn: (a: A, b: B, c: C, d: D, cb: NodeCallback<E>) => void): Task<E>;
 export function node<A, B, C, D, E, F>(
   ctx: any, a: A, b: B, c: C, d: D, e: E,
-  fn: (a: A, b: B, c: C, d: D, e: E, cb: NodeCallback<F, void>) => void
+  fn: (a: A, b: B, c: C, d: D, e: E, cb: NodeCallback<F>) => void
 ): Task<F>;
 export function node<A, B, C, D, E, F, G>(
   ctx: any, a: A, b: B, c: C, d: D, e: E, f: F,
-  fn: (a: A, b: B, c: C, d: D, e: E, f: F, cb: NodeCallback<G, void>) => void
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, cb: NodeCallback<G>) => void
 ): Task<G>;
 export function node<A, B, C, D, E, F, G, H>(
   ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G,
-  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, cb: NodeCallback<H, void>) => void
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, cb: NodeCallback<H>) => void
 ): Task<H>;
 export function node<A, B, C, D, E, F, G, H, I>(
   ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H,
-  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, cb: NodeCallback<I, void>) => void
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, cb: NodeCallback<I>) => void
 ): Task<I>;
 export function node<A, B, C, D, E, F, G, H, I, J>(
   ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I,
-  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, cb: NodeCallback<J, void>) => void
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, cb: NodeCallback<J>) => void
 ): Task<J>;
 export function node<A, B, C, D, E, F, G, H, I, J, K>(
   ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J,
-  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, cb: NodeCallback<K, void>) => void
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, cb: NodeCallback<K>) => void
 ): Task<K>;
 export function node<A, B, C, D, E, F, G, H, I, J, K, L>(
   ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K,
-  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, cb: NodeCallback<L, void>) => void
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, cb: NodeCallback<L>) => void
 ): Task<L>;
 export function node(ctx: any, ...args: any[]): Task<any> {
   let params = args.slice(0, -1);
@@ -553,7 +554,7 @@ class TimerComputation {
     this._timerId = null;
   }
 
-  handle(cb: NodeCallback<void, void>): void {
+  handle(cb: NodeCallback<void>): void {
     this._timerId = setTimeout(() => cb(null, void 0), this._delay);
   }
 
@@ -572,7 +573,7 @@ class FromNodeBack {
   constructor (private fn: Function, private args: any[], private ctx: any) {
   }
 
-  handle(cb: NodeCallback<any, void>): void {
+  handle(cb: NodeCallback<any>): void {
     let { fn, args, ctx } = this;
     fn.apply(ctx, withAppend(args, cb));
   }

@@ -229,7 +229,7 @@ export class SimpleSupervisor implements Supervisor {
     this._count++;
   }
 
-  killAll(error: Error, cb: NodeCallback<any, any>): Canceler {
+  killAll(error: Error, cb: NodeCallback<any>): Canceler {
     let killCount = 0;
     let kills: IntMap<Eff<void>> = Object.create(null);
 

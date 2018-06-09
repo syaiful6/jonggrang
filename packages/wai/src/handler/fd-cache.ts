@@ -5,7 +5,7 @@ import * as P from '@jonggrang/prelude';
 import * as RV from '@jonggrang/ref';
 import * as SM from '@jonggrang/object';
 
-import { Reaper, mkReaper } from './reaper';
+import { Reaper, mkReaper } from '@jonggrang/auto-update';
 import { smInsertTuple, identity } from './utils';
 
 
