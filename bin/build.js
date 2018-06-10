@@ -24,6 +24,8 @@ function buildPackage(package) {
       "es2015.iterable",
       "es2015.generator"
     ],
+    allowSyntheticDefaultImports: true,
+    esModuleInterop: true,
     declaration: true,
     moduleResolution: 'node',
     noImplicitAny: true,

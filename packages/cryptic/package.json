@@ -1,0 +1,28 @@
+{
+  "name": "@jonggrang/cryptic",
+  "description": "Crypto wrapper",
+  "version": "0.0.1",
+  "author": {
+    "name": "Syaiful Bahri"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memtoko/thatiq.git"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "module": "es6/index.js",
+  "license": "MIT",
+  "files": [
+    "lib/",
+    "es6/"
+  ],
+  "dependencies": {
+    "@jonggrang/prelude": "^0.1.7",
+    "@jonggrang/task": "^0.2.5",
+    "base64url": "^3.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^5.2.0"
+  }
+}

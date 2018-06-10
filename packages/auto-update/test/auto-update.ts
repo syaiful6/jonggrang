@@ -1,5 +1,5 @@
 import 'mocha';
-import { expect } from 'chai';
+import assert from 'assert';
 import * as T from '@jonggrang/task';
 import * as R from '@jonggrang/ref';
 import { mkAutoUpdate } from '../src/auto-update';
@@ -21,7 +21,7 @@ describe('auto update', function () {
       const next: T.Task<number> = yield mkAutoUpdate({ delay: 100, task: update });
       yield T.forIn_(range(1, 11), i => {
         return next.chain(j => {
-          expect(i === j && i !== 1).to.be.equals(false);
+          assert.equal(i === j && i !== 1, false);
           return T.pure(void 0);
         });
       });
@@ -29,7 +29,7 @@ describe('auto update', function () {
       const last1: number = yield R.readRef(ref);
       yield T.delay(200);
       const last2: number = yield R.readRef(ref);
-      expect(last1).to.be.equals(last2);
+      assert.equal(last1, last2);
       return T.pure(void 0);
     }));
   });
