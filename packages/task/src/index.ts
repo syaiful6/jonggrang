@@ -247,7 +247,7 @@ export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
  * @param cb
  * @param t
  */
-export function runTask<A>(cb: NodeCallback<A>, t: Task<A>) {
+export function runTask<A>(t: Task<A>, cb: NodeCallback<A>) {
   const fib = launchTask(t);
   fib.onComplete({
     rethrow: false,

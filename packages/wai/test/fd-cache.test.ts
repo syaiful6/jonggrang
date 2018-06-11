@@ -12,7 +12,6 @@ import { withFdCache } from '../src/handler/fd-cache';
 describe('Fd Cache', () => {
   it('withFdCache clean up fd', done => {
     T.runTask(
-      done,
       T.co(function* () {
         let fdRef: R.Ref<number> = yield R.newRef(-1);
         yield withFdCache(3000, getFd =>
@@ -24,7 +23,8 @@ describe('Fd Cache', () => {
           assert.ok(isLeft(mcont));
           return T.pure(void 0);
         });
-      })
+      }),
+      done
     );
   });
 });

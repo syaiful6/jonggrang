@@ -32,7 +32,7 @@ function testRunner(headers: RequestHeaders, fp: string, rsp: RspFileInfoWithBod
 
 function testFileRange(desc: string, headers: RequestHeaders, fp: string, rsp: RspFileInfoWithBody) {
   it(desc, done => {
-    T.runTask(done, testRunner(headers, fp, rsp));
+    T.runTask(testRunner(headers, fp, rsp), done);
   });
 }
 
