@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import * as assert from 'assert';
 import * as path from 'path';
 
 import { isLeft } from '@jonggrang/prelude';
@@ -17,9 +16,7 @@ function testRunner(headers: RequestHeaders, fp: string, rsp: RspFileInfoWithBod
   return T.attempt(getFileInfo(fp))
     .chain(efinfo => {
       if (isLeft(efinfo)) {
-        /*tslint:disable */
-        expect(true).to.be.false;
-        /*tslint:enable */
+        assert.equal(true, false);
         return T.pure(false);
       }
       const { value: finfo } = efinfo;
@@ -28,14 +25,14 @@ function testRunner(headers: RequestHeaders, fp: string, rsp: RspFileInfoWithBod
       });
 
       let rsp2 = rspFileInfo(RspFileInfoType.WITHBODY, rsp.status, hs, rsp.offset, rsp.length);
-      expect(conditionalRequest(finfo, {}, headers)).to.deep.equals(rsp2);
+      assert.deepEqual(conditionalRequest(finfo, {}, headers), rsp2);
       return T.pure(false);
     });
 }
 
 function testFileRange(desc: string, headers: RequestHeaders, fp: string, rsp: RspFileInfoWithBody) {
   it(desc, done => {
-    T.runTask(done, testRunner(headers, fp, rsp));
+    T.runTask(testRunner(headers, fp, rsp), done);
   });
 }
 

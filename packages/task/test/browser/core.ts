@@ -1,4 +1,3 @@
-import 'mocha';
 import * as P from '@jonggrang/prelude';
 
 import * as T from '../../src';

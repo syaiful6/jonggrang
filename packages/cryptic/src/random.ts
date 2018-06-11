@@ -17,14 +17,14 @@ export function randomString(len: number): Task<string> {
   return fromNodeBack(null, len, '', randomStringCb);
 }
 
-function randomStringCb(length: number, v: string, cb: NodeCallback<string, void>) {
-  let size = length - v.length;
-  nodeRandomBytes(Math.max(1, (size / 4 * 3) | 0), (err, buf) => {
-    if (err) cb(err);
-    v += buf.toString('base64').replace(/[=\+\/]/g, '').substr(0, size);
-    if (v.length < length) {
-      return randomStringCb(length, v, cb);
-    }
-    return cb(null, v);
+function randomStringCb(length: number, v: string, cb: NodeCallback<string>) {
+  randomBits((length + 1) * 6, (err, buff) => {
+    if (err) return cb(err);
+    const v = (buff as Buffer).toString('base64').replace(/[=\+\/]/g, '');
+    cb(null, v.slice(0, length));
   });
+}
+
+function randomBits(len: number, cb: NodeCallback<Buffer>) {
+  return nodeRandomBytes(Math.ceil(len / 8), cb);
 }

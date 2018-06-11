@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -13,7 +12,6 @@ import { withFdCache } from '../src/handler/fd-cache';
 describe('Fd Cache', () => {
   it('withFdCache clean up fd', done => {
     T.runTask(
-      done,
       T.co(function* () {
         let fdRef: R.Ref<number> = yield R.newRef(-1);
         yield withFdCache(3000, getFd =>
@@ -22,12 +20,11 @@ describe('Fd Cache', () => {
         );
         let fd: number = yield R.readRef(fdRef);
         return T.attempt(T.node(null, fd, fs.readFile)).chain(mcont => {
-          /*tslint:disable */
-          expect(isLeft(mcont)).to.be.true;
-          /*tslint:enable */
+          assert.ok(isLeft(mcont));
           return T.pure(void 0);
         });
-      })
+      }),
+      done
     );
   });
 });

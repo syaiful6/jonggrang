@@ -1,1 +1,1 @@
-import './auto-update';
+import './browser/auto-update';

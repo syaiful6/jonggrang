@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "mocha": "^5.2.0",
-    "@types/mocha": "^5.2.0",
+    "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11"
   },
   "publishConfig": {
