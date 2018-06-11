@@ -163,4 +163,34 @@ describe('HTTP Cookie', () => {
       );
     });
   });
+
+  describe('lookupCookie', () => {
+    it('return nothing if no cookie found', () => {
+      const ret = CO.lookupCookie('foo', []);
+      assert.deepEqual(ret, P.nothing);
+    });
+
+    it('return the cookie in array', () => {
+      const ret = CO.lookupCookie('foo', [
+        CO.createCookieKV('foo', 'bar'),
+        CO.createCookieKV('baz', 'bazz')
+      ]);
+      assert.deepEqual(ret, P.just(CO.createCookieKV('foo', 'bar')));
+    });
+  });
+
+  describe('lookupCookieValue', () => {
+    it('return nothing if no cookie found', () => {
+      const ret = CO.lookupCookieValue('foo', []);
+      assert.deepEqual(ret, P.nothing);
+    });
+
+    it('return the cookie in array', () => {
+      const ret = CO.lookupCookieValue('foo', [
+        CO.createCookieKV('foo', 'bar'),
+        CO.createCookieKV('baz', 'bazz')
+      ]);
+      assert.deepEqual(ret, P.just('bar'));
+    });
+  });
 });

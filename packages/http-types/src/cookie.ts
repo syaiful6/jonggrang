@@ -1,7 +1,11 @@
 import * as E from '@jonggrang/prelude';
 
+
 export type SameSite = 'LAX' | 'STRICT';
 
+/**
+ * The cookie data type to hold HTTP cookie information
+ */
 export interface Cookie {
   name: string;
   value: string;
@@ -12,6 +16,9 @@ export interface Cookie {
   sameSite?: SameSite;
 }
 
+/**
+ * Create `Cookie` by given all of it's fields
+ */
 export function createCookie(name: string, value: string, path: string | undefined,
                              domain: string | undefined, secure: boolean, httpOnly: boolean,
                              sameSite: SameSite | undefined): Cookie {
@@ -145,6 +152,27 @@ export function calculateCookieLife(now: number, clife: CookieLife): E.Maybe<[nu
     case CookieLifeType.EXPIRED:
       return E.just([ 0, new Date(0) ] as [number, Date]);
   }
+}
+
+/**
+ * Lookup cookie by name, return `Just<Cookie>` if success
+ */
+export function lookupCookie(name: string, cookies: Cookie[]): E.Maybe<Cookie> {
+  for (let i = 0, len = cookies.length; i < len; i++) {
+    if (cookies[i].name === name) {
+      return E.just(cookies[i]);
+    }
+  }
+  return E.nothing;
+}
+
+export function lookupCookieValue(name: string, cookies: Cookie[]): E.Maybe<string> {
+  return E.mapMaybe(lookupCookie(name, cookies), getValue);
+}
+
+// utility function for lookupCookieValue
+function getValue<T extends { value: string }>(cookie: T): string {
+  return cookie.value;
 }
 
 export const enum CookieErrorType {
