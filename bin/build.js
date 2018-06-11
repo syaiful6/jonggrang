@@ -97,6 +97,7 @@ let allPackages = [
   'http-types',
   'uri',
   'auto-update',
+  'stream',
   'wai',
   'genjer',
   'cryptic'

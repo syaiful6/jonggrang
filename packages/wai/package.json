@@ -24,12 +24,16 @@
     "@jonggrang/prelude": "^0.1.7",
     "@jonggrang/ref": "^0.1.7",
     "@jonggrang/task": "^0.2.5",
-    "@jonggrang/auto-update": "^0.0.1"
+    "@jonggrang/auto-update": "^0.0.1",
+    "on-finished": "^2.3.0",
+    "destroy": "^1.0.4"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "@types/mocha": "^5.2.1",
-    "@types/node": "^8.10.11"
+    "@types/node": "^8.10.11",
+    "@types/on-finished": "2.3.1",
+    "@types/destroy": "^1.0.0"
   },
   "publishConfig": {
     "access": "public"
