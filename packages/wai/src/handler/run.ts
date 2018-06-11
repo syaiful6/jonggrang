@@ -1,19 +1,16 @@
 import * as FS from 'fs';
 import { IncomingMessage, ServerResponse, Server } from 'http';
 import { Server as HServer } from 'https';
-import { Readable } from 'stream';
 import { Socket } from 'net';
 
 import * as T from '@jonggrang/task';
-import * as H from '@jonggrang/http-types';
 import * as P from '@jonggrang/prelude';
 
 import { withFileInfoCache, getFileInfo } from './file-info';
 import { withFdCache } from './fd-cache';
 import { sendResponse } from './response';
-import * as SF from './send-stream';
+import { defaultSettings } from './settings';
 import * as Z from './types';
-import { writeSock, endSock, identity } from './utils';
 import * as W from '../type';
 
 
@@ -21,7 +18,7 @@ import * as W from '../type';
  * Run app with default settings
  */
 export function run(server: Server | HServer, app: W.Application): T.Task<void> {
-  return runWith(server, app, identity);
+  return runWith(server, app, P.identity);
 }
 
 /**
@@ -33,7 +30,7 @@ export function runWith(
   app: W.Application,
   modifier: (d: Z.Settings) => Z.Settings
 ): T.Task<void> {
-  return runSettingsServer(modifier(Z.defaultSettings), server, app);
+  return runSettingsServer(modifier(defaultSettings), server, app);
 }
 
 /**
@@ -44,7 +41,7 @@ export function withApplicationSettings(
   createApp: T.Task<W.Application>,
   modifier: (d: Z.Settings) => Z.Settings
 ): T.Task<void> {
-  return createApp.chain(app => runSettingsServer(modifier(Z.defaultSettings), server, app));
+  return createApp.chain(app => runSettingsServer(modifier(defaultSettings), server, app));
 }
 
 /**
@@ -54,7 +51,7 @@ export function withApplication(
   server: Server | HServer,
   createApp: T.Task<W.Application>
 ): T.Task<void> {
-  return withApplicationSettings(server, createApp, identity);
+  return withApplicationSettings(server, createApp, P.identity);
 }
 
 /**
@@ -195,7 +192,7 @@ function createServerState(
   return { server, listener: createRequestHandler(settings, app, ii), connectionId: 0, connections: {} };
 }
 
-function createRequestHandler(
+export function createRequestHandler(
   settings: Z.Settings,
   app: W.Application,
   ii: Z.InternalInfo
@@ -203,7 +200,7 @@ function createRequestHandler(
   return function requestHandler(req: IncomingMessage, resp: ServerResponse) {
     T.launchTask(
       T.rescue(
-        handleRequest(settings, app, ii, req, resp),
+        waiHandleRequest(settings, app, ii, req, resp),
         err =>
           settings.onException(P.nothing, err)
       )
@@ -235,34 +232,28 @@ function waitSigTerm(): T.Task<void> {
   });
 }
 
-function handleRequest(
+export function waiHandleRequest(
   settings: Z.Settings,
   app: W.Application,
   ii: Z.InternalInfo,
   request: IncomingMessage,
   response: ServerResponse
-) {
-  const conn = httpConnection(response);
-  return T.ensure(conn.close, serveConnection(request, conn, ii, settings, app));
+): T.Task<void> {
+  const conn = settings.createConnection(response);
+  return T.ensure(conn.close, waiServeConnection(request, conn, ii, settings, app));
 }
 
-function serveConnection(
+export function waiServeConnection(
   request: W.Request, conn: Z.Connection, ii: Z.InternalInfo,
   settings: Z.Settings, app: W.Application
 ): T.Task<void> {
   return T.rescue(
-    app(W.createHttpContext(request), response =>
+    app(settings.createHttpContext(request), response =>
       sendResponse(settings, conn, ii, request, response)
     ),
     err =>
       sendResponse(settings, conn, ii, request, settings.onExceptionResponse(err))
   );
-}
-
-export function httpConnection(
-  response: ServerResponse
-): Z.Connection {
-  return new Conn(response);
 }
 
 function destroAllConnections(sockets: Record<string, Socket>): void {
@@ -296,33 +287,4 @@ function listenConnectionSocket(state: ServerState) {
     });
     state.connections[(socket as any).__waiConId__] = socket;
   };
-}
-
-class Conn {
-  constructor(private response: ServerResponse) {
-  }
-
-  sendAll(buf: Buffer): T.Task<void> {
-    return writeSock(this.response, buf);
-  }
-
-  sendMany(bs: Buffer[]): T.Task<void> {
-    return T.forIn_(bs, buf => writeSock(this.response, buf));
-  }
-
-  sendStream(stream: Readable): T.Task<void> {
-    return SF.sendStream(this.response, stream);
-  }
-
-  writeHead(st: H.Status, headers: H.ResponseHeaders): T.Task<void> {
-    return T.liftEff(this.response, st, headers, this.response.writeHead);
-  }
-
-  sendFile(fid: Z.FileId, start: number, end: number, hook: T.Task<void>): T.Task<void> {
-    return SF.sendFile(this.response, fid, start, end, hook);
-  }
-
-  get close(): T.Task<void> {
-    return endSock(this.response);
-  }
 }

@@ -1,10 +1,11 @@
 import { Readable } from 'stream';
+import { IncomingMessage, ServerResponse } from 'http';
 
 import * as P from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
 import * as H from '@jonggrang/http-types';
 
-import { Request, Response, responseBuffer } from '../type';
+import { Response, HttpContext } from '../type';
 import { FileInfo } from './file-info';
 import { GetFd } from './fd-cache';
 import { ListenOptions } from 'net';
@@ -58,7 +59,7 @@ export function internalInfo(
 }
 
 export interface Logger {
-  (req: Request, status: H.Status, clen: P.Maybe<number>): T.Task<void>;
+  (req: IncomingMessage, status: H.Status, clen: P.Maybe<number>): T.Task<void>;
 }
 
 export interface ListenOpts extends ListenOptions {
@@ -70,41 +71,8 @@ export interface Settings {
   readonly finfoCacheDuration: number;
   readonly logger: Logger;
   readonly listenOpts: ListenOpts;
-  readonly onException: (mreq: P.Maybe<Request>, err: Error) => T.Task<void>;
-  readonly onExceptionResponse: (err: Error) => Response;
-}
-
-export const defaultSettings: Settings = {
-  fdCacheDuration: 0,
-  finfoCacheDuration: 0,
-  logger: () => T.pure(void 0),
-  listenOpts: {
-    host: '127.0.0.1',
-    port: 3000
-  },
-  onException: defaultOnException,
-  onExceptionResponse: onExceptionResponse
-};
-
-export function defaultOnException(mreq: P.Maybe<Request>, err: Error): T.Task<void> {
-  return T.liftEff(null, mreq, err, defaultOnExceptionEff);
-}
-
-function defaultOnExceptionEff(mreq: P.Maybe<Request>, err: Error) {
-  if (P.isJust(mreq)) {
-    const req = mreq.value;
-    console.error(
-      `error when handle request ${req.method} ${req.url} with error message ${err.message}`
-    );
-  } else {
-    console.error(err.message);
-  }
-}
-
-export function onExceptionResponse(): Response {
-  return responseBuffer(
-    500,
-    { 'content-type': 'text/plain; charset=utf-8' },
-    Buffer.from('Something went wrong', 'utf8')
-  );
+  createConnection(res: ServerResponse): Connection;
+  createHttpContext(req: IncomingMessage): HttpContext;
+  onException(mreq: P.Maybe<IncomingMessage>, err: Error): T.Task<void>;
+  onExceptionResponse(err: Error): Response;
 }

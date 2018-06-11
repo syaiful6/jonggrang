@@ -6,7 +6,7 @@ import * as RV from '@jonggrang/ref';
 import * as SM from '@jonggrang/object';
 
 import { Reaper, mkReaper } from '@jonggrang/auto-update';
-import { smInsertTuple, identity } from './utils';
+import { smInsertTuple } from './utils';
 
 
 /**
@@ -108,7 +108,7 @@ function initialize(delay: number): T.Task<MutableFdCache> {
 }
 
 function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
-  return traverseStrMap(old, prune).map(x => filterMap(x, identity))
+  return traverseStrMap(old, prune).map(x => filterMap(x, P.identity))
     .chain(newMap => T.pure((xs: FdCache) => SM.union(xs, newMap)));
 }
 

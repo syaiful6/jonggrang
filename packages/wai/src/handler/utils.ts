@@ -8,10 +8,6 @@ export function smInsertTuple<K extends string, A>(pair: [K, A], sm: SM.StrMap<K
   return SM.insert(pair[0], pair[1], sm);
 }
 
-export function identity<A>(a: A): A {
-  return a;
-}
-
 export function writeSock<W extends Writable>(writable: W, buffer: Buffer): T.Task<void> {
   return T.makeTask({
     writable,
