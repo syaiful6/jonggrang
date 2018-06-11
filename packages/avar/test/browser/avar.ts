@@ -1,4 +1,3 @@
-import 'mocha';
 import { MaybeType } from '@jonggrang/prelude';
 
 import * as T from '@jonggrang/task';

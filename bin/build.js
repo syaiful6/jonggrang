@@ -35,6 +35,13 @@ function buildPackage(package) {
     target: 'es5',
     module: 'commonjs',
     outDir: join(package, 'lib'),
+    baseUrl: join(__dirname, '..'),
+    paths: {
+      "*": [
+        "node_modules/*",
+        "types/*"
+      ]
+    }
   };
 
   const ES6_COMPILER_OPTIONS = Object.assign({}, COMMONJS_COMPILER_OPTIONS, {
@@ -89,9 +96,10 @@ let allPackages = [
   'parsing',
   'http-types',
   'uri',
+  'auto-update',
   'wai',
   'genjer',
-  'auto-update'
+  'cryptic'
 ]
 
 if (readdirSync(PACKAGES_DIRECTORY).length > allPackages.length) {

@@ -23,6 +23,8 @@
     "base64url": "^3.0.0"
   },
   "devDependencies": {
-    "mocha": "^5.2.0"
+    "mocha": "^5.2.0",
+    "@types/mocha": "^5.2.1",
+    "@types/node": "^8.10.11"
   }
 }

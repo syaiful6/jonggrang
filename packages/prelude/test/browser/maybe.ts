@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import * as assert from 'assert';
 import * as jsv from 'jsverify';
 
 import * as M from '../../src/maybe';
@@ -96,8 +95,8 @@ describe('Prelude Maybe', () => {
         return M.just('fail');
       }
       let e = M.chainMaybe(M.nothing, transform);
-      expect(ix).to.be.equals(0);
-      expect(e).to.be.deep.equals({ tag: M.MaybeType.NOTHING });
+      assert.equal(ix, 0);
+      assert.deepEqual(e, { tag: M.MaybeType.NOTHING });
     });
 
     it('sequencing of `maybe` values and functions that return maybe', () => {
@@ -105,8 +104,8 @@ describe('Prelude Maybe', () => {
         return M.just(a + 'sequencing');
       }
       let t = M.chainMaybe(M.just('value'), transform);
-      expect(t.tag).to.be.equals(M.MaybeType.JUST);
-      expect((t as any).value).to.be.equals('valuesequencing');
+      assert.equal(t.tag, M.MaybeType.JUST);
+      assert.equal((t as any).value, 'valuesequencing');
     });
   });
 });

@@ -1,5 +1,4 @@
-import 'mocha';
-import assert from 'assert';
+import * as assert from 'assert';
 import * as T from '@jonggrang/task';
 import * as R from '@jonggrang/ref';
 import { mkAutoUpdate } from '../src/auto-update';

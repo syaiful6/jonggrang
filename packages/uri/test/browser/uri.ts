@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import * as assert from 'assert';
 import * as P from '@jonggrang/prelude';
 
 import * as uri from '../../src';
@@ -25,7 +24,7 @@ function isAbsIdT(t: URIType) {
 }
 
 function testEq(s: string, a: any, b: any) {
-  expect(a).to.be.deep.equals(b, s);
+  assert.deepEqual(a, b, s);
 }
 
 function testURIRef(t: URIType, u: string) {
@@ -205,7 +204,7 @@ describe('HTTP URI', () => {
     it('parses URI with IPv(future) address', () => {
       testURIRef(URIType.AbsId, 'http://[v9.123.abc;456.def]/');
       const uriAuth = P.chainMaybe(uri.parseURI('http://[v9.123.abc;456.def]:42/'), ret => ret.auth);
-      expect(uriAuth).to.be.deep.equal(P.just(uri.mkURIAuth('', '[v9.123.abc;456.def]', ':42')));
+      assert.deepEqual(uriAuth, P.just(uri.mkURIAuth('', '[v9.123.abc;456.def]', ':42')));
     });
   });
 
@@ -499,15 +498,15 @@ describe('HTTP URI', () => {
                               '/aaa/bbb', '?ccc', '#ddd/eee');
     it('show null URI return empty string', () => {
       const nullURI = uri.mkURI('', P.nothing, '', '', '');
-      expect(uri.showURI(nullURI)).to.be.equals('');
+      assert.equal(uri.showURI(nullURI), '');
     });
 
     it('show URI surpress suppress user info', () => {
-      expect(uri.showURI(TESTURI)).to.be.equals('http://user:...@example.org:99/aaa/bbb?ccc#ddd/eee');
+      assert.equal(uri.showURI(TESTURI), 'http://user:...@example.org:99/aaa/bbb?ccc#ddd/eee');
     });
 
     it('uriToString didn\'t surpass surpress suppress user info', () => {
-      expect(uri.uriToString(iden, TESTURI)).to.be.equals('http://user:pass@example.org:99/aaa/bbb?ccc#ddd/eee');
+      assert.equal(uri.uriToString(iden, TESTURI), 'http://user:pass@example.org:99/aaa/bbb?ccc#ddd/eee');
     });
   });
 });

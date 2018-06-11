@@ -1,5 +1,4 @@
-import 'mocha';
-import assert from 'assert';
+import * as assert from 'assert';
 import * as CO from '../../src/cookie';
 import * as P from '@jonggrang/prelude';
 

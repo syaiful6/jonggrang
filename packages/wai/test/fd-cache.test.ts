@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -22,9 +21,7 @@ describe('Fd Cache', () => {
         );
         let fd: number = yield R.readRef(fdRef);
         return T.attempt(T.node(null, fd, fs.readFile)).chain(mcont => {
-          /*tslint:disable */
-          expect(isLeft(mcont)).to.be.true;
-          /*tslint:enable */
+          assert.ok(isLeft(mcont));
           return T.pure(void 0);
         });
       })

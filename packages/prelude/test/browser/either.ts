@@ -1,5 +1,5 @@
 import 'mocha';
-import { expect } from 'chai';
+import * as assert from 'assert';
 import * as jsv from 'jsverify';
 
 import * as E from '../../src/either';
@@ -75,9 +75,9 @@ describe('Prelude Either', () => {
   });
 
   describe('altEither choose the right value', () => {
-    expect(E.altEither(E.right(0), E.left(1))).to.deep.equals(E.right(0));
-    expect(E.altEither(E.left(0), E.right(1))).to.deep.equals(E.right(1));
-    expect(E.altEither(E.left(0), E.left(1))).to.deep.equals(E.left(1));
+    assert.deepEqual(E.altEither(E.right(0), E.left(1)), E.right(0));
+    assert.deepEqual(E.altEither(E.left(0), E.right(1)), E.right(1));
+    assert.deepEqual(E.altEither(E.left(0), E.left(1)), E.left(1));
   });
 
   describe('inspect Either constructor', () => {
@@ -98,8 +98,8 @@ describe('Prelude Either', () => {
         return E.right('fail');
       }
       let e = E.chainEither(E.left('error'), transform);
-      expect(ix).to.be.equals(0);
-      expect(e).to.be.deep.equals({ tag: E.EitherType.LEFT, value: 'error' });
+      assert.equal(ix, 0);
+      assert.deepEqual(e, { tag: E.EitherType.LEFT, value: 'error' });
     });
 
     it('sequencing of `Either` values and functions that return Either', () => {
@@ -107,8 +107,8 @@ describe('Prelude Either', () => {
         return E.right(a + 'sequencing');
       }
       let t = E.chainEither(E.right('value'), transform);
-      expect(t.tag).to.be.equals(E.EitherType.RIGHT);
-      expect(t.value).to.be.equals('valuesequencing');
+      assert.equal(t.tag, E.EitherType.RIGHT);
+      assert.equal(t.value, 'valuesequencing');
     });
   });
 });

@@ -1,4 +1,3 @@
-import 'mocha';
 import * as jsv from 'jsverify';
 import * as M from '../../src/strmap';
 import * as P from '@jonggrang/prelude';

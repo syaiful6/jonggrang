@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHmac, timingSafeEqual } from 'crypto';
 import { Either, left, right, isLeft } from '@jonggrang/prelude';
 import { Task } from '@jonggrang/task';
-import * as B from '@thatiq/base64url';
+import B from 'base64url';
 import { Options } from './types';
 import { randomString } from './random';
 

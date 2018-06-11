@@ -1,4 +1,3 @@
-import 'mocha';
 import * as jsv from 'jsverify';
 
 import { httpVersion, HttpVersion } from '../../src/version';
@@ -29,5 +28,5 @@ describe('HTTP Version', () => {
         )
       )
     );
-  })
+  });
 });

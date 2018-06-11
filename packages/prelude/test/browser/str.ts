@@ -1,5 +1,5 @@
 import 'mocha';
-import { expect } from 'chai';
+import * as assert from 'assert';
 
 import * as S from '../../src/str';
 import { just, nothing } from '../../src/maybe';
@@ -8,89 +8,85 @@ import { just, nothing } from '../../src/maybe';
 describe('Prelude Str', () => {
   describe('isEmpty', () => {
     it('Return true if passed empty string', () => {
-      /* tslint:disable */
-      expect(S.isEmpty('')).to.be.true;
-      /* tslint:enable */
+      assert.ok(S.isEmpty(''));
     });
 
     it('Return false is passed non empty string', () => {
-      /* tslint:disable */
-      expect(S.isEmpty('ab')).to.be.false;
-      /* tslint:enable */
+      assert.equal(S.isEmpty('ab'), false);
     });
   });
 
   describe('drop', () => {
     it('return same string if pass 0 or less', () => {
-      expect(S.drop(0, 'ab')).to.be.equals('ab');
-      expect(S.drop(-1, 'ab')).to.be.equals('ab');
+      assert.equal(S.drop(0, 'ab'), 'ab');
+      assert.equal(S.drop(-1, 'ab'), 'ab');
     });
 
     it('drop n character', () => {
-      expect(S.drop(1, 'ab')).to.be.equals('b');
+      assert.equal(S.drop(1, 'ab'), 'b');
     });
 
     it('drop same length of string or greater return empty string', () => {
-      expect(S.drop(2, 'ab')).to.be.equals('');
-      expect(S.drop(3, 'ab')).to.equals('');
+      assert.equal(S.drop(2, 'ab'), '');
+      assert.equal(S.drop(3, 'ab'), '');
     });
   });
 
   describe('take', () => {
     it('return empty string if passed 0 or less', () => {
-      expect(S.take(0, 'ab')).to.be.equals('');
-      expect(S.take(-1, 'abc')).to.be.equals('');
+      assert.equal(S.take(0, 'ab'), '');
+      assert.equal(S.take(-1, 'abc'), '');
     });
 
     it('take n character of string', () => {
-      expect(S.take(2, 'abcd')).to.be.equals('ab');
+      assert.equal(S.take(2, 'abcd'), 'ab');
     });
 
     it('return whole string if pass same length or greater than length of string', () => {
-      expect(S.take(2, 'ab')).to.be.equals('ab');
-      expect(S.take(3, 'ab')).to.be.equals('ab');
+      assert.equal(S.take(2, 'ab'), 'ab');
+      assert.equal(S.take(3, 'ab'), 'ab');
     });
   });
 
   describe('indexOf', () => {
     it('return 0 if pattern same as string or pass empty string as pattern', () => {
-      expect(S.indexOf('', '')).to.be.deep.equals(just(0));
-      expect(S.indexOf('', 'abc')).to.be.deep.equals(just(0));
+      assert.deepEqual(S.indexOf('', ''), just(0));
+      assert.deepEqual(S.indexOf('', 'abc'), just(0));
     });
 
     it('return Returns the index of the first occurrence of the pattern', () => {
-      expect(S.indexOf('ab', 'cabab')).to.be.deep.equals(just(1));
+      assert.deepEqual(S.indexOf('ab', 'cabab'), just(1));
     });
 
     it('Return nothing if the pattern didn\'t occur in given string', () => {
-      expect(S.indexOf('cb', 'abcd')).to.be.deep.equals(nothing);
+      assert.deepEqual(S.indexOf('cb', 'abcd'), nothing);
     });
   });
 
   describe('count', () => {
     it('work with empty string and return zero', () => {
-      expect(S.count(x => x === 'a', '')).to.be.equals(0);
-      expect(S.count(() => true, '')).to.be.equals(0);
+      assert.equal(S.count(x => x === 'a', ''), 0);
+      assert.equal(S.count(() => true, ''), 0);
     });
 
     it('return the number of contiguous characters at the beginning that predicate hold', () => {
-      expect(S.count(a => a === 'a', 'ab')).to.be.equals(1);
-      expect(S.count(a => a === 'a', 'aaab')).to.be.equals(3);
-      expect(S.count(a => a === 'a', 'aabaaa')).to.be.equals(2);
+      assert.equal(S.count(a => a === 'a', 'ab'), 1);
+      assert.equal(S.count(a => a === 'a', 'aaab'), 3);
+      assert.equal(S.count(a => a === 'a', 'aabaaa'), 2);
     });
   });
 
   describe('takeWhile', () => {
     it('return whole string if predicate always return true', () => {
-      expect(S.takeWhile(() => true, 'abc')).to.be.equals('abc');
+      assert.equal(S.takeWhile(() => true, 'abc'), 'abc');
     });
 
     it('return empty string if predicate always return false', () => {
-      expect(S.takeWhile(() => false, 'abc')).to.be.equals('');
+      assert.equal(S.takeWhile(() => false, 'abc'), '');
     });
 
     it('returns the longest prefix that satisfy predicate', () => {
-      expect(S.takeWhile(a => a !== 'b', 'aabbaa')).to.be.equals('aa');
+      assert.equal(S.takeWhile(a => a !== 'b', 'aabbaa'), 'aa');
     });
   });
 });

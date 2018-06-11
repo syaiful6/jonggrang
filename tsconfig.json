@@ -21,7 +21,14 @@
     "noUnusedLocals": true,
     "types": [
       "node"
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "node_modules/*",
+        "types/*"
+      ]
+    }
   },
   "formatCodeOptions": {
     "indentSize": 2,

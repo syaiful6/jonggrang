@@ -1,5 +1,4 @@
-import 'mocha';
-import assert from 'assert';
+import * as assert from 'assert';
 import * as jsv from 'jsverify';
 import * as H from '../../src/date';
 import * as P from '@jonggrang/prelude';

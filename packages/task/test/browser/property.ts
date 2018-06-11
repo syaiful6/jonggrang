@@ -1,4 +1,3 @@
-import 'mocha';
 import * as jsv from 'jsverify';
 import { deepEq } from '@jonggrang/prelude';
 

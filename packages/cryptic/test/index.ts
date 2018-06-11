@@ -1,5 +1,4 @@
-import 'mocha';
-import assert from 'assert';
+import * as assert from 'assert';
 import * as T from '@jonggrang/task';
 import * as Crypt from '../src';
 
@@ -7,7 +6,7 @@ import * as Crypt from '../src';
 function shouldBe<A>(a: A, b: T.Task<A>): Promise<void> {
   return T.toPromise(b.chain(x =>
     T.liftEff(null, () => {
-      expect(x).to.deep.equals(a);
+      assert.deepEqual(x, a);
     })
   ));
 }
