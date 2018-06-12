@@ -157,12 +157,24 @@ export function fromDate(date: Date): HttpDate {
   );
 }
 
+/**
+ * Parse Http Date using our parser
+ */
 export function parseHTTPDate(str: string): P.Maybe<HttpDate> {
   const ret = PS.runParser(rfc1123Date, str);
   if (P.isRight(ret)) {
     return P.just(ret.value);
   }
   return P.nothing;
+}
+
+/**
+ * parse Http date using `Date.parse`
+ * @param str Date string
+ */
+export function parseNativeHTTPDate(str: string): P.Maybe<HttpDate> {
+  const timestamp = Date.parse(str);
+  return isNaN(timestamp) ? P.nothing : P.just(fromDate(new Date(timestamp)));
 }
 
 export function formatHttpDate(h: HttpDate): string {

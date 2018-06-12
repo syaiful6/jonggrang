@@ -117,7 +117,7 @@ function parseHttpHeader(
   headers: any
 ): P.Maybe<H.HttpDate> {
   if (headers[key] != null) {
-    return H.parseHTTPDate(headers[key]);
+    return H.parseNativeHTTPDate(headers[key]);
   }
   return P.nothing;
 }
