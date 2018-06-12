@@ -36,7 +36,6 @@ export function sendFile(
 
 export function sendFileFd(ws: ServerResponse, fd: number, range: FileRange, hook: T.Task<void>): T.Task<void> {
   const stream = fdcreateReadStream(fd, range);
-  onFinished(ws, destroyStream.bind(null, stream));
   return pipeStream(ws, stream as any, { end: false }).then(hook);
 }
 
