@@ -145,6 +145,11 @@ describe('Prelude list', () => {
     assert.deepEqual(L.findLastIndex(x => x > 3, L.list(1, 2, 3, 4, 5, 2, 1)), just(4));
   });
 
+  it('find return leftmost element for which a predicate holds', () => {
+    assert.deepEqual(L.find(_ => true, L.nil), nothing);
+    assert.deepEqual(L.find(x => x % 2 === 0, L.list(1, 2, 4, 8)), just(2));
+  });
+
   it('insertAt should add an item at the specified index', () => {
     assert.deepEqual(L.insertAt(0, 1, L.list(2, 3)), just(L.list(1, 2, 3)));
     assert.deepEqual(L.insertAt(1, 1, L.list(2, 3)), just(L.list(2, 1, 3)));

@@ -356,6 +356,19 @@ export function partitionMap<A, L, R>(
 }
 
 /**
+ * The 'find' function takes a predicate and a structure and returns
+ * the leftmost element of the structure matching the predicate, or
+ * 'Nothing' if there is no such element.
+ */
+export function find<A>(f: (_: A) => boolean, xs: List<A>): Maybe<A> {
+  while (xs.tag !== ListType.NIL) {
+    if (f(xs.head)) return just(xs.head);
+    xs = xs.tail;
+  }
+  return nothing;
+}
+
+/**
  * Append to list
  */
 export function append<A>(xs: List<A>, ys: List<A>): List<A> {
