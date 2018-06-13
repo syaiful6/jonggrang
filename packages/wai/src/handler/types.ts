@@ -46,16 +46,25 @@ export interface Connection {
   sendStream<T extends Readable>(readable: T): T.Task<void>;
 }
 
-export interface InternalInfo {
-  readonly getFinfo: (path: string) => T.Task<FileInfo>;
+export interface InternalInfo1 {
+  readonly getFinfo: (hash: number) => (path: string) => T.Task<FileInfo>;
   readonly getFd: GetFd;
 }
 
-export function internalInfo(
-  getFinfo: (path: string) => T.Task<FileInfo>,
+export interface InternalInfo {
+  readonly getFinfo: (path: string) => T.Task<FileInfo>;
+  readonly getFd: (path: string) => T.Task<[P.Maybe<number>, T.Task<void>]>;
+}
+
+export function internalInfo1(
+  getFinfo: (hash: number) => (path: string) => T.Task<FileInfo>,
   getFd: GetFd
-): InternalInfo {
+): InternalInfo1 {
   return { getFinfo, getFd };
+}
+
+export function toInternalInfo(hash: number, ii1: InternalInfo1): InternalInfo {
+  return { getFinfo: ii1.getFinfo(hash), getFd: ii1.getFd(hash) };
 }
 
 export interface Logger {

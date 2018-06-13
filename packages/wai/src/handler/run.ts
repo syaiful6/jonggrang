@@ -6,12 +6,13 @@ import { Socket } from 'net';
 import * as T from '@jonggrang/task';
 import * as P from '@jonggrang/prelude';
 
-import { withFileInfoCache, getFileInfo } from './file-info';
+import { withFileInfoCache } from './file-info';
 import { withFdCache } from './fd-cache';
 import { sendResponse } from './response';
 import { defaultSettings } from './settings';
 import * as Z from './types';
 import * as W from '../type';
+import { hashStr } from './utils';
 
 
 /**
@@ -66,7 +67,7 @@ export function runSettingsServer(
 ): T.Task<void> {
   return withFdCache(settings.fdCacheDuration * 1000, getFd =>
     withFileInfoCache(settings.finfoCacheDuration * 1000, getFinfo =>
-      runServer(settings, server, app, Z.internalInfo(getFileInfo, getFd))
+      runServer(settings, server, app, Z.internalInfo1(getFinfo, getFd))
     )
   );
 }
@@ -82,7 +83,7 @@ export function withRequestHandler<A>(
 ): T.Task<A> {
   return withFdCache(settings.fdCacheDuration * 1000, getFd =>
     withFileInfoCache(settings.finfoCacheDuration * 1000, getFinfo =>
-      action(createRequestHandler(settings, app, Z.internalInfo(getFileInfo, getFd)))
+      action(createRequestHandler(settings, app, Z.internalInfo1(getFinfo, getFd)))
     )
   );
 }
@@ -109,10 +110,10 @@ export function runServer(
   settings: Z.Settings,
   server: Server | HServer,
   app: W.Application,
-  ii: Z.InternalInfo
+  ii1: Z.InternalInfo1
 ): T.Task<void> {
   return T.bracket(
-    T.pure(createServerState(settings, app, ii, server)),
+    T.pure(createServerState(settings, app, ii1, server)),
     shutdownServer,
     state => connectAndTrapSignal(state, settings)
   );
@@ -186,21 +187,21 @@ function connectAndTrapSignal(
 function createServerState(
   settings: Z.Settings,
   app: W.Application,
-  ii: Z.InternalInfo,
+  ii1: Z.InternalInfo1,
   server: Server | HServer,
 ): ServerState {
-  return { server, listener: createRequestHandler(settings, app, ii), connectionId: 0, connections: {} };
+  return { server, listener: createRequestHandler(settings, app, ii1), connectionId: 0, connections: {} };
 }
 
 export function createRequestHandler(
   settings: Z.Settings,
   app: W.Application,
-  ii: Z.InternalInfo
+  ii1: Z.InternalInfo1
 ): RequestHandler {
   return function requestHandler(req: IncomingMessage, resp: ServerResponse) {
     T.launchTask(
       T.rescue(
-        waiHandleRequest(settings, app, ii, req, resp),
+        waiHandleRequest(settings, app, ii1, req, resp),
         err =>
           settings.onException(P.nothing, err)
       )
@@ -235,11 +236,12 @@ function waitSigTerm(): T.Task<void> {
 export function waiHandleRequest(
   settings: Z.Settings,
   app: W.Application,
-  ii: Z.InternalInfo,
+  ii1: Z.InternalInfo1,
   request: IncomingMessage,
   response: ServerResponse
 ): T.Task<void> {
   const conn = settings.createConnection(response);
+  const ii = Z.toInternalInfo(hashStr(request.url as string), ii1);
   return T.ensure(conn.close, waiServeConnection(request, conn, ii, settings, app));
 }
 

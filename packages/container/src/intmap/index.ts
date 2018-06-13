@@ -32,11 +32,23 @@ export interface Bin<A> {
 export type IntMap<A> = Nil | Tip<A> | Bin<A>;
 
 /**
+ * this is hold All `IntMap` union
+ */
+class StdIntMap<A> {
+  constructor(
+    readonly tag: IntMapType, readonly key: number | undefined, readonly value: A | undefined,
+    readonly prefix: I.Prefix | undefined, readonly mask: I.Mask | undefined,
+    readonly left: IntMap<A> | undefined, readonly right: IntMap<A> | undefined
+  ) {
+  }
+}
+
+/**
  * The empty `IntMap`
  */
-export const empty: IntMap<any> = {
-  tag: IntMapType.NIL
-};
+export const empty = new StdIntMap(
+  IntMapType.NIL, undefined, undefined, undefined, undefined, undefined, undefined
+) as IntMap<any>;
 
 /**
  * create an `IntMap` of a single value.
@@ -381,11 +393,15 @@ export function join<A>(
 }
 
 function BinIM<A>(prefix: I.Prefix, mask: I.Mask, left: IntMap<A>, right: IntMap<A>): IntMap<A> {
-  return { left, right, tag: IntMapType.BIN, prefix: prefix | 0, mask: mask | 0 };
+  return new StdIntMap(
+    IntMapType.BIN, undefined, undefined, prefix | 0, mask | 0, left, right
+  ) as IntMap<A>;
 }
 
 function TipIM<A>(key: number, value: A): IntMap<A> {
-  return { value, key: key | 0, tag: IntMapType.TIP };
+  return new StdIntMap(
+    IntMapType.TIP, key | 0, value, undefined, undefined, undefined, undefined
+  ) as IntMap<A>;
 }
 
 function BinNE<A>(p: I.Prefix, m: I.Mask, t1: IntMap<A>, t2: IntMap<A>): IntMap<A> {

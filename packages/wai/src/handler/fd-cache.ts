@@ -3,11 +3,9 @@ import * as FS from 'fs';
 import * as T from '@jonggrang/task';
 import * as P from '@jonggrang/prelude';
 import * as RV from '@jonggrang/ref';
-import * as SM from '@jonggrang/object';
-
 import { Reaper, mkReaper } from '@jonggrang/auto-update';
-import { smInsertTuple } from './utils';
 
+import * as MM from './multi-map';
 
 /**
  * An action to activate a Fd cache entry.
@@ -19,7 +17,7 @@ export type Refresh = T.Task<void>;
  * action
  */
 export interface GetFd {
-  (path: string): T.Task<[P.Maybe<number>, Refresh]>;
+  (hash: number): (path: string) => T.Task<[P.Maybe<number>, Refresh]>;
 }
 
 /**
@@ -30,7 +28,7 @@ export interface GetFd {
  */
 export function withFdCache<A>(duration: number, action: (_: GetFd) => T.Task<A>): T.Task<A> {
   return duration === 0
-    ? action(getFdNothing)
+    ? action(P.constant(getFdNothing))
     : T.bracket(initialize(duration), terminate, mfc => action(getFd(mfc)));
 }
 
@@ -79,90 +77,60 @@ function newFdEntry(path: string): T.Task<FdEntry> {
       fdEntry(path, fd, status)));
 }
 
-type FdCache = SM.StrMap<string, FdEntry>;
+type FdCache = MM.MMap<FdEntry>;
 
-type MutableFdCache = Reaper<FdCache, [string, FdEntry]>;
+type MutableFdCache = Reaper<FdCache, [number, FdEntry]>;
 
 function fdCache(reaper: MutableFdCache): T.Task<FdCache> {
   return reaper.read;
 }
 
-function look(mfc: MutableFdCache, path: string): T.Task<P.Maybe<FdEntry>> {
+function look(mfc: MutableFdCache, path: string, key: number): T.Task<P.Maybe<FdEntry>> {
   return fdCache(mfc)
-    .map(fc =>
-      P.chainMaybe(SM.lookup(path, fc), fd => validateEntry(fd, path)));
-}
-
-function validateEntry(fd: FdEntry, path: string): P.Maybe<FdEntry> {
-  return fd.path === path ? P.just(fd) : P.nothing;
+    .map(fc => MM.searchWith(key, entry => entry.path === path, fc));
 }
 
 function initialize(delay: number): T.Task<MutableFdCache> {
   return mkReaper({
     delay,
-    isNull: SM.isEmpty,
-    empty: {},
+    isNull: MM.isEmpty,
+    empty: MM.empty,
     action: clean,
-    cons: smInsertTuple
+    cons: ([k, v], m) => MM.insert(k, v, m)
   });
 }
 
 function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
-  return traverseStrMap(old, prune).map(x => filterMap(x, P.identity))
-    .chain(newMap => T.pure((xs: FdCache) => SM.union(xs, newMap)));
+  return MM.pruneWith(old, prune).map((newCache: FdCache) => (extra: FdCache) => MM.merge(newCache, extra));
 }
+
+const toArr = P.list.toArray;
 
 function terminate(md: MutableFdCache): T.Task<void> {
-  return md.stop.chain(t => {
-    return T.forInPar(SM.toPairs(t), ps => closeFile(ps[1].fd));
-  }) as any;
+  return md.stop.chain(t => T.forInPar_(toArr(MM.toList(t)), entry => closeFile(entry.fd)));
 }
 
-function prune(fd: FdEntry): T.Task<P.Maybe<FdEntry>> {
+function prune(fd: FdEntry): T.Task<boolean> {
   return status(fd.status)
     .chain(st =>
       st === Status.ACTIVE
-        ? inactive(fd.status).then(T.pure(P.just(fd)))
-        : closeFile(fd.fd).then(T.pure(P.nothing))
+        ? T.apSecond(inactive(fd.status), T.pure(true))
+        : T.apSecond(closeFile(fd.fd), T.pure(false))
     );
 }
 
-function filterMap<K extends string, V, W>(
-  ms: SM.StrMap<K, V>,
-  f: (_: V) => P.Maybe<W>
-): SM.StrMap<K, W> {
-  return SM.toPairs(ms).reduceRight((acc, pair) => {
-    return SM.alter(_ => f(pair[1]), pair[0], acc);
-  }, {} as SM.StrMap<K, W>);
-}
-
-function traverseStrMap<K extends string, A, B>(
-  ms: SM.StrMap<K, A>,
-  f: (_: A) => T.Task<B>
-): T.Task<SM.StrMap<K, B>> {
-  return SM.keys(ms).reduce((ta: T.Task<SM.StrMap<K, B>>, k) => {
-    function set(o: SM.StrMap<K, B>) {
-      return (v: B) => {
-        let o2 = SM.singleton(k, v);
-        return SM.union(o2, o);
-      };
-    }
-    return ta.map(set).apply(f(ms[k]));
-  }, T.pure({} as SM.StrMap<K, B>));
-}
-
-function getFd(mfc: MutableFdCache): (path: string) => T.Task<[P.Maybe<number>, Refresh]> {
-  return path => look(mfc, path).chain(m => maybeGetFd(mfc, path, m));
+function getFd(mfc: MutableFdCache): (hash: number) => (path: string) => T.Task<[P.Maybe<number>, Refresh]> {
+  return hash => path => look(mfc, path, hash).chain(m => maybeGetFd(mfc, path, hash, m));
 }
 
 function getFdNothing(): T.Task<[P.Maybe<number>, Refresh]> {
   return T.pure([P.nothing, T.pure(void 0)] as [P.Maybe<number>, Refresh]);
 }
 
-function maybeGetFd(mfd: MutableFdCache, path: string, mentry: P.Maybe<FdEntry>): T.Task<[P.Maybe<number>, Refresh]> {
+function maybeGetFd(mfd: MutableFdCache, path: string, hash: number, mentry: P.Maybe<FdEntry>): T.Task<[P.Maybe<number>, Refresh]> {
   if (P.isNothing(mentry)) {
     return newFdEntry(path)
-      .chain(entry => mfd.add([path, entry])
+      .chain(entry => mfd.add([hash, entry])
         .then(T.pure([P.just(entry.fd), refresh(entry.status)] as [P.Maybe<number>, Refresh])));
   }
   let fdEntry = mentry.value;

@@ -1,12 +1,11 @@
 import * as FS from 'fs';
 
+import { constant, isJust } from '@jonggrang/prelude';
+import { Reaper, mkReaper } from '@jonggrang/auto-update';
 import * as T from '@jonggrang/task';
-import { isEmpty } from '@jonggrang/object';
 import * as H from '@jonggrang/http-types';
 
-import { smInsertTuple } from './utils';
-import { Reaper, mkReaper } from '@jonggrang/auto-update';
-
+import * as HM from './hash-map';
 
 /**
  * File information
@@ -38,16 +37,16 @@ type Entry
   = { tag: EntryType.NEGATIVE }
   | { tag: EntryType.POSITIVE, finfo: FileInfo };
 
-type Cache = Record<string, Entry>;
+type Cache = HM.HashMap<Entry>;
 
-type FileInfoCache = Reaper<Cache, [string, Entry]>;
+type FileInfoCache = Reaper<Cache, [number, string, Entry]>;
 
 export function withFileInfoCache<A>(
   delay: number,
-  action: (getInfo: (path: string) => T.Task<FileInfo>) => T.Task<A>
+  action: (getInfo: (hash: number) => (path: string) => T.Task<FileInfo>) => T.Task<A>
 ): T.Task<A> {
   return delay === 0
-    ? action(getFileInfo)
+    ? action(constant(getFileInfo))
     : T.bracket(initialize(delay), terminate, s => action(getAndRegisterInfo(s)));
 }
 
@@ -67,40 +66,38 @@ export function getFileInfo(path: string): T.Task<FileInfo> {
     });
 }
 
-function getAndRegisterInfo(fcache: FileInfoCache): (path: string) => T.Task<FileInfo> {
-  return (path: string) => {
+function getAndRegisterInfo(fcache: FileInfoCache): (hash: number) => (path: string) => T.Task<FileInfo> {
+  return (hash: number) => (path: string) => {
     return fcache.read.chain(cache => {
-      let there = path in cache,
-        item = cache[path];
-      if (there && item.tag === EntryType.NEGATIVE) {
-        return T.raise(new Error('FileInfoCache:getAndRegisterInfo'));
+      const there = HM.lookup(hash, path, cache);
+      if (isJust(there)) {
+        const entry = there.value;
+        return entry.tag === EntryType.NEGATIVE ? T.raise(new Error('FileInfoCache:getAndRegisterInfo'))
+          : T.pure(entry.finfo);
       }
-      if (there && item.tag === EntryType.POSITIVE) {
-        return T.pure(item.finfo);
-      }
-      return T.rescue(positive(fcache, path), () => negative(fcache, path));
+      return T.rescue(positive(fcache, hash, path), () => negative(fcache, hash, path));
     });
   };
 }
 
-function positive(fic: FileInfoCache, path: string): T.Task<FileInfo> {
+function positive(fic: FileInfoCache, h: number, path: string): T.Task<FileInfo> {
   return getFileInfo(path)
     .chain(finfo =>
-      fic.add([path, createEntry(EntryType.POSITIVE, finfo)]).then(T.pure(finfo)));
+      fic.add([h, path, createEntry(EntryType.POSITIVE, finfo)]).then(T.pure(finfo)));
 }
 
-function negative(fic: FileInfoCache, path: string): T.Task<FileInfo> {
-  return fic.add([path, createEntry(EntryType.NEGATIVE)])
+function negative(fic: FileInfoCache, h: number, path: string): T.Task<FileInfo> {
+  return fic.add([h, path, createEntry(EntryType.NEGATIVE)])
     .then(T.raise(new Error('FileInfoCache:negative')));
 }
 
 function initialize(delay: number): T.Task<FileInfoCache> {
   return mkReaper({
     delay,
-    isNull: isEmpty,
-    empty: {},
+    isNull: HM.isEmpty,
+    empty: HM.empty,
     action: override,
-    cons: smInsertTuple,
+    cons: ([h, k, v], m) => HM.insert(h, k, v, m),
   });
 }
 
@@ -111,7 +108,7 @@ function createEntry(tag: EntryType, finfo?: FileInfo): Entry {
 }
 
 function override(): T.Task<(c: Cache) => Cache> {
-  return T.pure(() => ({}));
+  return T.pure(constant(HM.empty));
 }
 
 function terminate(fcache: FileInfoCache): T.Task<void> {

@@ -12,6 +12,11 @@ export type List<A>
   = { tag: ListType.NIL }
   | { tag: ListType.CONS; head: A; tail: List<A> };
 
+class StdList<A> {
+  constructor(readonly tag: ListType, readonly head: A | undefined, readonly tail: List<A> | undefined) {
+  }
+}
+
 /**
  * Create list with cons
  * @param head the head of list
@@ -19,13 +24,13 @@ export type List<A>
  * @return list
  */
 export function cons<A>(head: A, tail: List<A>): List<A> {
-  return { head, tail, tag: ListType.CONS };
+  return new StdList(ListType.CONS, head, tail) as List<A>;
 }
 
 /**
  * The empty list
  */
-export const nil: List<any> = { tag: ListType.NIL };
+export const nil = new StdList(ListType.NIL, undefined, undefined) as List<any>;
 
 /**
  * create a list
