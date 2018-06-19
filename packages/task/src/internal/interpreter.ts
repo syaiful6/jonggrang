@@ -525,7 +525,11 @@ export class TaskFiber<A> implements Fiber<A> {
 
   run() {
     if (this._status === StateFiber.SUSPENDED) {
-      scheduler.push(scheduleRun, this, this._runTick);
+      if (!scheduler.isDraining()) {
+        scheduler.push(scheduleRun, this, this._runTick);
+      } else {
+        runFiber(this, this._runTick);
+      }
     }
   }
 
