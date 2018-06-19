@@ -22,3 +22,4 @@ bower_components
 spec-bundle.js
 npm-debug.log
 testem.log
+/.nyc_output/

@@ -15,7 +15,7 @@ describe('Fd Cache', () => {
       T.co(function* () {
         let fdRef: R.Ref<number> = yield R.newRef(-1);
         yield withFdCache(3000, getFd =>
-          getFd(path.join(__dirname, '..', 'package.json')).chain(fd =>
+          getFd(0)(path.join(__dirname, '..', 'package.json')).chain(fd =>
             R.writeRef(fdRef, (fd[0] as any).value))
         );
         let fd: number = yield R.readRef(fdRef);

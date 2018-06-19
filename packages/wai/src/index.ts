@@ -5,7 +5,7 @@ import { Request, Response, Middleware, HttpContext, createResponse } from './ty
 export * from './type';
 export * from './handler/types';
 export * from './handler/run';
-
+export { defaultSettings } from './handler/settings';
 
 /**
  * Get response status
