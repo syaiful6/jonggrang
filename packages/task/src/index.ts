@@ -56,6 +56,17 @@ export function makeTask<A>(f: Fn1<NodeCallback<A>, Canceler> | Computation<A>):
 }
 
 /**
+ * like `makeTask` but only accept `function` based NodeCallback. used for create task
+ * that can't be cancelled
+ */
+export function makeTask_<A>(f: Fn1<NodeCallback<A>, void>): Task<A> {
+  return makeTask(cb => {
+    f(cb);
+    return nonCanceler;
+  });
+}
+
+/**
  * create supervisor
  */
 export function makeSupervisor(): Supervisor {
@@ -220,7 +231,7 @@ export function race<A>(xs: Task<A>[]): Task<A> {
 }
 
 /**
- * Creates a new supervision context for some `Aff`, guaranteeing fiber
+ * Creates a new supervision context for some `Task`, guaranteeing fiber
  * cleanup when the parent completes. Any pending fibers forked within
  * the context will be killed and have their cancelers run.
  * @param t
@@ -524,6 +535,32 @@ export function node(ctx: any, ...args: any[]): Task<any> {
   return makeTask(new FromNodeBack(fn, params, ctx));
 }
 
+export function fromPromise<A>(ctx: any, fn: () => Promise<A>): Task<A>;
+export function fromPromise<A, B>(ctx: any, a: A, fn: (_: A) => Promise<B>): Task<B>;
+export function fromPromise<A, B, C>(ctx: any, a: A, b: B, fn: (a: A, b: B) => Promise<C>): Task<C>;
+export function fromPromise<A, B, C, D>(ctx: any, a: A, b: B, c: C, fn: (a: A, b: B, c: C) => Promise<D>): Task<D>;
+export function fromPromise<A, B, C, D, E>(
+  ctx: any, a: A, b: B, c: C, d: D,
+  fn: (a: A, b: B, c: C, d: D) => Promise<E>
+): Task<E>;
+export function fromPromise<A, B, C, D, E, F>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E,
+  fn: (a: A, b: B, c: C, d: D, e: E) => Promise<F>
+): Task<F>;
+export function fromPromise<A, B, C, D, E, F, G>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F) => Promise<G>
+): Task<G>;
+export function fromPromise<A, B, C, D, E, F, G, H>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G) => Promise<H>
+): Task<H>;
+export function fromPromise(ctx: any, ...params: any[]): Task<any> {
+  const param = params.slice(0, -1);
+  const fn = params[params.length - 1];
+  return makeTask(new FromPromiseFn(ctx, param, fn));
+}
+
 function makeFiber<A>(t: Task<A>): Fiber<A> {
   return new TaskFiber(t);
 }
@@ -576,6 +613,25 @@ class FromNodeBack {
   handle(cb: NodeCallback<any>): void {
     let { fn, args, ctx } = this;
     fn.apply(ctx, withAppend(args, cb));
+  }
+
+  cancel() {
+    return pure(void 0);
+  }
+}
+
+class FromPromiseFn {
+  constructor(readonly ctx: any, readonly params: any[], readonly fn: Function) {
+  }
+
+  handle(cb: NodeCallback<any>) {
+    const { ctx, params, fn } = this;
+    const prom: Promise<any> = fn.apply(ctx, params);
+    prom.then(result => {
+      cb(null, result);
+    }, (error: Error) => {
+      cb(error);
+    });
   }
 
   cancel() {
