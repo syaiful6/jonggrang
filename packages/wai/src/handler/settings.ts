@@ -1,14 +1,14 @@
 import { IncomingMessage } from 'http';
 import * as P from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
-import { responseBuffer, Response, createHttpContext } from '../type';
+import { responseBuffer, Response, createHttpContext, HttpContext } from '../type';
 import { Settings } from './types';
 import { createConnection } from './conn';
 
 
 export const defaultSettings: Settings = {
   createConnection,
-  createHttpContext,
+  createHttpContext: defaultcreateHttpContext,
   fdCacheDuration: 0,
   finfoCacheDuration: 0,
   logger: () => T.pure(void 0),
@@ -19,6 +19,10 @@ export const defaultSettings: Settings = {
   onException: defaultOnException,
   onExceptionResponse: onExceptionResponse
 };
+
+function defaultcreateHttpContext(req: IncomingMessage): T.Task<HttpContext> {
+  return T.pure(createHttpContext(req));
+}
 
 function defaultOnException(mreq: P.Maybe<IncomingMessage>, err: Error): T.Task<void> {
   return T.liftEff(null, mreq, err, defaultOnExceptionEff);

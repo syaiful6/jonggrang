@@ -81,7 +81,7 @@ export interface Settings {
   readonly logger: Logger;
   readonly listenOpts: ListenOpts;
   createConnection(res: ServerResponse): Connection;
-  createHttpContext(req: IncomingMessage): HttpContext;
+  createHttpContext(req: IncomingMessage): T.Task<HttpContext>;
   onException(mreq: P.Maybe<IncomingMessage>, err: Error): T.Task<void>;
   onExceptionResponse(err: Error): Response;
 }

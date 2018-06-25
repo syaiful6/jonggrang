@@ -88,7 +88,7 @@ function sendRsp(
 
     case RspType.RSPSTREAM:
       return conn.writeHead(status, headers)
-        .chain(_ => rsp.body(buff => conn.sendAll(buff), conn.sendAll(Buffer.from([]))))
+        .chain(_ => rsp.body(buff => conn.sendAll(buff)))
         .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
     /* istanbul ignore next */
     default:
