@@ -6,7 +6,7 @@ import {
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
 import { SimpleSupervisor } from './internal/scheduler';
-import { withAppend, foldrArr } from './internal/utils';
+import { withAppend, foldrArr, arrCatMaybe } from './internal/utils';
 
 
 // re-export
@@ -547,6 +547,20 @@ export function bothPar<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
  */
 export function both<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
   return fa.map(pair as (a: A) => (b: B) => [A, B]).ap(fb);
+}
+
+/**
+ * filter a structure  with effects
+ */
+export function wither<A, B>(xs: A[], fn: Fn1<A, Task<Maybe<B>>>): Task<B[]> {
+  return forIn(xs, fn).map(arrCatMaybe);
+}
+
+/**
+ * liket `wither` but the effects run in parallel
+ */
+export function witherPar<A, B>(xs: A[], fn: Fn1<A, Task<Maybe<B>>>): Task<B[]> {
+  return forInPar(xs, fn).map(arrCatMaybe);
 }
 
 /**
