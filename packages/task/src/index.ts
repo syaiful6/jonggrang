@@ -1,4 +1,4 @@
-import { Either, left, right, identity, constant } from '@jonggrang/prelude';
+import { Either, left, right, isRight, Maybe, isJust, identity, constant } from '@jonggrang/prelude';
 
 import {
   Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
@@ -156,6 +156,19 @@ export function attempt<A>(task: Task<A>): Task<Either<Error, A>> {
 }
 
 /**
+ * A variant of `attempt` that takes an exception predicate to select
+ * which exceptions are caught. If the exception does not match the predicate,
+ * it is re-thrown.
+ */
+export function attemptJust<A, B>(task: Task<A>, pred: Fn1<Error, Maybe<B>>): Task<Either<B, A>> {
+  return attempt(task).chain(r => {
+    if (isRight(r)) return pure(r);
+    const ret = pred(r.value);
+    return isJust(ret) ? pure(left(ret.value)) : raise(r.value);
+  });
+}
+
+/**
  * Ignore any errors.
  * @param t
  */
@@ -172,6 +185,25 @@ export function ensure<A>(t: Task<void>, v: Task<A>): Task<A> {
 }
 
 /**
+ * Like 'ensure', but only performs the final action if there was an
+ * exception raised by the computation.
+ */
+export function whenError<A, B>(t: Task<A>, what: Task<B>): Task<A> {
+  return generalBracket(pure(void 0), {
+    killed: () => pure(void 0),
+    completed: () => pure(void 0),
+    failed: () => what
+  }, constant(t));
+}
+
+/**
+ * Runs an effect such that it cannot be killed.
+ */
+export function invincible<A>(t: Task<A>): Task<A> {
+  return bracket(t, constant(pure(void 0)), pure);
+}
+
+/**
  * Raise an Error
  * @param error Error
  */
@@ -184,6 +216,23 @@ export function raise(error: Error): Task<any> {
  */
 export function rescue<A>(t: Task<A>, f: Fn1<Error, Task<A>>) {
   return t.catchError(f);
+}
+
+/**
+ * This function allows you to provide a predicate for selecting the
+ * exceptions that you're interested in, and handle only those exceptons / error.
+ * If the inner computation throws an exception, and the predicate returns
+ * Nothing, then the whole computation will still fail with that exception.
+ */
+export function rescueOnJust<A, B>(
+  pred: Fn1<Error, Maybe<B>>,
+  act: Task<A>,
+  handler: Fn1<B, Task<A>>
+): Task<A> {
+  return rescue(act, error => {
+    const ret = pred(error);
+    return isJust(ret) ? handler(ret.value) : raise(error);
+  });
 }
 
 /**
@@ -207,7 +256,6 @@ export function cancelWith<A>(t: Task<A>, canceller: (err: Error) => Task<void>)
     () => t
   );
 }
-
 
 /**
  * convert task to parallel task applicative
@@ -243,6 +291,9 @@ export function supervise<A>(t: Task<A>): Task<A> {
     runWith(sup, t));
 }
 
+/**
+ * Run task with the provided supervisor
+ */
 export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
   return liftEff(null, () => {
     let fib = new TaskFiber(t, sup);
@@ -316,16 +367,39 @@ export function defer<B>(fn: () => Task<B>): Task<B> {
  * @param release
  * @param act
  */
-export function bracket<A, B>(
+export function bracket<A, B, C>(
   acquire: Task<A>,
-  release: Fn1<A, Task<void>>,
-  act: Fn1<A, Task<B>>
-): Task<B> {
+  release: Fn1<A, Task<B>>,
+  act: Fn1<A, Task<C>>
+): Task<C> {
   return generalBracket(acquire, {
     killed: (_, a) => release(a),
     failed: (_, a) => release(a),
     completed: (_, a) => release(a)
   }, act);
+}
+
+/**
+ * A variant of `bracket` but only performs the final action
+ * if there was an exception raised by the in-between computation.
+ */
+export function bracketOnError<A, B, C>(
+  acquire: Task<A>,
+  release: Fn1<A, Task<B>>,
+  act: Fn1<A, Task<C>>
+): Task<C> {
+  return generalBracket(acquire, {
+    killed: (_, a) => release(a),
+    failed: (_, a) => release(a),
+    completed: () => pure(void 0)
+  }, act);
+}
+
+/**
+ * A variant of `bracket` where the return value from the first computation is not required.
+ */
+export function bracket_<A, B, C>(acquire: Task<A>, release: Task<B>, act: Task<C>): Task<C> {
+  return bracket(acquire, constant(release), constant(act));
 }
 
 /**
