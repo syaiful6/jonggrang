@@ -18,7 +18,9 @@
     "es6/"
   ],
   "dependencies": {
-    "readable-stream": "^2.3.6",
+    "readable-stream": "^2.3.6"
+  },
+  "peerDependencies": {
     "@jonggrang/task": "^0.2.5"
   },
   "devDependencies": {

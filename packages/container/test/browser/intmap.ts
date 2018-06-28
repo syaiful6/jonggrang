@@ -1,7 +1,7 @@
 import * as jsv from 'jsverify';
 import * as P from '@jonggrang/prelude';
 
-import { IntMap as IM } from '../../src';
+import { intmap as IM } from '../../src';
 
 const enum InstructionType {
   INSERT,

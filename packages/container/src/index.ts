@@ -1,3 +1,3 @@
-import * as IntMap from './intmap';
+import * as intmap from './intmap';
 
-export { IntMap };
+export { intmap };

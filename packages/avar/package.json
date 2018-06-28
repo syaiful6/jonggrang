@@ -17,7 +17,7 @@
     "lib/",
     "es6/"
   ],
-  "dependencies": {
+  "peerDependencies": {
     "@jonggrang/prelude": "0.1.7",
     "@jonggrang/task": "0.2.5"
   },
