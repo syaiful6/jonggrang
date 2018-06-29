@@ -188,12 +188,8 @@ export function ensure<A>(t: Task<void>, v: Task<A>): Task<A> {
  * Like 'ensure', but only performs the final action if there was an
  * exception raised by the computation.
  */
-export function whenError<A, B>(t: Task<A>, what: Task<B>): Task<A> {
-  return generalBracket(pure(void 0), {
-    killed: () => pure(void 0),
-    completed: () => pure(void 0),
-    failed: () => what
-  }, constant(t));
+export function onException<A, B>(t: Task<A>, what: Task<B>): Task<A> {
+  return rescue(t, e => apSecond(what, raise(e)));
 }
 
 /**
