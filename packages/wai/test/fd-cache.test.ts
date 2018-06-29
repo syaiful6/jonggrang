@@ -12,7 +12,7 @@ import { withFdCache } from '../src/handler/fd-cache';
 describe('Fd Cache', () => {
   it('withFdCache clean up fd', done => {
     T.runTask(
-      T.co(function* () {
+      T.supervise(T.co(function* () {
         let fdRef: R.Ref<number> = yield R.newRef(-1);
         yield withFdCache(3000, getFd =>
           getFd(0)(path.join(__dirname, '..', 'package.json')).chain(fd =>
@@ -23,7 +23,7 @@ describe('Fd Cache', () => {
           assert.ok(isLeft(mcont));
           return T.pure(void 0);
         });
-      }),
+      })),
       done
     );
   });

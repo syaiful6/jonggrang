@@ -1,4 +1,4 @@
-import { IntMap as I } from '@jonggrang/container';
+import { intmap as I } from '@jonggrang/container';
 import { Maybe, chainMaybe, just, nothing, isNothing, list as L } from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
 
