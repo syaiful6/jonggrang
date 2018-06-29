@@ -1,4 +1,4 @@
-import { Either, left, right, identity, constant } from '@jonggrang/prelude';
+import { Either, left, right, isRight, Maybe, isJust, identity, constant } from '@jonggrang/prelude';
 
 import {
   Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
@@ -6,7 +6,7 @@ import {
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
 import { SimpleSupervisor } from './internal/scheduler';
-import { withAppend, foldrArr } from './internal/utils';
+import { withAppend, foldrArr, arrCatMaybe } from './internal/utils';
 
 
 // re-export
@@ -53,6 +53,17 @@ export function killAll(err: Error, sup: Supervisor): Task<void> {
  */
 export function makeTask<A>(f: Fn1<NodeCallback<A>, Canceler> | Computation<A>): Task<A> {
   return new Task('ASYNC', f);
+}
+
+/**
+ * like `makeTask` but only accept `function` based NodeCallback. used for create task
+ * that can't be cancelled
+ */
+export function makeTask_<A>(f: Fn1<NodeCallback<A>, void>): Task<A> {
+  return makeTask(cb => {
+    f(cb);
+    return nonCanceler;
+  });
 }
 
 /**
@@ -145,6 +156,19 @@ export function attempt<A>(task: Task<A>): Task<Either<Error, A>> {
 }
 
 /**
+ * A variant of `attempt` that takes an exception predicate to select
+ * which exceptions are caught. If the exception does not match the predicate,
+ * it is re-thrown.
+ */
+export function attemptJust<A, B>(task: Task<A>, pred: Fn1<Error, Maybe<B>>): Task<Either<B, A>> {
+  return attempt(task).chain(r => {
+    if (isRight(r)) return pure(r);
+    const ret = pred(r.value);
+    return isJust(ret) ? pure(left(ret.value)) : raise(r.value);
+  });
+}
+
+/**
  * Ignore any errors.
  * @param t
  */
@@ -161,6 +185,21 @@ export function ensure<A>(t: Task<void>, v: Task<A>): Task<A> {
 }
 
 /**
+ * Like 'ensure', but only performs the final action if there was an
+ * exception raised by the computation.
+ */
+export function onException<A, B>(t: Task<A>, what: Task<B>): Task<A> {
+  return rescue(t, e => apSecond(what, raise(e)));
+}
+
+/**
+ * Runs an effect such that it cannot be killed.
+ */
+export function invincible<A>(t: Task<A>): Task<A> {
+  return bracket(t, constant(pure(void 0)), pure);
+}
+
+/**
  * Raise an Error
  * @param error Error
  */
@@ -173,6 +212,23 @@ export function raise(error: Error): Task<any> {
  */
 export function rescue<A>(t: Task<A>, f: Fn1<Error, Task<A>>) {
   return t.catchError(f);
+}
+
+/**
+ * This function allows you to provide a predicate for selecting the
+ * exceptions that you're interested in, and handle only those exceptons / error.
+ * If the inner computation throws an exception, and the predicate returns
+ * Nothing, then the whole computation will still fail with that exception.
+ */
+export function rescueOnJust<A, B>(
+  pred: Fn1<Error, Maybe<B>>,
+  act: Task<A>,
+  handler: Fn1<B, Task<A>>
+): Task<A> {
+  return rescue(act, error => {
+    const ret = pred(error);
+    return isJust(ret) ? handler(ret.value) : raise(error);
+  });
 }
 
 /**
@@ -197,7 +253,6 @@ export function cancelWith<A>(t: Task<A>, canceller: (err: Error) => Task<void>)
   );
 }
 
-
 /**
  * convert task to parallel task applicative
  */
@@ -220,7 +275,7 @@ export function race<A>(xs: Task<A>[]): Task<A> {
 }
 
 /**
- * Creates a new supervision context for some `Aff`, guaranteeing fiber
+ * Creates a new supervision context for some `Task`, guaranteeing fiber
  * cleanup when the parent completes. Any pending fibers forked within
  * the context will be killed and have their cancelers run.
  * @param t
@@ -232,6 +287,9 @@ export function supervise<A>(t: Task<A>): Task<A> {
     runWith(sup, t));
 }
 
+/**
+ * Run task with the provided supervisor
+ */
 export function runWith<A>(sup: Supervisor, t: Task<A>): Task<A> {
   return liftEff(null, () => {
     let fib = new TaskFiber(t, sup);
@@ -305,16 +363,39 @@ export function defer<B>(fn: () => Task<B>): Task<B> {
  * @param release
  * @param act
  */
-export function bracket<A, B>(
+export function bracket<A, B, C>(
   acquire: Task<A>,
-  release: Fn1<A, Task<void>>,
-  act: Fn1<A, Task<B>>
-): Task<B> {
+  release: Fn1<A, Task<B>>,
+  act: Fn1<A, Task<C>>
+): Task<C> {
   return generalBracket(acquire, {
     killed: (_, a) => release(a),
     failed: (_, a) => release(a),
     completed: (_, a) => release(a)
   }, act);
+}
+
+/**
+ * A variant of `bracket` but only performs the final action
+ * if there was an exception raised by the in-between computation.
+ */
+export function bracketOnError<A, B, C>(
+  acquire: Task<A>,
+  release: Fn1<A, Task<B>>,
+  act: Fn1<A, Task<C>>
+): Task<C> {
+  return generalBracket(acquire, {
+    killed: (_, a) => release(a),
+    failed: (_, a) => release(a),
+    completed: () => pure(void 0)
+  }, act);
+}
+
+/**
+ * A variant of `bracket` where the return value from the first computation is not required.
+ */
+export function bracket_<A, B, C>(acquire: Task<A>, release: Task<B>, act: Task<C>): Task<C> {
+  return bracket(acquire, constant(release), constant(act));
 }
 
 /**
@@ -465,6 +546,20 @@ export function both<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
 }
 
 /**
+ * filter a structure  with effects
+ */
+export function wither<A, B>(xs: A[], fn: Fn1<A, Task<Maybe<B>>>): Task<B[]> {
+  return forIn(xs, fn).map(arrCatMaybe);
+}
+
+/**
+ * liket `wither` but the effects run in parallel
+ */
+export function witherPar<A, B>(xs: A[], fn: Fn1<A, Task<Maybe<B>>>): Task<B[]> {
+  return forInPar(xs, fn).map(arrCatMaybe);
+}
+
+/**
  * Combine two effectful actions, keeping only the result of the first.
  */
 export function apFirst<A, B>(fa: Parallel<A>, fb: Parallel<B>): Parallel<A>;
@@ -524,6 +619,32 @@ export function node(ctx: any, ...args: any[]): Task<any> {
   return makeTask(new FromNodeBack(fn, params, ctx));
 }
 
+export function fromPromise<A>(ctx: any, fn: () => Promise<A>): Task<A>;
+export function fromPromise<A, B>(ctx: any, a: A, fn: (_: A) => Promise<B>): Task<B>;
+export function fromPromise<A, B, C>(ctx: any, a: A, b: B, fn: (a: A, b: B) => Promise<C>): Task<C>;
+export function fromPromise<A, B, C, D>(ctx: any, a: A, b: B, c: C, fn: (a: A, b: B, c: C) => Promise<D>): Task<D>;
+export function fromPromise<A, B, C, D, E>(
+  ctx: any, a: A, b: B, c: C, d: D,
+  fn: (a: A, b: B, c: C, d: D) => Promise<E>
+): Task<E>;
+export function fromPromise<A, B, C, D, E, F>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E,
+  fn: (a: A, b: B, c: C, d: D, e: E) => Promise<F>
+): Task<F>;
+export function fromPromise<A, B, C, D, E, F, G>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F) => Promise<G>
+): Task<G>;
+export function fromPromise<A, B, C, D, E, F, G, H>(
+  ctx: any, a: A, b: B, c: C, d: D, e: E, f: F, g: G,
+  fn: (a: A, b: B, c: C, d: D, e: E, f: F, g: G) => Promise<H>
+): Task<H>;
+export function fromPromise(ctx: any, ...params: any[]): Task<any> {
+  const param = params.slice(0, -1);
+  const fn = params[params.length - 1];
+  return makeTask(new FromPromiseFn(ctx, param, fn));
+}
+
 function makeFiber<A>(t: Task<A>): Fiber<A> {
   return new TaskFiber(t);
 }
@@ -576,6 +697,25 @@ class FromNodeBack {
   handle(cb: NodeCallback<any>): void {
     let { fn, args, ctx } = this;
     fn.apply(ctx, withAppend(args, cb));
+  }
+
+  cancel() {
+    return pure(void 0);
+  }
+}
+
+class FromPromiseFn {
+  constructor(readonly ctx: any, readonly params: any[], readonly fn: Function) {
+  }
+
+  handle(cb: NodeCallback<any>) {
+    const { ctx, params, fn } = this;
+    const prom: Promise<any> = fn.apply(ctx, params);
+    prom.then(result => {
+      cb(null, result);
+    }, (error: Error) => {
+      cb(error);
+    });
   }
 
   cancel() {

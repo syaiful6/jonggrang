@@ -62,7 +62,7 @@ export type HttpContent
 export type FilePath = string;
 
 export interface StreamingBody {
-  (send: (b: Buffer) => Task<void>, flush: Task<void>): Task<void>;
+  (send: (b: Buffer) => Task<void>): Task<void>;
 }
 
 /**

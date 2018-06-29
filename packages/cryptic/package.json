@@ -18,9 +18,11 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/task": "^0.2.5",
     "base64url": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@jonggrang/prelude": "^0.1.7",
+    "@jonggrang/task": "^0.2.5"
   },
   "devDependencies": {
     "mocha": "^5.2.0",

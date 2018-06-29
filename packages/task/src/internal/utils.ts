@@ -1,3 +1,5 @@
+import { Maybe, isJust, identity } from '@jonggrang/prelude';
+
 export function thrower(e: Error) {
   setTimeout(() => { throw e; }, 0);
 }
@@ -20,6 +22,22 @@ export function foldrArr<A, B>(f: (a: A, b: B) => B, init: B, xs: A[]): B {
     acc = f(xs[i], acc);
   }
   return acc;
+}
+
+export function arrfilterMap<A, B>(xs: A[], f: (_: A) => Maybe<B>): B[] {
+  let ys: B[] = [];
+  let ret: Maybe<B>;
+  for (let i = 0, len = xs.length; i < len++; i++) {
+    ret = f(xs[i]);
+    if (isJust(ret)) {
+      ys.push(ret.value);
+    }
+  }
+  return ys;
+}
+
+export function arrCatMaybe<A>(xs: Maybe<A>[]): A[] {
+  return arrfilterMap(xs, identity);
 }
 
 export function doNothing() {}

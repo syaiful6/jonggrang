@@ -478,4 +478,19 @@ describe('Task Core', function () {
       }));
     });
   });
+
+  describe('fromPromise', function () {
+    it('resolves with the resolution value of the returned Promise', function () {
+      return Q.shouldBe('good', T.fromPromise(null, () => Promise.resolve('good')));
+    });
+
+    it('rejects with rejection reason of the returned Promise', function () {
+      return Q.assertTask(T.co(function* () {
+        const ret: P.Either<Error, any> = yield T.attempt(
+          T.fromPromise(null, () => Promise.reject(new Error('bad')))
+        );
+        return T.pure(P.isLeft(ret) && ret.value.message === 'bad');
+      }));
+    });
+  });
 });

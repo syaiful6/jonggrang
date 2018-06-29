@@ -18,8 +18,10 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/parsing": "0.1.7",
-    "@jonggrang/prelude": "0.1.7"
+    "@jonggrang/parsing": "^0.1.7"
+  },
+  "peerDependencies": {
+    "@jonggrang/prelude": "^0.1.7"
   },
   "devDependencies": {
     "mocha": "^5.2.0",

@@ -249,13 +249,13 @@ export function waiServeConnection(
   request: W.Request, conn: Z.Connection, ii: Z.InternalInfo,
   settings: Z.Settings, app: W.Application
 ): T.Task<void> {
-  return T.rescue(
-    app(settings.createHttpContext(request), response =>
-      sendResponse(settings, conn, ii, request, response)
-    ),
-    err =>
-      sendResponse(settings, conn, ii, request, settings.onExceptionResponse(err))
-  );
+  return settings.createHttpContext(request)
+    .chain(ctx =>
+      T.rescue(
+        app(ctx, response => sendResponse(settings, conn, ii, request, response)),
+        err => sendResponse(settings, conn, ii, request, settings.onExceptionResponse(err))
+      )
+    );
 }
 
 function destroAllConnections(sockets: Record<string, Socket>): void {

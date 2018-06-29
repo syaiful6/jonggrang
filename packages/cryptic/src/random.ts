@@ -18,10 +18,14 @@ export function randomString(len: number): Task<string> {
 }
 
 function randomStringCb(length: number, v: string, cb: NodeCallback<string>) {
-  randomBits((length + 1) * 6, (err, buff) => {
+  let size = length - v.length;
+  randomBits((size + 1) * 6, (err, buff) => {
     if (err) return cb(err);
-    const v = (buff as Buffer).toString('base64').replace(/[=\+\/]/g, '');
-    cb(null, v.slice(0, length));
+    v += (buff as Buffer).toString('base64').replace(/[=\+\/]/g, '').substr(0, size);
+    if (v.length < length) {
+      return randomStringCb(length, v, cb);
+    }
+    cb(null, v);
   });
 }
 

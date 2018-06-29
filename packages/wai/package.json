@@ -18,6 +18,10 @@
     "es6/"
   ],
   "dependencies": {
+    "on-finished": "^2.3.0",
+    "destroy": "^1.0.4"
+  },
+  "peerDependencies": {
     "@jonggrang/avar": "^0.1.7",
     "@jonggrang/auto-update": "^0.0.1",
     "@jonggrang/container": "^0.1.7",
@@ -25,16 +29,16 @@
     "@jonggrang/object": "^0.1.7",
     "@jonggrang/prelude": "^0.1.7",
     "@jonggrang/ref": "^0.1.7",
-    "@jonggrang/task": "^0.2.5",
-    "on-finished": "^2.3.0",
-    "destroy": "^1.0.4"
+    "@jonggrang/task": "^0.2.5"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
     "@types/on-finished": "2.3.1",
-    "@types/destroy": "^1.0.0"
+    "@types/destroy": "^1.0.0",
+    "supertest": "^3.1.0",
+    "@types/supertest": "2.0.4"
   },
   "publishConfig": {
     "access": "public"

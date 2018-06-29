@@ -28,6 +28,13 @@ function test-browser() {
   karma start
 }
 
+function test-coverage() {
+  TESTFILES=$(find packages/*/test/ -name 'index.ts')
+  nyc --include "packages/*/src/**/*" --extension ".ts" \
+  mocha $TESTFILES --require ts-node/register --opts test/mocha.opts && \
+    nyc report --reporter=html --report-dir="coverage/node"
+}
+
 function clean-build() {
   rm -r -f packages/*/lib && rm -r -f packages/*/es6
 }

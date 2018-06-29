@@ -88,9 +88,9 @@ function sendRsp(
 
     case RspType.RSPSTREAM:
       return conn.writeHead(status, headers)
-        .chain(_ => rsp.body(buff => conn.sendAll(buff), conn.sendAll(Buffer.from([]))))
+        .chain(_ => rsp.body(buff => conn.sendAll(buff)))
         .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
-
+    /* istanbul ignore next */
     default:
       throw new TypeError('last argument to sendRsp must be Rsp');
   }
@@ -171,7 +171,7 @@ function rspFromResponse(body: HttpContent, method: H.HttpMethod, header: H.Requ
         tag: RspType.RSPSTREAM,
         body: body.stream
       };
-
+    /* istanbul ignore next */
     default:
       throw new TypeError('argument 1 to rspFromResponse must be a Response');
   }
