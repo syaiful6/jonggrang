@@ -1,12 +1,13 @@
 import * as assert from 'assert';
 import * as path from 'path';
+import * as jsv from 'jsverify';
 
 import { isLeft } from '@jonggrang/prelude';
-import { RequestHeaders } from '@jonggrang/http-types';
+import { RequestHeaders, fromDate, formatHttpDate,  } from '@jonggrang/http-types';
 import * as T from '@jonggrang/task';
 import * as S from '@jonggrang/object';
 
-import { getFileInfo } from '../src/handler/file-info';
+import { getFileInfo, FileInfo } from '../src/handler/file-info';
 import {
   RspFileInfoWithBody, rspFileInfo, RspFileInfoType, conditionalRequest
 } from '../src/handler/file';
@@ -36,8 +37,29 @@ function testFileRange(desc: string, headers: RequestHeaders, fp: string, rsp: R
   });
 }
 
+function createFileInfo(name: string, size: number, dt: Date) {
+  const time = fromDate(dt);
+  const date = formatHttpDate(time);
+  return new FileInfo(name, size, time, date);
+}
+
+const fileInfoArb = jsv.tuple([jsv.string, jsv.number, jsv.datetime])
+  .smap<FileInfo>(
+    ([name, size, dt]: any[]) => createFileInfo(name, size, dt),
+    (finfo: FileInfo) => [finfo.name, finfo.size, new Date(Date.parse(finfo.date))],
+    (finfo: FileInfo) => `<FileInfo ${finfo.name}>`
+  );
+
 describe('File spec', () => {
   const FILEPATH = path.join(__dirname, '..', 'attic', 'hex');
+
+  describe('FileInfo property', function () {
+    jsv.property('Setoid reflection', fileInfoArb, (finfo) => finfo.equals(finfo) );
+
+    jsv.property('Setoid reflection 2', fileInfoArb, fileInfoArb, (a, b) =>
+      a.equals(b) === b.equals(a)
+    );
+  });
 
   testFileRange(
     'gets a file size from file system', {}, FILEPATH,
