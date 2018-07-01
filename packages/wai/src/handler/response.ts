@@ -90,6 +90,7 @@ function sendRsp(
       return conn.writeHead(status, headers)
         .chain(_ => rsp.body(buff => conn.sendAll(buff)))
         .map(_ => [P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]);
+
     /* istanbul ignore next */
     default:
       throw new TypeError('last argument to sendRsp must be Rsp');

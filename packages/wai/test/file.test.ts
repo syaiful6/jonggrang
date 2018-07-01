@@ -1,5 +1,6 @@
 import * as assert from 'assert';
 import * as path from 'path';
+
 import * as jsv from 'jsverify';
 
 import { isLeft } from '@jonggrang/prelude';

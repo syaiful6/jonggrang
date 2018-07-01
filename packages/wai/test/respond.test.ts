@@ -2,10 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as stream from 'stream';
 import * as assert from 'assert';
+
 import request from 'supertest';
-import * as W from '../src';
+
 import * as T from '@jonggrang/task';
 import { decodePathSegments } from '@jonggrang/http-types';
+
+import * as W from '../src';
 
 function replicateA_<A>(i: number, task: T.Parallel<A>): T.Parallel<void>;
 function replicateA_<A>(i: number, task: T.Task<A>): T.Task<void>;
@@ -41,6 +44,49 @@ function withApp<A>(app: W.Application, action: (handler: W.RequestHandler) => T
   return W.withRequestHandler(W.defaultSettings, app, action);
 }
 
+const FP_RANGE_FILE_APP = path.join(__dirname, '..', 'attic', 'hex');
+const rangeApp: W.Application = (_, send) =>
+  send(W.responseFile(200, { 'Content-Type': 'text/plain' }, FP_RANGE_FILE_APP));
+
+function testRange(range: string, out: string, crange: string | null) {
+  return withApp(rangeApp, handler => {
+    return T.makeTask_(cb => {
+      request(handler)
+        .get('/')
+        .set('Range', `bytes=${range}`)
+        .expect(out)
+        .expect((response: request.Response) => {
+          assert.equal(response.header['content-length'], out.length.toString());
+          if (crange == null) {
+            assert.ok(!response.header['content-ranges']);
+          } else {
+            assert.equal(response.header['content-ranges'], `bytes ${crange}`);
+          }
+        })
+        .end(cb);
+    });
+  });
+}
+
+function testPartial(size: number, offset: number, count: number, out: string) {
+  const filePart = { offset, size, byteCount: count };
+  const partialApp: W.Application = (_, send) =>
+    send(W.responseFile(200, { 'Content-Type': 'text/plain' }, FP_RANGE_FILE_APP, filePart));
+  const range = `bytes ${offset}-${offset + count - 1}/${size}`;
+  return withApp(partialApp, handler => {
+    return T.makeTask_(cb => {
+      request(handler)
+        .get('/')
+        .expect(out)
+        .expect((response: request.Response) => {
+          assert.equal(response.header['content-length'], out.length.toString());
+          assert.equal(response.header['content-ranges'], range);
+        })
+        .end(cb);
+    });
+  });
+}
+
 describe('wai respond', function () {
   it('can send response buffer', function () {
     const app: W.Application = (ctx, send) =>
@@ -71,6 +117,20 @@ describe('wai respond', function () {
           .expect(200)
           .expect('HelloHelloHelloHello', cb);
         return T.nonCanceler;
+      })
+    ));
+  });
+
+  it('correctly send response with no body', function () {
+    const app: W.Application = (_, send) =>
+      send(W.responseBuffer(304, { 'Content-Length': 300 }, Buffer.from('')));
+
+    return T.toPromise(withApp(app, handler =>
+      T.makeTask_(cb => {
+        request(handler)
+          .get('/')
+          .expect(304)
+          .end(cb);
       })
     ));
   });
@@ -124,6 +184,29 @@ describe('wai respond', function () {
           })
           .end(cb);
       })
+    ));
+  });
+
+  it('range requests', function () {
+    return T.toPromise(T.forInPar_(
+      [ ['2-3', '23', '2-3/17']
+      , ['5-', '56789abcdef\n', '5-16/17']
+      , ['5-8', '5678', '5-8/17']
+      , ['-3', 'ef\n', '14-16/17']
+      , ['17-', '', '*/17']
+      , ['-18', '0123456789abcdef\n', null]
+      ] as [string, string, string | null][],
+      ([a, b, c]) => testRange(a, b, c)
+    ));
+  });
+
+  it('partial files', function () {
+    return T.toPromise(T.forInPar_(
+      [ [17, 2, 2, '23']
+      , [17, 0, 2, '01']
+      , [17, 3, 8, '3456789a']
+      ] as [number, number, number, string][],
+      ([a, b, c, d]) => testPartial(a, b, c, d)
     ));
   });
 });

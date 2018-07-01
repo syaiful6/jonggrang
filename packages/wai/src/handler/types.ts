@@ -19,6 +19,11 @@ export interface FileId {
   fd: P.Maybe<number>;
 }
 
+/**
+ * create `FileId`
+ * @param path
+ * @param fd
+ */
 export function fileId(path: string, fd: P.Maybe<number>): FileId {
   return { path, fd };
 }
@@ -27,7 +32,7 @@ export function fileId(path: string, fd: P.Maybe<number>): FileId {
  * A function for sending `FileId`
  */
 export interface SendFile {
-  (fid: FileId, start: number, end: number, hook: T.Task<void>): T.Task<void>;
+  (fid: FileId, start: number, len: number, hook: T.Task<void>): T.Task<void>;
 }
 
 export interface WriteHead {
@@ -38,7 +43,6 @@ export interface WriteHead {
  * Data type to manipulate Task actions for connections
  */
 export interface Connection {
-  sendMany(bs: Buffer[]): T.Task<void>;
   sendAll(buf: Buffer): T.Task<void>;
   readonly close: T.Task<void>;
   readonly writeHead: WriteHead;

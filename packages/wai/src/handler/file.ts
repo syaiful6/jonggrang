@@ -18,7 +18,7 @@ export interface RspFileInfoWithoutBody {
 
 export interface RspFileInfoWithBody {
   readonly tag: RspFileInfoType.WITHBODY;
-  readonly  status: H.Status;
+  readonly status: H.Status;
   readonly header: H.ResponseHeaders;
   readonly offset: number;
   readonly length: number;
@@ -144,7 +144,7 @@ export function rspFileInfo(
 }
 
 function contentRangeHeader(beg: number, end: number, total: number): string {
-  return `bytes ${beg > end ? '*' : beg}-${end}/${total}`;
+  return `bytes ${beg > end ? '*' : `${beg}-${end}`}/${total}`;
 }
 
 function addContentHeaders(hs: H.ResponseHeaders, off: number, len: number, size: number): H.ResponseHeaders {

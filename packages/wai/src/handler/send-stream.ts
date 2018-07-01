@@ -25,13 +25,12 @@ export function sendFile(
   ws: ServerResponse,
   fid: FileId,
   start: number,
-  end: number,
+  len: number,
   hook: T.Task<void>
 ) {
-  if (P.isNothing(fid.fd)) {
-    return sendFilePath(ws, fid.path, fileRange(FileRangeType.PARTOFFILE, start, end), hook);
-  }
-  return sendFileFd(ws, fid.fd.value, fileRange(FileRangeType.PARTOFFILE, start, end), hook);
+  return len <= 0 ? hook
+    : P.isNothing(fid.fd) ? sendFilePath(ws, fid.path, partFile(start, len), hook)
+      : sendFileFd(ws, fid.fd.value, partFile(start, len), hook);
 }
 
 export function sendFileFd(ws: ServerResponse, fd: number, range: FileRange, hook: T.Task<void>): T.Task<void> {
@@ -80,6 +79,10 @@ function fdcreateReadStream(fd: number, range: FileRange) {
     flags: 'r',
     autoClose: false
   });
+}
+
+function partFile(start: number, len: number): FileRange {
+  return fileRange(FileRangeType.PARTOFFILE, start, start + len - 1);
 }
 
 export function fileRange(tag: FileRangeType.ENTIREFILE): FileRange;
