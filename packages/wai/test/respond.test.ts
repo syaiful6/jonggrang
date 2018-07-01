@@ -10,6 +10,7 @@ import { decodePathSegments } from '@jonggrang/http-types';
 
 import * as W from '../src';
 
+
 function replicateA_<A>(i: number, task: T.Parallel<A>): T.Parallel<void>;
 function replicateA_<A>(i: number, task: T.Task<A>): T.Task<void>;
 function replicateA_<A>(i: number, task: any): any {
@@ -105,6 +106,19 @@ describe('wai respond', function () {
     ));
   });
 
+  it('can send response with readable stream', function () {
+    const app: W.Application = (_, send) =>
+      send(W.responseReadable(200, { 'Content-Type': 'text/plain' }, fs.createReadStream(FP_RANGE_FILE_APP)));
+
+    return T.toPromise(withApp(app, handler =>
+      T.makeTask_(cb => {
+        request(handler)
+          .get('/')
+          .expect(200, '0123456789abcdef\n', cb);
+      })
+    ));
+  });
+
   it('streaming response with length', function () {
     const app: W.Application = (ctx, send) =>
       send(W.responseStream(200, { 'Content-Length': 20 }, (write) =>
@@ -187,7 +201,7 @@ describe('wai respond', function () {
     ));
   });
 
-  it('range requests', function () {
+  it('correctly handle range requests', function () {
     return T.toPromise(T.forInPar_(
       [ ['2-3', '23', '2-3/17']
       , ['5-', '56789abcdef\n', '5-16/17']
@@ -200,7 +214,7 @@ describe('wai respond', function () {
     ));
   });
 
-  it('partial files', function () {
+  it('correctly handle partial files', function () {
     return T.toPromise(T.forInPar_(
       [ [17, 2, 2, '23']
       , [17, 0, 2, '01']
