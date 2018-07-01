@@ -8,7 +8,7 @@ const PATTERNS = [
   'src/**/*.ts',
 ];
 
-function buildPackage(package) {
+function buildPackage(package, es6) {
   console.log(`Compiling ${packageName(package)} with TSC...`);
   const files = expand({
       cwd: package,
@@ -32,7 +32,7 @@ function buildPackage(package) {
     noUnusedLocals: true,
     sourceMap: true,
     strictNullChecks: true,
-    target: 'es5',
+    target: es6 ? 'es6' : 'es5',
     module: 'commonjs',
     outDir: join(package, 'lib'),
     baseUrl: join(__dirname, '..'),
@@ -86,6 +86,7 @@ function reportDiagnostics(diagnostics) {
 const ROOT_DIRECTORY = join(__dirname, '..')
 const PACKAGES_DIRECTORY = join(ROOT_DIRECTORY, 'packages')
 
+// string or tuples [(name, es6)]
 let allPackages = [
   'prelude',
   'object',
@@ -96,11 +97,11 @@ let allPackages = [
   'parsing',
   'http-types',
   'uri',
-  'auto-update',
-  'stream',
-  'wai',
+  ['auto-update', true],
+  ['stream', true],
+  ['wai', true],
   'genjer',
-  'cryptic'
+  ['cryptic', true]
 ]
 
 if (readdirSync(PACKAGES_DIRECTORY).length > allPackages.length) {
@@ -119,13 +120,15 @@ const onlyIndex =
 if (onlyIndex > -1) {
   const only = args[onlyIndex]
 
-  allPackages = allPackages.filter(name => name === only)
+  allPackages = allPackages.filter(name => typeof name === 'string' ? name === only : name[0] === only)
 }
 
 let promise = Promise.resolve()
 for (const pkg of allPackages) {
-  const packageDirectory = join(PACKAGES_DIRECTORY, pkg)
-  promise = promise.then(() => buildPackage(packageDirectory))
+  const pckName = typeof pkg === 'string' ? pkg : pkg[0];
+  const es6 = typeof pkg === 'string' ? false : pkg[1];
+  const packageDirectory = join(PACKAGES_DIRECTORY, pckName)
+  promise = promise.then(() => buildPackage(packageDirectory, es6))
 }
 
 promise

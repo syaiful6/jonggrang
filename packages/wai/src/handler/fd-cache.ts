@@ -7,6 +7,7 @@ import { Reaper, mkReaper } from '@jonggrang/auto-update';
 
 import * as MM from './multi-map';
 
+
 /**
  * An action to activate a Fd cache entry.
  */
@@ -104,10 +105,8 @@ function clean(old: FdCache): T.Task<(cache: FdCache) => FdCache> {
   return MM.pruneWith(old, prune).map((newCache: FdCache) => (extra: FdCache) => MM.merge(newCache, extra));
 }
 
-const toArr = P.list.toArray;
-
 function terminate(md: MutableFdCache): T.Task<void> {
-  return md.stop.chain(t => T.forInPar_(toArr(MM.toList(t)), entry => closeFile(entry.fd)));
+  return md.stop.chain(t => listForInPar_(MM.toList(t), entry => closeFile(entry.fd)));
 }
 
 function prune(fd: FdEntry): T.Task<boolean> {
@@ -135,4 +134,8 @@ function maybeGetFd(mfd: MutableFdCache, path: string, hash: number, mentry: P.M
   }
   let fdEntry = mentry.value;
   return refresh(fdEntry.status).then(T.pure([P.just(fdEntry.fd), refresh(fdEntry.status)] as [P.Maybe<number>, Refresh]));
+}
+
+function listForInPar_<A, B>(xs: P.list.List<A>, fn: (_: A) => T.Task<B>): T.Task<void> {
+  return P.list.foldr((a, b) => T.apSecond(fn(a).parallel(), b), T.Parallel.of(void 0), xs).sequential();
 }

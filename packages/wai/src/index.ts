@@ -1,7 +1,7 @@
 import * as H from '@jonggrang/http-types';
 import { Task } from '@jonggrang/task';
 
-import { Request, Response, Middleware, HttpContext, createResponse } from './type';
+import { Response, Middleware, HttpContext, createResponse } from './type';
 export * from './type';
 export * from './handler/types';
 export * from './handler/run';
@@ -53,10 +53,10 @@ export function modifyResponse(
  * @param middle
  */
 export function ifRequest(
-  pred: (req: Request) => boolean,
+  pred: (ctx: HttpContext) => boolean,
   middle: Middleware
 ): Middleware {
   return (app) =>
-  <A>(ctx: HttpContext, send: (r: Response) => Task<A>) =>
-    pred(ctx.request) ? middle(app)(ctx, send) : app(ctx, send);
+    <A>(ctx: HttpContext, send: (r: Response) => Task<A>) =>
+      pred(ctx) ? middle(app)(ctx, send) : app(ctx, send);
 }
