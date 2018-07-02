@@ -41,11 +41,10 @@ export function pruneWith<A>(m: MMap<A>, f: (_: A) => T.Task<boolean>): T.Task<M
 }
 
 function fromAssocList<A>(xs: L.List<[number, A]>): I.IntMap<A> {
-  const t = L.foldl((m, [k, v]) => I.insert(k, v, m), I.empty, xs);
-  return t;
+  return L.foldl((m, [k, v]) => I.insert(k, v, m), I.empty, xs);
 }
 
-function toDescList<A>(m: I.IntMap<A>): L.List<[number, A]> {
+export function toDescList<A>(m: I.IntMap<A>): L.List<[number, A]> {
   return I.foldlWithKey((k, xs, v) => L.cons([k, v], xs), L.nil, m);
 }
 
