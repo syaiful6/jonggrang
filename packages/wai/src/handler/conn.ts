@@ -21,10 +21,6 @@ export class Conn {
     return writeSock(this.response, buf);
   }
 
-  sendMany(bs: Buffer[]): T.Task<void> {
-    return T.forIn_(bs, buf => writeSock(this.response, buf));
-  }
-
   sendStream(stream: Readable): T.Task<void> {
     return sendStream(this.response, stream);
   }
@@ -33,8 +29,8 @@ export class Conn {
     return T.liftEff(this.response, st, headers, this.response.writeHead);
   }
 
-  sendFile(fid: FileId, start: number, end: number, hook: T.Task<void>): T.Task<void> {
-    return sendFile(this.response, fid, start, end, hook);
+  sendFile(fid: FileId, start: number, len: number, hook: T.Task<void>): T.Task<void> {
+    return sendFile(this.response, fid, start, len, hook);
   }
 
   get close(): T.Task<void> {
