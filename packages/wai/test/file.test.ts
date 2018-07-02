@@ -55,9 +55,9 @@ describe('File spec', () => {
   const FILEPATH = path.join(__dirname, '..', 'attic', 'hex');
 
   describe('FileInfo property', function () {
-    jsv.property('Setoid reflection', fileInfoArb, (finfo) => finfo.equals(finfo) );
+    jsv.property('Setoid reflexivity', fileInfoArb, (finfo) => finfo.equals(finfo) );
 
-    jsv.property('Setoid reflection 2', fileInfoArb, fileInfoArb, (a, b) =>
+    jsv.property('Setoid symmetry', fileInfoArb, fileInfoArb, (a, b) =>
       a.equals(b) === b.equals(a)
     );
   });

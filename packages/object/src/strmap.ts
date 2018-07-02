@@ -42,7 +42,7 @@ export function toPairs<K extends string, V>(ms: StrMap<K, V>): Array<[K, V]> {
   let results: Array<[K, V]> = [];
   for (let k in ms) {
     if (Object.prototype.hasOwnProperty.call(ms, k)) {
-      results.push([k, ms[k]]);
+      results.push([k, ms[k]] as any);
     }
   }
   return results;
@@ -141,7 +141,7 @@ export function union<K extends string, V>(
 }
 
 function _lookup<K extends string, A, Z>(no: Z, yes: (_: A) => Z, k: K, m: StrMap<K, A>): Z {
-  return k in m ? yes(m[k]) : no;
+  return k in m ? yes((m as any)[k]) : no;
 }
 
 /**
@@ -154,7 +154,7 @@ export function all<K extends string, V>(
   m: StrMap<K, V>
 ): boolean {
   for (let k in m) {
-    if (Object.prototype.hasOwnProperty.call(m, k) && !f(k, m[k])) {
+    if (Object.prototype.hasOwnProperty.call(m, k) && !f(k, (m as any)[k])) {
       return false;
     }
   }
@@ -164,7 +164,7 @@ export function all<K extends string, V>(
 function thawStrMap<K extends string, V>(
   m: StrMap<K, V>
 ): Record<K, V> {
-  let rec = {} as Record<K, V>;
+  let rec = {} as any;
   for (let key in m) {
     if (Object.prototype.hasOwnProperty.call(m, key)) {
       rec[key] = m[key];
