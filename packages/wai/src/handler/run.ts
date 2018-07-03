@@ -242,7 +242,7 @@ export function waiHandleRequest(
 ): T.Task<void> {
   const conn = settings.createConnection(response);
   const ii = Z.toInternalInfo(hashStr(request.url as string), ii1);
-  return T.ensure(conn.close, waiServeConnection(request, conn, ii, settings, app));
+  return T.ensure(waiServeConnection(request, conn, ii, settings, app), conn.close);
 }
 
 export function waiServeConnection(

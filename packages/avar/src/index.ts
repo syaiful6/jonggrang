@@ -219,7 +219,7 @@ function deleteCell<A>(cell: MutableCell<A>) {
 
 function drainAVar<A>(avar: AVar<A>) {
   if (avar.draining) {
-    return scheduler.push(drainAVar, null, avar);
+    return;
   }
   let ps = avar.puts;
   let ts = avar.takes;

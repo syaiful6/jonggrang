@@ -177,10 +177,10 @@ export function apathize<A>(t: Task<A>): Task<void> {
 }
 
 /**
- * Ensure the first task run after the second task, regardless
+ * Ensure the second task run after the first task, regardless
  * of whether it completed successfully or the fiber was cancelled.
  */
-export function ensure<A>(t: Task<void>, v: Task<A>): Task<A> {
+export function ensure<A, B>(v: Task<A>, t: Task<B>): Task<A> {
   return bracket(pure(void 0), () => t, () => v);
 }
 
@@ -189,7 +189,7 @@ export function ensure<A>(t: Task<void>, v: Task<A>): Task<A> {
  * exception raised by the computation.
  */
 export function onException<A, B>(t: Task<A>, what: Task<B>): Task<A> {
-  return rescue(t, e => apSecond(what, raise(e)));
+  return bracketOnError(pure(void 0), constant(what), constant(t));
 }
 
 /**
@@ -283,8 +283,9 @@ export function race<A>(xs: Task<A>[]): Task<A> {
 export function supervise<A>(t: Task<A>): Task<A> {
   const sup = makeSupervisor();
   return ensure(
-    killAll(new Error('Child fiber outlived parent'), sup),
-    runWith(sup, t));
+    runWith(sup, t),
+    killAll(new Error('Child fiber outlived parent'), sup)
+  );
 }
 
 /**
