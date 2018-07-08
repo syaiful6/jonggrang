@@ -5,11 +5,8 @@ import * as T from '@jonggrang/task';
 
 import * as Q from '../../src/chan';
 import { compete } from '../../src/async';
+import { test } from './utils';
 
-
-function test(s: string, fn: () => Iterator<T.Task<any>>) {
-  it(s, () => T.toPromise(T.co(fn)));
-}
 
 describe('Chan', function () {
   describe('simple operations', function () {
