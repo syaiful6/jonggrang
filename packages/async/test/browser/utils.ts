@@ -1,3 +1,5 @@
+import * as assert from 'assert';
+
 import * as AV from '@jonggrang/avar';
 import * as T from '@jonggrang/task';
 
@@ -21,4 +23,20 @@ export function test(s: string, fn: () => Iterator<T.Task<any>>) {
   it(s, function () {
     return T.toPromise(T.co(fn));
   });
+}
+
+export function shouldBe<A>(a: A, t: T.Task<A>): Promise<void> {
+  return T.toPromise(t.chain(b => {
+    return T.liftEff(null, () => {
+      assert.deepEqual(a, b);
+    });
+  }));
+}
+
+export function assertTask(t: T.Task<boolean>): Promise<void> {
+  return T.toPromise(t.chain(b => {
+    return T.liftEff(null, () => {
+      assert.equal(b, true);
+    });
+  }));
 }

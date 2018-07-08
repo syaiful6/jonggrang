@@ -6,7 +6,7 @@ import {
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
 import { SimpleSupervisor } from './internal/scheduler';
-import { withAppend, foldrArr, arrCatMaybe } from './internal/utils';
+import { withAppend, foldrArr } from './internal/utils';
 
 
 // re-export
@@ -479,14 +479,14 @@ export function forInPar_<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<void> {
  * Like `forInPar` but take an array of Task.
  * @param xs
  */
-export function mergePar<A>(xs: Task<A>[]): Task<A[]> {
+export function sequencePar<A>(xs: Task<A>[]): Task<A[]> {
   return forInPar(xs, identity);
 }
 
 /**
  * Like `mergePar` but ignoring final result
  */
-export function mergePar_<A>(xs: Task<A>[]): Task<void> {
+export function sequencePar_<A>(xs: Task<A>[]): Task<void> {
   return forInPar_(xs, identity);
 }
 
@@ -524,11 +524,11 @@ export function forIn_<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<void> {
  * like `forIn` but take an array of Task instead.
  * @param xs Task<A>[]
  */
-export function merge<A>(xs: Task<A>[]): Task<A[]> {
+export function sequence<A>(xs: Task<A>[]): Task<A[]> {
   return forIn(xs, identity);
 }
 
-export function merge_<A>(xs: Task<A>[]): Task<void> {
+export function sequence_<A>(xs: Task<A>[]): Task<void> {
   return forIn_(xs, identity);
 }
 
@@ -544,20 +544,6 @@ export function bothPar<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
  */
 export function both<A, B>(fa: Task<A>, fb: Task<B>): Task<[A, B]> {
   return fa.map(pair as (a: A) => (b: B) => [A, B]).ap(fb);
-}
-
-/**
- * filter a structure  with effects
- */
-export function wither<A, B>(xs: A[], fn: Fn1<A, Task<Maybe<B>>>): Task<B[]> {
-  return forIn(xs, fn).map(arrCatMaybe);
-}
-
-/**
- * liket `wither` but the effects run in parallel
- */
-export function witherPar<A, B>(xs: A[], fn: Fn1<A, Task<Maybe<B>>>): Task<B[]> {
-  return forInPar(xs, fn).map(arrCatMaybe);
 }
 
 /**

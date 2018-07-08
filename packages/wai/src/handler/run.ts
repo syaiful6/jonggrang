@@ -122,7 +122,7 @@ export function runServer(
 function shutdownServer(
   state: ServerState
 ): T.Task<void> {
-  return T.mergePar([
+  return T.sequencePar([
     T.liftEff(null, state.connections, destroAllConnections),
     closeServer(state.server)
   ]).chain(() => T.liftEff(process, 0, process.exit));
@@ -175,7 +175,7 @@ function connectAndTrapSignal(
   state: ServerState,
   settings: Z.Settings
 ): T.Task<void> {
-  return T.mergePar([
+  return T.sequencePar([
     T.liftEff(null, state, registerRequestHandler),
     listenConnection(state, settings),
     T.node(null, state, waitListening)

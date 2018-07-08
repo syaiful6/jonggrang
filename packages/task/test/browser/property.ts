@@ -133,10 +133,10 @@ describe('Property Test', () => {
       );
     });
 
-    describe('merge', () => {
+    describe('sequence', () => {
       jsv.property('idempotent', jsv.array(jsv.nat), xs =>
         T.toPromise(T.bothPar(
-          T.merge(xs.map(T.pure)),
+          T.sequence(xs.map(T.pure)),
           T.pure(xs)
         ).map(tEquals))
       );
@@ -193,7 +193,7 @@ describe('Property Test', () => {
 
       jsv.property('mergePar', jsv.array(jsv.nat), xs =>
         T.toPromise(T.bothPar(
-          T.mergePar(xs.map(T.pure)),
+          T.sequencePar(xs.map(T.pure)),
           T.pure(xs)
         ).map(tEquals))
       );
