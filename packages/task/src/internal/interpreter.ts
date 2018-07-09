@@ -727,15 +727,25 @@ function stepContinueSync(fib: TaskFiber<any>) {
 
 function stepContinueAsyc(fib: TaskFiber<any>, localRunTick: number) {
   fib._status = StateFiber.PENDING;
+  let sync = true;
   fib._step = runAsync((fib._step as Async<any>)._1, (er, v) => {
     if (fib._runTick !== localRunTick) {
       return;
     }
     fib._runTick++;
-    fib._status = StateFiber.STEP_RESULT;
-    fib._step = er != null ? left(er) : right(v);
-    runFiber(fib, fib._runTick);
+    if (sync) {
+      scheduler.enqueue(() => {
+        fib._status = StateFiber.STEP_RESULT;
+        fib._step = er != null ? left(er) : right(v);
+        runFiber(fib, fib._runTick);
+      });
+    } else {
+      fib._status = StateFiber.STEP_RESULT;
+      fib._step = er != null ? left(er) : right(v);
+      runFiber(fib, fib._runTick);
+    }
   });
+  sync = false;
 }
 
 function stepContinueBracket(fib: TaskFiber<any>) {

@@ -354,10 +354,10 @@ describe('Task Core', function () {
       }));
     });
 
-    it('merge_ correctly run in order', function () {
+    it('sequence correctly run in order', function () {
       return Q.shouldBe(['a', 'b'], T.co(function* () {
         const ref: Q.Ref<string[]> = yield Q.newRef([]);
-        yield T.merge_([
+        yield T.sequence_([
           T.delay(10).chain(() => Q.modifyRef(ref, xs => xs.concat('a'))),
           T.delay(10).chain(() => Q.modifyRef(ref, xs => xs.concat('b'))),
         ]);

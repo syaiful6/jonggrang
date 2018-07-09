@@ -1,5 +1,4 @@
 const ts = require('typescript');
-const { readdirSync } = require('fs');
 const { join, sep } = require('path');
 const expand = require('glob-expand');
 
@@ -93,6 +92,7 @@ let allPackages = [
   'container',
   'task',
   'avar',
+  'async',
   'ref',
   'parsing',
   'http-types',
@@ -103,10 +103,6 @@ let allPackages = [
   'genjer',
   ['cryptic', true]
 ]
-
-if (readdirSync(PACKAGES_DIRECTORY).length > allPackages.length) {
-  throw new Error('Please update list of packages in build script')
-}
 
 console.log() // used to add separation between commands
 

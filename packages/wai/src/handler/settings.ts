@@ -42,7 +42,7 @@ function defaultOnExceptionEff(mreq: P.Maybe<IncomingMessage>, err: Error) {
 export function onExceptionResponse(): Response {
   return responseBuffer(
     500,
-    { 'content-type': 'text/plain; charset=utf-8' },
+    { 'Content-Type': 'text/plain; charset=utf-8' },
     Buffer.from('Something went wrong', 'utf8')
   );
 }
