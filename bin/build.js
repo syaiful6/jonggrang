@@ -101,7 +101,8 @@ let allPackages = [
   ['stream', true],
   ['wai', true],
   'genjer',
-  ['cryptic', true]
+  ['cryptic', true],
+  ['wai-app-static', true]
 ]
 
 console.log() // used to add separation between commands
