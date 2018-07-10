@@ -2,7 +2,7 @@ import * as P from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
 
 import { newQSem, withQSem } from './qsem';
-import { arrCatMaybe, arrReplicate } from './utils';
+import { arrReplicate } from './utils';
 
 
 /**
@@ -31,14 +31,14 @@ export function compete<A, B>(a: T.Task<A>, b: T.Task<B>): T.Task<P.Either<A, B>
  * filter a structure with effects
  */
 export function wither<A, B>(xs: A[], fn: (_: A) => T.Task<P.Maybe<B>>): T.Task<B[]> {
-  return T.forIn(xs, fn).map(arrCatMaybe);
+  return T.forIn(xs, fn).map(P.catMaybes);
 }
 
 /**
  * like `wither` but the effects run in parallel
  */
 export function witherPar<A, B>(xs: A[], fn: (_: A) => T.Task<P.Maybe<B>>): T.Task<B[]> {
-  return T.forInPar(xs, fn).map(arrCatMaybe);
+  return T.forInPar(xs, fn).map(P.catMaybes);
 }
 
 /**
