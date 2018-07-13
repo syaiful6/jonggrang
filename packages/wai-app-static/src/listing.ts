@@ -70,12 +70,16 @@ function renderDirectoryContentsTable(pieces: Piece[], folder: Folder): string {
   const sorted = folder.sort(compareFolder);
   let alt: boolean;
   let item: Either<FolderName, File>;
+  let name: string;
+  let href: string;
   for (let i = 0, len = sorted.length; i < len; i++) {
     alt = (i % 2) === 0;
     item = sorted[i];
+    name = isLeft(item) ? (item.value === '' ? '..' : item.value) : item.value.name;
+    href = addCurrentDir(pieces, name)
     table += alt ? '<tr class="alt">' : '<tr>\n';
     table += `<td class="first${isLeft(item) ? ' icon-dir' : ''}"></td>\n`;
-    table += `<td>${isLeft(item) ? item.value : item.value.name}</td>\n`;
+    table += `<td><a href="${href}">${name}</a></td>\n`;
     table += `<td>${isRight(item) && isJust(item.value.getModified)
       ? formatCalender(item.value.getModified.value) : ''}</td>\n`;
     table += `<td>${isRight(item) ? prettyShow(item.value.size) : ''}</td>\n`;
@@ -115,4 +119,10 @@ function prettyShow(size: number): string {
   let b = size.toFixed(1);
 
   return b + units[u];
+}
+
+function addCurrentDir(xs: string[], x: string): string {
+  return xs.length > 0 && xs[xs.length - 1] === '' ? x
+    : xs.length === 0 ? x
+      : [xs[xs.length - 1], '/', x].join();
 }
