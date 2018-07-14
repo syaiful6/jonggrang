@@ -34,16 +34,11 @@ describe('Server session', function () {
 
     it('return the session from storage when the session ID exists', async function () {
       const now = Date.now();
-      const session: SS.Session = {
-        id: '123456789-123456789-123456789-12',
-        authId: 'auth-id',
-        data: { a: 'b', c: 'd' },
-        createdAt: now,
-        accessedAt: now
-      };
+      const sessId = '123456789-123456789-123456789-12';
+      const session = SS.createSession(sessId, 'auth-id', { a: 'b', c: 'd' }, now, now);
       const storage = await T.toPromise(prepareMockStorage([session]));
       const state = SS.createServerSessionState(storage);
-      const [sessMap, token] = await T.toPromise(SS.loadSession(state, '123456789-123456789-123456789-12'));
+      const [sessMap, token] = await T.toPromise(SS.loadSession(state, sessId));
 
       assert.deepEqual(sessMap, SO.insert(state.authKey, session.authId, session.data));
       assert.deepEqual(token.sess, session);
@@ -100,6 +95,92 @@ describe('Server session', function () {
       await T.toPromise(SS.saveSession(state, { sess: null, now: fakenow }, {}));
       const op = await getMockOperation(storage);
       assert.deepEqual(op, L.nil);
+    });
+
+    it('saveSession can create new session', async function () {
+      const storage = await T.toPromise(emptyMockStorage);
+      const state = SS.createServerSessionState(storage);
+
+      const m1 = { a: 'b' };
+      const session = await T.toPromise(SS.saveSession(state, { sess: null, now: fakenow }, m1));
+      assert.ok(session != null);
+      assert.equal((session as any).authId, null);
+      assert.deepEqual((session as any).data, m1);
+
+      const op = await getMockOperation(storage);
+      assert.deepEqual(op, L.singleton({ session, tag: 'insert' }));
+    });
+
+    it('saveSession can updating session auth key', async function () {
+      const storage = await T.toPromise(emptyMockStorage);
+      const state = SS.createServerSessionState(storage);
+
+      const m1 = { a: 'b' };
+      const sess1 = await T.toPromise(SS.saveSession(state, { sess: null, now: fakenow }, m1));
+
+      const m2 = SO.insert(state.authKey, 'John', m1);
+      const sess2 = await T.toPromise(SS.saveSession(state, { sess: sess1, now: fakenow }, m2));
+
+      assert.equal((sess2 as any).authId, 'John');
+      assert.deepEqual((sess2 as any).data, m1);
+      assert.equal((sess1 as any).authId === (sess2 as any).authId, false);
+
+      const op = await getMockOperation(storage);
+      assert.deepEqual(op, L.fromArray([
+        { tag: 'insert', session: sess1 },
+        { tag: 'destroy', id: (sess1 as SS.Session).id },
+        { tag: 'insert', session: sess2 }
+      ]));
+    });
+
+    it('saveSession can handle force invalidating all session of authId', async function () {
+      const storage = await T.toPromise(emptyMockStorage);
+      const state = SS.createServerSessionState(storage);
+
+      const m1 = { a: 'b' };
+      const sess1 = await T.toPromise(SS.saveSession(state, { sess: null, now: fakenow }, m1));
+
+      const m2 = SO.insert(state.authKey, 'John', m1);
+      const sess2 = await T.toPromise(SS.saveSession(state, { sess: sess1, now: fakenow }, m2));
+      // clear all operation
+      await getMockOperation(storage);
+
+      const m3 = SO.insert(SS.forceInvalidateKey, SS.ForceInvalidate.ALL_SESSION_IDS_OF_LOGGED_USER, m2 as any);
+      const sess3 = await T.toPromise(SS.saveSession(state, { sess: sess2, now: fakenow }, m3));
+      assert.deepEqual(sess3, SO.assign({}, sess2, { id: (sess3 as any).id }));
+
+      const op = await getMockOperation(storage);
+      assert.deepEqual(op, L.fromArray([
+        { tag: 'destroy', id: (sess2 as SS.Session).id },
+        { tag: 'destroyAllOfAuthId', authId: 'John' },
+        { tag: 'insert', session: sess3 }
+      ]));
+    });
+
+    it('saveSession can replace old session with new one', async function () {
+      const storage = await T.toPromise(emptyMockStorage);
+
+      const state = SS.createServerSessionState(storage);
+
+      const m1 = { a: 'b' };
+      const sess1 = await T.toPromise(SS.saveSession(state, { sess: null, now: fakenow }, m1));
+
+      const m2 = SO.insert(state.authKey, 'John', m1);
+      const sess2 = await T.toPromise(SS.saveSession(state, { sess: sess1, now: fakenow }, m2));
+
+      const m3 = SO.insert(SS.forceInvalidateKey, SS.ForceInvalidate.ALL_SESSION_IDS_OF_LOGGED_USER, m2 as any);
+      const sess3 = await T.toPromise(SS.saveSession(state, { sess: sess2, now: fakenow }, m3));
+
+      await getMockOperation(storage);
+
+      const m4 = SO.insert('x', 'y', m2);
+      const sess4 = await T.toPromise(SS.saveSession(state, { sess: sess3, now: fakenow }, m4));
+      assert.deepEqual(sess4, SO.assign({}, sess3, { data: SO.remove(state.authKey, m4) }));
+
+      const op = await getMockOperation(storage);
+      assert.deepEqual(op, L.fromArray([
+        { tag: 'replace', session: sess4 }
+      ]));
     });
   });
 });

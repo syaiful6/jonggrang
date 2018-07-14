@@ -48,6 +48,34 @@ export interface Session {
   accessedAt: number;
 }
 
+// Session, to use
+class StdSession implements Session {
+  constructor(
+    readonly id: SessionId,
+    readonly authId: null | AuthId,
+    readonly data: SessionData,
+    readonly createdAt: number,
+    readonly accessedAt: number) {
+  }
+
+  toString() {
+    return `<session ${this.id}>`;
+  }
+}
+
+/**
+ * Create a session
+ */
+export function createSession(
+  id: SessionId,
+  authId: null | AuthId,
+  data: SessionData,
+  createdAt: number,
+  accessedAt: number
+): Session {
+  return new StdSession(id, authId, data, createdAt, accessedAt);
+}
+
 export interface DecomposedSession {
   authId: null | AuthId;
   force: ForceInvalidate;
@@ -388,25 +416,12 @@ export function saveSessionOnDb(
   if (msess == null) {
     return ctx.liftTask(generateSessionId)
       .chain(id => {
-        const session: Session = {
-          id,
-          createdAt: now,
-          accessedAt: now,
-          authId: dec.authId,
-          data: dec.decomposed
-        };
-        return storage.insert(session).map(() => session);
+        const sess = createSession(id, dec.authId, dec.decomposed, now, now);
+        return storage.insert(sess).map(() => sess);
       });
   }
-
-  const rsession: Session = {
-    id: msess.id,
-    authId: dec.authId,
-    data: dec.decomposed,
-    createdAt: msess.createdAt,
-    accessedAt: now
-  };
-  return storage.replace(rsession).map(() => rsession);
+  const sess = createSession(msess.id, dec.authId, dec.decomposed, msess.createdAt, now);
+  return storage.replace(sess).map(() => sess);
 }
 
 function whenNullable<A>(
