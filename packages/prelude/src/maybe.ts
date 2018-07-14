@@ -1,3 +1,5 @@
+import { identity } from './combinators';
+
 /**
  * The `Maybe` type is used to represent optional values and can be seen as
  * something like a type-safe `null`, where `Nothing` is `null` and `Just x`
@@ -105,4 +107,49 @@ export function isJust<A>(m: Maybe<A>): m is Just<A> {
  */
 export function isNothing(m: Maybe<any>): m is Nothing {
   return m.tag === MaybeType.NOTHING;
+}
+
+/**
+ * Filter an array of A with function from A to Maybe<B>, keep only
+ * items that returns just.
+ */
+export function filterMap<A, B>(xs: A[], f: (_: A) => Maybe<B>): B[] {
+  let ys: B[] = [];
+  let ret: Maybe<B>;
+  for (let i = 0, len = xs.length; i < len; i++) {
+    ret = f(xs[i]);
+    if (isJust(ret)) {
+      ys.push(ret.value);
+    }
+  }
+  return ys;
+}
+
+/**
+ * The catMaybes function takes a list of Maybes and returns a list of all the Just values.
+ * @param xs Maybe<A>[]
+ */
+export function catMaybes<A>(xs: Maybe<A>[]): A[] {
+  return filterMap(xs, identity);
+}
+
+/**
+ * Traverse an array of A with function from A to Maybe<B>, and return Maybe<B[]>.
+ * Return Just in case the function return Just for each item, otherwise
+ * return Nothing.
+ * @param xs
+ * @param fn
+ */
+export function traverseMaybe<A, B>(xs: A[], fn: (_: A) => Maybe<B>): Maybe<B[]> {
+  let ret: B[] = [];
+  let item: Maybe<B>;
+  for (let i = 0, len = xs.length; i < len; i++) {
+    item = fn(xs[i]);
+    if (isJust(item)) {
+      ret.push(item.value);
+      continue;
+    }
+    return nothing;
+  }
+  return just(ret);
 }

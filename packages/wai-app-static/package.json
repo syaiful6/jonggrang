@@ -1,0 +1,38 @@
+{
+  "name": "@jonggrang/wa-app-static",
+  "description": "WAI application for static serving.",
+  "version": "0.0.2",
+  "author": {
+    "name": "Syaiful Bahri"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syaiful6/jonggrang.git"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "module": "es6/index.js",
+  "license": "MIT",
+  "files": [
+    "lib/",
+    "es6/"
+  ],
+  "dependencies": {
+    "mime": "^2.3.0"
+  },
+  "peerDependencies": {
+    "@jonggrang/prelude": "^0.1.7",
+    "@jonggrang/task": "^0.2.5",
+    "@jonggrang/wai": "^0.1.8",
+    "@jonggrang/http-types": "^0.1.8"
+  },
+  "devDependencies": {
+    "mocha": "^5.2.0",
+    "@types/mocha": "^5.2.1",
+    "@types/node": "^8.10.11",
+    "@types/mime": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
