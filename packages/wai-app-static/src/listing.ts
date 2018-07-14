@@ -45,7 +45,7 @@ function compareFolder(fa: Either<FolderName, File>, fb: Either<FolderName, File
     return 1;
   }
   if (isLeft(fa) && isLeft(fb)) {
-    return fa < fb ? -1 : fa === fb ? 0 : 1;
+    return fa.value < fb.value ? -1 : fa.value === fb.value ? 0 : 1;
   }
   if (isRight(fa) && isRight(fb)) {
     let a = fa.value.name, b = fb.value.name;
