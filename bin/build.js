@@ -102,7 +102,8 @@ let allPackages = [
   ['wai', true],
   'genjer',
   ['cryptic', true],
-  ['wai-app-static', true]
+  ['wai-app-static', true],
+  ['server-session', true],
 ]
 
 console.log() // used to add separation between commands
