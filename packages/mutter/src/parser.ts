@@ -87,11 +87,12 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
     function abortWithError(uploadError: Error) {
       if (errorOccured) return;
       errorOccured = true;
+      pendingWrites.onceZero(() => {
+        T.runTask(T.forInPar_(uploadedFiles, file => storage.removeFile(file)), (err) => {
+          if (err) return done(err);
 
-      T.runTask(T.forInPar_(uploadedFiles, file => storage.removeFile(file)), (err) => {
-        if (err) return done(err);
-
-        done(uploadError);
+          done(uploadError);
+        });
       });
     }
 
