@@ -6,6 +6,7 @@ import Busboy from 'busboy';
 import { parse as parseContentType } from 'content-type';
 import { text as parseBodyText } from 'get-body';
 import onFinished from 'on-finished';
+import Verror from 'verror';
 import * as qs from 'qs';
 import { Maybe, nothing, just, isJust, isNothing } from '@jonggrang/prelude';
 import { assign } from '@jonggrang/object';
@@ -38,7 +39,7 @@ export function parseRequestBody(ctx: HttpContext, opts?: MutterOptions): T.Task
 
   return ctype.tag === 'urlencoded' ? parseUrlEncodedBody(ctx, opts)
     : ctype.tag === 'multipart' ? parseMultipartBody(ctx, opts)
-      : T.pure([{}, {}] as [Params, Files]);
+      : /* istanbul ignore next */ T.pure([{}, {}] as [Params, Files]);
 }
 
 function parseUrlEncodedBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Params, Files]> {
@@ -89,8 +90,12 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
       errorOccured = true;
       pendingWrites.onceZero(() => {
         T.runTask(T.forInPar_(uploadedFiles, file => storage.removeFile(file)), (err) => {
-          if (err) return done(err);
-
+          /* istanbul ignore if */
+          if (err) {
+            const error = new Verror(err, 'failed to remove %s', uploadedFiles.map(x => x.fieldname).join(', '));
+            Error.captureStackTrace(error, storage.removeFile);
+            return done(error);
+          }
           done(uploadError);
         });
       });
@@ -131,7 +136,9 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
       T.runTask(fileFilter(ctx, file), (err, includeFile) => {
         if (err) {
           removePlaceholder(files, placeholder);
-          return abortWithError(err);
+          const verr = new Verror(err, 'file filter %s', fieldname);
+          Error.captureStackTrace(verr, fileFilter);
+          return abortWithError(verr);
         }
 
         if (!includeFile) {
@@ -144,7 +151,7 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
 
         filestream.on('error', (err) => {
           pendingWrites.decrement();
-          abortWithError(err);
+          abortWithError(new Verror(err, 'filestream error: %s', fieldname));
         });
 
         filestream.on('limit', function () {

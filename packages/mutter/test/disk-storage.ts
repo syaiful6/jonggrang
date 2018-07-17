@@ -79,7 +79,7 @@ describe('mutter: disk storage', function () {
     const mctx = await T.toPromise(T.attempt(submitForm(middleware, form)));
     assert.ok(isLeft(mctx));
     const err = mctx.value as Error;
-    assert.equal(err.message, 'only tiny0 allowed');
+    assert.equal(err.message, 'file filter tiny1: only tiny0 allowed');
     const files = await T.toPromise(T.node(null, uploadDir, fs.readdir));
     assert.deepEqual(files, []);
   });

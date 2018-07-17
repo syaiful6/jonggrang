@@ -1,3 +1,5 @@
+import Verror from 'verror';
+
 export const errorMessages = {
   'LIMIT_PART_COUNT': 'Too many parts',
   'LIMIT_FILE_SIZE': 'File too large',
@@ -8,13 +10,13 @@ export const errorMessages = {
   'LIMIT_UNEXPECTED_FILE': 'Unexpected field'
 };
 
-export interface MutterError extends Error {
+export interface MutterError extends Verror {
   code: string;
-  field: string;
+  field?: string;
 }
 
 export function makeError(code: keyof (typeof errorMessages), optionalField?: string) {
-  const err = new Error(errorMessages[code]) as MutterError;
+  const err = new Verror(`mutter ${errorMessages[code]}`) as MutterError;
   err.code = code;
   if (optionalField) err.field = optionalField;
   return err;
