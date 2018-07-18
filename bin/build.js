@@ -104,7 +104,7 @@ let allPackages = [
   'genjer',
   ['cryptic', true],
   ['wai-app-static', true],
-  ['server-session', true],
+  ['sersan', true],
   ['mutter', true],
 ]
 
