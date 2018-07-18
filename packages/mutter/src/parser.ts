@@ -149,21 +149,26 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
 
         filestream.on('limit', function () {
           aborting = true;
-          console.log('received limit');
           abortWithCode('LIMIT_FILE_SIZE', fieldname);
         });
 
         T.runTask(storage.handleFile(file, filestream as any), (err, finfo) => {
+          // sometimes the limit event was fired before we attach the listener
+          // so, check the truncated property here
+          if ((filestream as any).truncated && !aborting) filestream.emit('limit');
+
           if (aborting) {
             removePlaceholder(files, placeholder);
             uploadedFiles.push(assign(file, finfo || {}) as any);
             return pendingWrites.decrement();
           }
+
           if (err) {
             removePlaceholder(files, placeholder);
             pendingWrites.decrement();
             return abortWithError(err);
           }
+
           replacePlaceholder(files, placeholder, finfo as any);
           uploadedFiles.push(finfo as any);
           pendingWrites.decrement();
