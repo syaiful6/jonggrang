@@ -42,6 +42,6 @@ describe('Mutter: File Filter', function () {
 
     const ectx = await T.toPromise(T.attempt(submitForm(upload, form)));
     assert.equal(isLeft(ectx), true);
-    assert.equal((ectx.value as Error).message, 'file filter notme: Fake error');
+    assert.equal((ectx.value as Error).message, 'Fake error');
   });
 });

@@ -6,7 +6,6 @@ import Busboy from 'busboy';
 import { parse as parseContentType } from 'content-type';
 import { text as parseBodyText } from 'get-body';
 import onFinished from 'on-finished';
-import Verror from 'verror';
 import * as qs from 'qs';
 import { Maybe, nothing, just, isJust, isNothing } from '@jonggrang/prelude';
 import { assign } from '@jonggrang/object';
@@ -91,11 +90,7 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
       pendingWrites.onceZero(() => {
         T.runTask(T.forInPar_(uploadedFiles, file => storage.removeFile(file)), (err) => {
           /* istanbul ignore if */
-          if (err) {
-            const error = new Verror(err, 'failed to remove %s', uploadedFiles.map(x => x.fieldname).join(', '));
-            Error.captureStackTrace(error, storage.removeFile);
-            return done(error);
-          }
+          if (err) return done(err);
           done(uploadError);
         });
       });
@@ -136,9 +131,7 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
       T.runTask(fileFilter(ctx, file), (err, includeFile) => {
         if (err) {
           removePlaceholder(files, placeholder);
-          const verr = new Verror(err, 'file filter %s', fieldname);
-          Error.captureStackTrace(verr, fileFilter);
-          return abortWithError(verr);
+          return abortWithError(err);
         }
 
         if (!includeFile) {
@@ -151,7 +144,7 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
 
         filestream.on('error', (err) => {
           pendingWrites.decrement();
-          abortWithError(new Verror(err, 'filestream error: %s', fieldname));
+          abortWithError(err);
         });
 
         filestream.on('limit', function () {

@@ -26,8 +26,7 @@
     "@jonggrang/object": "^0.1.7",
     "@jonggrang/stream": "^0.0.1",
     "on-finished": "^2.3.0",
-    "qs": "^6.5.2",
-    "verror": "^1.10.0"
+    "qs": "^6.5.2"
   },
   "peerDependencies": {
     "@jonggrang/prelude": "^0.1.7",
@@ -47,8 +46,7 @@
     "@types/qs": "^6.5.1",
     "@types/on-finished": "^2.3.1",
     "@types/form-data": "^2.2.1",
-    "@types/rimraf": "^2.0.2",
-    "@types/verror": "^1.10.3"
+    "@types/rimraf": "^2.0.2"
   },
   "publishConfig": {
     "access": "public"
