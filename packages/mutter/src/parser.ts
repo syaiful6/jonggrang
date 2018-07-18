@@ -149,6 +149,7 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
 
         filestream.on('limit', function () {
           aborting = true;
+          console.log('received limit');
           abortWithCode('LIMIT_FILE_SIZE', fieldname);
         });
 
@@ -163,7 +164,6 @@ function parseMultipartBody(ctx: HttpContext, opts?: MutterOptions): T.Task<[Par
             pendingWrites.decrement();
             return abortWithError(err);
           }
-
           replacePlaceholder(files, placeholder, finfo as any);
           uploadedFiles.push(finfo as any);
           pendingWrites.decrement();

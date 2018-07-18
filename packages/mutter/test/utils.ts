@@ -30,7 +30,7 @@ export function submitForm<R extends Readable>(mutter: W.Middleware, form: R): T
       const app = mutter(simpleApp);
       const request = new PassThrough();
       (request as any).complete = false;
-      form.on('end', () => {
+      form.once('end', () => {
         (request as any).complete = true;
       });
 
