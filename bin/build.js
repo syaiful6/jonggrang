@@ -2,6 +2,7 @@ const ts = require('typescript');
 const { join, sep } = require('path');
 const expand = require('glob-expand');
 
+
 const PATTERNS = [
   'src/*/*.ts',
   'src/**/*.ts',
@@ -104,6 +105,7 @@ let allPackages = [
   ['cryptic', true],
   ['wai-app-static', true],
   ['server-session', true],
+  ['mutter', true],
 ]
 
 console.log() // used to add separation between commands

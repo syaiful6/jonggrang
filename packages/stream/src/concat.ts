@@ -7,7 +7,7 @@ class ConcatStream extends Writable {
   private _buffers: Buffer[];
   private _bufferLength: number;
   constructor(readonly cb: (error: Error | null | undefined, val?: Buffer) => void) {
-    super();
+    super({ objectMode: true });
     this._buffers = [];
     this._bufferLength = 0;
     this.once('finish', () => cb(null, Buffer.concat(this._buffers, this._bufferLength)));

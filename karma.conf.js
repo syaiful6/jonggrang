@@ -23,7 +23,10 @@ module.exports = function(config) {
     // list of files to exclude
     exclude: [
       'packages/wai/src/**/*.ts',
-      'packages/cryptic/src/**/*.ts'
+      'packages/cryptic/src/**/*.ts',
+      'packages/mutter/src/**/*.ts',
+      'packages/server-session/src/**/*.ts',
+      'packages/wai-app-static/src/**/*.ts',
     ],
 
 
