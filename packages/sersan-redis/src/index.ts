@@ -7,6 +7,9 @@ import {
 } from '@jonggrang/sersan';
 
 
+/**
+ * Session storage backend using Redis via ioredis package
+ */
 export class RedisStorage implements Storage {
   readonly tx: StorageTxConstructor;
   constructor(
@@ -45,12 +48,18 @@ export class RedisStorage implements Storage {
   }
 }
 
+/**
+ * Get the session for the given session ID.
+ */
 function getSessionImpl(storage: RedisStorage, sessId: string): T.Task<Session | null> {
   const redis = storage.redis;
   return T.node(redis, rSessionKey(sessId), redis.hgetall)
     .map((x: string[]) => parseSession(sessId, x));
 }
 
+/**
+ * Delete the session with given session ID
+ */
 function destroySessionImpl(storage: RedisStorage, sid: string): T.Task<void> {
   return getSessionImpl(storage, sid)
     .chain(sess => {
@@ -62,6 +71,9 @@ function destroySessionImpl(storage: RedisStorage, sid: string): T.Task<void> {
     });
 }
 
+/**
+ * Destroy / delete all sessions of the given auth Id
+ */
 function destroyAllOfAuthIdImpl(storage: RedisStorage, authId: AuthId): T.Task<void> {
   const redis = storage.redis;
   return T.node(redis, rAuthKey(authId), redis.smembers)
@@ -70,6 +82,9 @@ function destroyAllOfAuthIdImpl(storage: RedisStorage, authId: AuthId): T.Task<v
     });
 }
 
+/**
+ * insert a new session
+ */
 function insertSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> {
   return getSessionImpl(storage, sess.id).chain(oldSess => {
     if (oldSess) return T.raise(new SessionAlreadyExists(oldSess, sess));
@@ -87,6 +102,9 @@ function insertSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> {
   });
 }
 
+/**
+ * Replace the contents of a session
+ */
 function replaceSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> {
   return getSessionImpl(storage, sess.id).chain(oldSess => {
     if (oldSess == null) return T.raise(new SessionDoesNotExist(sess));
@@ -113,18 +131,28 @@ function replaceSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> 
   });
 }
 
+/**
+ * Run the given commands in Redis trancation
+ */
 function transaction(commands: string[][], redis: R.Redis): T.Task<any> {
   return T.makeTask_(cb => {
     redis.multi(commands).exec(cb);
   });
 }
 
+/**
+ * Calculate the ttl for the given sess and RedisStorage
+ * settings, return Redis's command
+ */
 function expireSession(sess: Session, storage: RedisStorage) {
   const n = nextExpires(storage as any, sess);
   if (n == null) return null;
   return ['expireat', rSessionKey(sess.id), '' + n];
 }
 
+/**
+ * print the give sess so it can be used to use it in `HMSET`
+ */
 export function printSession(sess: Session): string[] {
   let ret: string[] = [];
   if (sess.authId) ret.push('authId', sess.authId);
@@ -136,8 +164,12 @@ export function printSession(sess: Session): string[] {
   return ret;
 }
 
+/**
+ * Parse hash returned by Redis, ioredis we use return `hgetall` as object
+ * instead of array.
+ */
 export function parseSession(sid: string, hash: any): Session | null {
-  const result = SessParse(null, null, null);
+  const result = sessParse(null, null, null);
 
   if (hash.authId) result.authId = hash.authId;
   if (hash.data) result.data = parseJsonOrNull(hash.data);
@@ -169,7 +201,7 @@ function parseJsonOrNull(data: string): any {
   }
 }
 
-function SessParse(createdAt: null | number, accessedAt: null | number, data: any) {
+function sessParse(createdAt: null | number, accessedAt: null | number, data: any) {
   return { createdAt, accessedAt, data, authId: null };
 }
 
