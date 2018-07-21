@@ -1,9 +1,6 @@
-import * as assert from 'assert';
-
 import Redis from 'ioredis';
-import { isRight } from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
-import { generateSessionId, createSession, Session } from '@jonggrang/sersan';
+import { allStorageTest } from '@jonggrang/sersan';
 import * as RS from '../src';
 
 
@@ -26,50 +23,17 @@ function quit(redis: Redis.Redis): T.Task<void> {
   });
 }
 
-function withConn<A>(uri: string, t: (r: Redis.Redis) => T.Task<A>): T.Task<A> {
-  return T.bracket(connect(uri), quit, t);
-}
-
 describe('Redis storage', function () {
-  it('getSession should return null for inexistent sessions', async function () {
-    const result = await T.toPromise(withConn('//localhost:6379', redis => {
-      const storage = new RS.RedisStorage(redis, 600, 36000);
-      return generateSessionId.chain(x =>
-        storage.runTransaction(storage.get(x)));
-    }));
+  const redis = new RS.RedisStorage({} as any, 600, 3600);
 
-    assert.ok(result == null);
+  before(async function() {
+    const connection = await T.toPromise(connect('//localhost:6379'));
+    (redis as any).redis = connection;
   });
 
-  it('destroy should not fail for inexistent sessions', async function () {
-    const ret = await T.toPromise(withConn('//localhost:6379', redis => {
-      const storage = new RS.RedisStorage(redis, 600, 36000);
-      return T.attempt(generateSessionId.chain(x =>
-        storage.runTransaction(storage.destroy(x))));
-    }));
-
-    assert.ok(isRight(ret));
+  after(async function () {
+    await T.toPromise(quit(redis.redis));
   });
 
-  it('destroy should delete the session', async function () {
-    const key = await T.toPromise(generateSessionId);
-    await T.toPromise(withConn('//localhost:6379', redis => {
-      const storage = new RS.RedisStorage(redis, 60, 360000);
-      return T.co(function* () {
-        const old: Session | null = yield storage.get(key);
-        assert.ok(old == null);
-
-        const now = Date.now();
-        const sess = createSession(key, 'john', { a: 'b' }, now, now);
-        yield storage.insert(sess);
-        const sess2: Session | null = yield storage.get(key);
-        assert.deepEqual(sess, sess2);
-        yield storage.destroy(key);
-        const sess3: Session | null = yield storage.get(key);
-        assert.ok(sess3 == null);
-
-        return T.pure(void 0);
-      });
-    }));
-  });
+  allStorageTest(redis, it);
 });

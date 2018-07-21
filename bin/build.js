@@ -105,6 +105,7 @@ let allPackages = [
   ['cryptic', true],
   ['wai-app-static', true],
   ['sersan', true],
+  ['sersan-redis', true],
   ['mutter', true],
 ]
 

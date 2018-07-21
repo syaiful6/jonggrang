@@ -78,7 +78,7 @@ function destroyAllOfAuthIdImpl(storage: RedisStorage, authId: AuthId): T.Task<v
   const redis = storage.redis;
   return T.node(redis, rAuthKey(authId), redis.smembers)
     .map((refs: string[]) => {
-      redis.del(...[authId].concat(refs));
+      redis.del([authId].concat(refs) as any);
     });
 }
 
@@ -144,7 +144,7 @@ function transaction(commands: string[][], redis: R.Redis): T.Task<any> {
  * Calculate the ttl for the given sess and RedisStorage
  * settings, return Redis's command
  */
-function expireSession(sess: Session, storage: RedisStorage) {
+function expireSession(sess: Session, storage: RedisStorage): string[] | null {
   const n = nextExpires(storage as any, sess);
   if (n == null) return null;
   return ['expireat', rSessionKey(sess.id), '' + n];
@@ -176,7 +176,7 @@ export function parseSession(sid: string, hash: any): Session | null {
   if (hash.accessedAt != null && typeof hash.accessedAt !== 'number')
     result.accessedAt = parseInt(hash.accessedAt, 10);
   if (hash.createdAt != null && typeof hash.createdAt !== 'number')
-    result.createdAt = parseInt(hash.accessedAt, 10);
+    result.createdAt = parseInt(hash.createdAt, 10);
 
   if (result.createdAt == null || result.accessedAt == null || result.data == null) {
     return null;
