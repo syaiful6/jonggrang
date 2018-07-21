@@ -421,20 +421,29 @@ export function generalBracket<A, B>(
  */
 export function co(fn: () => Iterator<Task<any>>): Task<any> {
   return defer(() => {
-    let gen: null | Iterator<Task<any>> = null;
-    function go(i?: any): Task<any> {
-      if (gen == null) {
-        gen = fn();
-      }
-      let { done, value } = gen.next(i);
-      if (done) {
-        gen = null;
-        return value;
-      } else {
-        return value.chain(go);
+    let gen = fn();
+
+    function step(result: IteratorResult<any>): Task<any> {
+      return result.done ? result.value : rescue(result.value.chain(next), rejected);
+    }
+
+    function next(value: any): Task<any> {
+      try {
+        return step(gen.next(value));
+      } catch (e) {
+        return raise(e);
       }
     }
-    return go();
+
+    function rejected(e: Error): Task<any> {
+      try {
+        return step((gen as any).throw(e));
+      } catch (e) {
+        return raise(e);
+      }
+    }
+
+    return step(gen.next());
   });
 }
 
