@@ -1,7 +1,7 @@
 {
-  "name": "@jonggrang/stream",
-  "description": "Common stream utility.",
-  "version": "0.0.1",
+  "name": "@jonggrang/sersan",
+  "description": "Secure, modular server session",
+  "version": "0.0.9",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -17,17 +17,17 @@
     "lib/",
     "es6/"
   ],
-  "dependencies": {
-    "readable-stream": "^2.3.6"
-  },
   "peerDependencies": {
+    "@jonggrang/prelude": "^0.1.7",
+    "@jonggrang/cryptic": "^0.0.1",
+    "@jonggrang/object": "^0.1.7",
     "@jonggrang/task": "^0.2.5"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
-    "@jonggrang/task": "^0.2.5"
+    "@jonggrang/ref": "^0.1.7"
   },
   "publishConfig": {
     "access": "public"

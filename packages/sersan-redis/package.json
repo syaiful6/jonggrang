@@ -1,7 +1,7 @@
 {
-  "name": "@jonggrang/server-session",
-  "description": "Secure, modular server session",
-  "version": "0.0.0",
+  "name": "@jonggrang/sersan-redis",
+  "description": "Storage backend for sersan using Redis",
+  "version": "0.0.9",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -17,17 +17,26 @@
     "lib/",
     "es6/"
   ],
+  "dependencies": {
+    "ioredis": "^3.2.2"
+  },
   "peerDependencies": {
     "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/cryptic": "^0.0.1",
     "@jonggrang/object": "^0.1.7",
-    "@jonggrang/task": "^0.2.5"
+    "@jonggrang/task": "^0.2.5",
+    "@jonggrang/sersan": "^0.0.9"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
-    "@jonggrang/ref": "^0.1.7"
+    "@types/ioredis": "^3.2.13",
+    "@jonggrang/ref": "^0.1.7",
+    "@jonggrang/prelude": "^0.1.7",
+    "@jonggrang/cryptic": "^0.0.1",
+    "@jonggrang/object": "^0.1.7",
+    "@jonggrang/task": "^0.2.5",
+    "@jonggrang/sersan": "^0.0.9"
   },
   "publishConfig": {
     "access": "public"

@@ -22,4 +22,6 @@ bower_components
 spec-bundle.js
 npm-debug.log
 testem.log
+lerna-debug.log
+yarn-error.log
 /.nyc_output/
