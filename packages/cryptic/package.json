@@ -21,12 +21,14 @@
     "base64url": "^3.0.0"
   },
   "peerDependencies": {
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/task": "^0.2.5"
+    "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
+    "@jonggrang/task": ">= 0.2.6 < 2.0.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "@types/mocha": "^5.2.1",
-    "@types/node": "^8.10.11"
-  }
+    "@types/node": "^8.10.11",
+    "@jonggrang/prelude": "^0.1.7",
+    "@jonggrang/task": "^0.2.5"
+ }
 }

@@ -19,17 +19,18 @@
   ],
   "dependencies": {
     "on-finished": "^2.3.0",
-    "destroy": "^1.0.4"
-  },
-  "peerDependencies": {
+    "destroy": "^1.0.4",
     "@jonggrang/avar": "^0.1.7",
     "@jonggrang/auto-update": "^0.0.1",
     "@jonggrang/container": "^0.1.7",
-    "@jonggrang/http-types": "^0.1.8",
     "@jonggrang/object": "^0.1.7",
-    "@jonggrang/prelude": "^0.1.7",
     "@jonggrang/ref": "^0.1.7",
-    "@jonggrang/task": "^0.2.5"
+    "@jonggrang/stream": "^0.0.1"
+  },
+  "peerDependencies": {
+    "@jonggrang/http-types": ">= 0.1.8 < 2.0.0",
+    "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
+    "@jonggrang/task": ">= 0.2.6 < 2.0.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
@@ -39,7 +40,10 @@
     "@types/on-finished": "2.3.1",
     "@types/destroy": "^1.0.0",
     "supertest": "^3.1.0",
-    "@types/supertest": "2.0.4"
+    "@types/supertest": "2.0.4",
+    "@jonggrang/http-types": "^0.1.8",
+    "@jonggrang/prelude": "^0.1.7",
+    "@jonggrang/task": "^0.2.5"
   },
   "publishConfig": {
     "access": "public"

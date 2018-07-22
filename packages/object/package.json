@@ -18,13 +18,14 @@
     "es6/"
   ],
   "peerDependencies": {
-    "@jonggrang/prelude": "^0.1.7"
+    "@jonggrang/prelude": ">= 0.1.8 < 2.0.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "jsverify": "^0.8.3",
     "@types/mocha": "^5.2.1",
-    "@types/node": "^8.10.11"
+    "@types/node": "^8.10.11",
+    "@jonggrang/prelude": "^0.1.7"
   },
   "publishConfig": {
     "access": "public"

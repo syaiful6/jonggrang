@@ -18,23 +18,20 @@
     "es6/"
   ],
   "dependencies": {
-    "ioredis": "^3.2.2"
+    "ioredis": "^3.2.2",
+    "@jonggrang/object": "^0.1.7"
   },
   "peerDependencies": {
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/object": "^0.1.7",
-    "@jonggrang/task": "^0.2.5",
-    "@jonggrang/sersan": "^0.0.9"
+    "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
+    "@jonggrang/task": ">= 0.2.6 < 2.0.0",
+    "@jonggrang/sersan": ">= 0.1.0 < 2.0.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
     "@types/ioredis": "^3.2.13",
-    "@jonggrang/ref": "^0.1.7",
     "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/cryptic": "^0.0.1",
-    "@jonggrang/object": "^0.1.7",
     "@jonggrang/task": "^0.2.5",
     "@jonggrang/sersan": "^0.0.9"
   },

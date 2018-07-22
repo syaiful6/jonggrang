@@ -17,17 +17,23 @@
     "lib/",
     "es6/"
   ],
+  "dependencies": {
+    "@jonggrang/ref": "^0.1.7",
+    "@jonggrang/avar": "^0.1.7"
+  },
   "peerDependencies": {
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/task": "^0.2.5",
-    "@jonggrang/avar": "^0.1.7",
-    "@jonggrang/ref": "^0.1.7"
+    "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
+    "@jonggrang/task": ">= 0.2.6 < 2.0.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "@types/node": "^8.10.11",
-    "@types/mocha": "^5.2.1"
-  },
+    "@types/mocha": "^5.2.1",
+    "@jonggrang/prelude": "^0.1.7",
+    "@jonggrang/task": "^0.2.5",
+    "@jonggrang/avar": "^0.1.7",
+    "@jonggrang/ref": "^0.1.7"
+ },
   "publishConfig": {
     "access": "public"
   }
