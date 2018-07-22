@@ -1,5 +1,7 @@
 import * as P from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
+import { insert, keys } from '@jonggrang/object';
+
 
 import { newQSem, withQSem } from './qsem';
 import { arrReplicate } from './utils';
@@ -13,9 +15,9 @@ import { arrReplicate } from './utils';
  * @param xs An array to iterate
  * @param f function that create task from item in xs
  */
-export function eachOfLim<A, B>(n: number, xs: A[], f: (_: A) => T.Task<B>): T.Task<B[]> {
+export function eachOfLim<A, B>(n: number, xs: A[], f: (_: A, i: number) => T.Task<B>): T.Task<B[]> {
   return n <= 0 ? T.raise(new Error('argument 1 passed to eachOfLim must be greater than zero'))
-    : newQSem(n).chain(qsem => T.forInPar(xs, x => withQSem(qsem, f(x))));
+    : newQSem(n).chain(qsem => T.forInPar(xs, (x, i) => withQSem(qsem, f(x, i))));
 }
 
 /**
@@ -30,23 +32,23 @@ export function compete<A, B>(a: T.Task<A>, b: T.Task<B>): T.Task<P.Either<A, B>
 /**
  * filter a structure with effects
  */
-export function wither<A, B>(xs: A[], fn: (_: A) => T.Task<P.Maybe<B>>): T.Task<B[]> {
+export function wither<A, B>(xs: A[], fn: (_: A, i: number) => T.Task<P.Maybe<B>>): T.Task<B[]> {
   return T.forIn(xs, fn).map(P.catMaybes);
 }
 
 /**
  * like `wither` but the effects run in parallel
  */
-export function witherPar<A, B>(xs: A[], fn: (_: A) => T.Task<P.Maybe<B>>): T.Task<B[]> {
+export function witherPar<A, B>(xs: A[], fn: (_: A, i: number) => T.Task<P.Maybe<B>>): T.Task<B[]> {
   return T.forInPar(xs, fn).map(P.catMaybes);
 }
 
 /**
  * Like `witherPar`, but only allow `n` Task to run at time.
  */
-export function witherLim<A, B>(n: number, xs: A[], fn: (_: A) => T.Task<P.Maybe<B>>): T.Task<B[]> {
+export function witherLim<A, B>(n: number, xs: A[], fn: (_: A, i: number) => T.Task<P.Maybe<B>>): T.Task<B[]> {
   return n <= 0 ? T.raise(new Error('argument 1 passed to witherLim must be greater than zero'))
-    : newQSem(n).chain(qsem => witherPar(xs, x => withQSem(qsem, fn(x))));
+    : newQSem(n).chain(qsem => witherPar(xs, (x, i) => withQSem(qsem, fn(x, i))));
 }
 
 /**
@@ -76,4 +78,57 @@ export function replicatePar<A>(n: number, t: T.Task<A>): T.Task<A[]> {
  */
 export function replicateLim<A>(n: number, limit: number, t: T.Task<A>): T.Task<A[]> {
   return eachOfLim(limit, arrReplicate(n, t), P.identity);
+}
+
+/**
+ * This like `forIn` but for object
+ *
+ * @param m object
+ * @param fn function to be called on each entries
+ * @returns Task
+ */
+export function eachObj<A, B>(
+  m: Record<string, A>,
+  fn: (v: A, k: string) => T.Task<B>
+): T.Task<Record<string, B>> {
+  return keys(m).reduce((acc, k) => {
+    function set(o: Record<string, B>) {
+      return (v: B) => insert(k, v, o);
+    }
+    return acc.map(set).ap(fn(m[k], k));
+  }, T.pure({} as Record<string, B>));
+}
+
+/**
+ * like `eachObj` but the `function` executed in parallel
+ */
+export function eachObjPar<A, B>(
+  m: Record<string, A>,
+  fn: (v: A, k: string) => T.Task<B>
+): T.Task<Record<string, B>> {
+  return T.sequential(keys(m).reduce((acc, k) => {
+    function set(o: Record<string, B>) {
+      return (v: B) => insert(k, v, o);
+    }
+    return acc.map(set).ap(fn(m[k], k).parallel());
+  }, T.Parallel.of({} as Record<string, B>)));
+}
+
+/**
+ *
+ */
+export function eachObjLim<A, B>(
+  n: number,
+  ms: Record<string, A>,
+  fn: (a: A, i: string) => T.Task<B>
+): T.Task<Record<string, B>> {
+  return n <= 0 ? T.raise(new Error('1 arguments to eachObjLim must be greater than zero'))
+    : newQSem(n).chain(qsem => eachObjPar(ms, (v, i) => withQSem(qsem, fn(v, i))));
+}
+
+/**
+ * Sequence object
+ */
+export function sequenceObj<A>(ms: Record<string, T.Task<A>>): T.Task<Record<string, A>> {
+  return eachObj(ms, P.identity);
 }

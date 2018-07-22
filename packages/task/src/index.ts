@@ -1,7 +1,7 @@
 import { Either, left, right, isRight, Maybe, isJust, identity, constant } from '@jonggrang/prelude';
 
 import {
-  Canceler, Fn1, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
+  Canceler, Fn1, Fn2, NodeCallback, Computation, Fiber, Supervisor, nonCanceler,
   Task, GeneralBracket, Parallel
 } from './internal/types';
 import { TaskFiber } from './internal/interpreter';
@@ -462,26 +462,26 @@ export function thunkCanceller(thunk: () => void): Canceler {
  * @param xs
  * @param f
  */
-export function forInPar<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<B[]> {
+export function forInPar<A, B>(xs: A[], f: Fn2<A, number, Task<B>>): Task<B[]> {
   function go(idx: number, n: number): Parallel<B[]> {
     switch (n) {
       case 0: return Parallel.of([]);
-      case 2: return f(xs[idx]).map(pair).parallel().ap(f(xs[idx + 1]).parallel());
+      case 2: return f(xs[idx], idx).map(pair).parallel().ap(f(xs[idx + 1], idx + 1).parallel());
       default:
         let m = Math.floor(n / 4) * 2;
         return go(idx, m).map(concatArr).ap(go(idx + m, n - m));
     }
   }
   return xs.length % 2 === 1
-    ? f(xs[0]).parallel().map(singletonArr).map(concatArr).ap(go(1, xs.length - 1)).sequential()
+    ? f(xs[0], 0).parallel().map(singletonArr).map(concatArr).ap(go(1, xs.length - 1)).sequential()
     : go(0, xs.length).sequential();
 }
 
 /**
  * Traverse an array, performing some effects at each value in parallel, ignoring the final result.
  */
-export function forInPar_<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<void> {
-  return foldrArr((a, b) => apSecond(f(a).parallel(), b), Parallel.of(void 0), xs).sequential();
+export function forInPar_<A, B>(xs: A[], f: Fn2<A, number, Task<B>>): Task<void> {
+  return foldrArr((i, a, b) => apSecond(f(a, i).parallel(), b), Parallel.of(void 0), xs).sequential();
 }
 
 /**
@@ -506,18 +506,18 @@ export function sequencePar_<A>(xs: Task<A>[]): Task<void> {
  * @param xs
  * @param f
  */
-export function forIn<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<B[]> {
+export function forIn<A, B>(xs: A[], f: Fn2<A, number, Task<B>>): Task<B[]> {
   function go(idx: number, n: number): Task<B[]> {
     switch (n) {
       case 0: return Task.of([]);
-      case 2: return f(xs[idx]).map(pair).ap(f(xs[idx + 1]));
+      case 2: return f(xs[idx], idx).map(pair).ap(f(xs[idx + 1], idx + 1));
       default:
         let m = Math.floor(n / 4) * 2;
         return go(idx, m).map(concatArr).ap(go(idx + m, n - m));
     }
   }
   return xs.length % 2 === 1
-    ? f(xs[0]).map(singletonArr).map(concatArr).ap(go(1, xs.length - 1))
+    ? f(xs[0], 0).map(singletonArr).map(concatArr).ap(go(1, xs.length - 1))
     : go(0, xs.length);
 }
 
@@ -525,8 +525,8 @@ export function forIn<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<B[]> {
  * Traverse an array, performing some effects at each value in sequential order,
  * ignoring the final result.
  */
-export function forIn_<A, B>(xs: A[], f: Fn1<A, Task<B>>): Task<void> {
-  return foldrArr((a, b) => apSecond(f(a), b), pure(void 0), xs);
+export function forIn_<A, B>(xs: A[], f: Fn2<A, number, Task<B>>): Task<void> {
+  return foldrArr((i, a, b) => apSecond(f(a, i), b), pure(void 0), xs);
 }
 
 /**

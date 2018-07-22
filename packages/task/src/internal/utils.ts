@@ -13,11 +13,11 @@ export function withAppend(xs: any[], x: any): any[] {
   return ys;
 }
 
-export function foldrArr<A, B>(f: (a: A, b: B) => B, init: B, xs: A[]): B {
+export function foldrArr<A, B>(f: (ix: number, a: A, b: B) => B, init: B, xs: A[]): B {
   let acc = init;
   const len = xs.length;
   for (let i = len - 1; i >= 0; i--) {
-    acc = f(xs[i], acc);
+    acc = f(i, xs[i], acc);
   }
   return acc;
 }

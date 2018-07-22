@@ -40,3 +40,8 @@ export function assertTask(t: T.Task<boolean>): Promise<void> {
     });
   }));
 }
+
+export async function tdeepEq<A>(t: T.Task<A>, t2: T.Task<A>): Promise<void> {
+  const [a, b] = await T.toPromise(T.bothPar(t, t2));
+  assert.deepEqual(a, b);
+}

@@ -36,7 +36,7 @@ export function fromPairs<K extends string, V>(xs: Array<[K, V]>): StrMap<K, V> 
 }
 
 /**
- *
+ * Covert `StrMap` to assoc array
  */
 export function toPairs<K extends string, V>(ms: StrMap<K, V>): Array<[K, V]> {
   let results: Array<[K, V]> = [];
