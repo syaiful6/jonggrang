@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/wai",
   "description": "A web application interface for node.js.",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,14 +18,14 @@
     "es6/"
   ],
   "dependencies": {
-    "on-finished": "^2.3.0",
+    "@jonggrang/auto-update": "0.1.0",
+    "@jonggrang/avar": "0.1.8",
+    "@jonggrang/container": "0.1.8",
+    "@jonggrang/object": "0.1.8",
+    "@jonggrang/ref": "0.1.8",
+    "@jonggrang/stream": "0.1.0",
     "destroy": "^1.0.4",
-    "@jonggrang/avar": "^0.1.7",
-    "@jonggrang/auto-update": "^0.0.1",
-    "@jonggrang/container": "^0.1.7",
-    "@jonggrang/object": "^0.1.7",
-    "@jonggrang/ref": "^0.1.7",
-    "@jonggrang/stream": "^0.0.1"
+    "on-finished": "^2.3.0"
   },
   "peerDependencies": {
     "@jonggrang/http-types": ">= 0.1.8 < 2.0.0",
@@ -33,17 +33,17 @@
     "@jonggrang/task": ">= 0.2.6 < 2.0.0"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",
-    "jsverify": "^0.8.3",
+    "@jonggrang/http-types": "0.1.9",
+    "@jonggrang/prelude": "0.1.8",
+    "@jonggrang/task": "0.2.6",
+    "@types/destroy": "^1.0.0",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
     "@types/on-finished": "2.3.1",
-    "@types/destroy": "^1.0.0",
-    "supertest": "^3.1.0",
     "@types/supertest": "2.0.4",
-    "@jonggrang/http-types": "^0.1.8",
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/task": "^0.2.5"
+    "jsverify": "^0.8.3",
+    "mocha": "^5.2.0",
+    "supertest": "^3.1.0"
   },
   "publishConfig": {
     "access": "public"

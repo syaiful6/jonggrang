@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/sersan-redis",
   "description": "Storage backend for sersan using Redis",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,22 +18,22 @@
     "es6/"
   ],
   "dependencies": {
-    "ioredis": "^3.2.2",
-    "@jonggrang/object": "^0.1.7"
+    "@jonggrang/object": "0.1.8",
+    "ioredis": "^3.2.2"
   },
   "peerDependencies": {
     "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
-    "@jonggrang/task": ">= 0.2.6 < 2.0.0",
-    "@jonggrang/sersan": ">= 0.1.0 < 2.0.0"
+    "@jonggrang/sersan": ">= 0.1.0 < 2.0.0",
+    "@jonggrang/task": ">= 0.2.6 < 2.0.0"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",
+    "@jonggrang/prelude": "0.1.8",
+    "@jonggrang/sersan": "0.1.0",
+    "@jonggrang/task": "0.2.6",
+    "@types/ioredis": "^3.2.13",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
-    "@types/ioredis": "^3.2.13",
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/task": "^0.2.5",
-    "@jonggrang/sersan": "^0.0.9"
+    "mocha": "^5.2.0"
   },
   "publishConfig": {
     "access": "public"

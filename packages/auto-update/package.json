@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/auto-update",
   "description": "Efficiently run periodic, on-demand actions.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,22 +18,22 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/ref": "^0.1.7",
-    "@jonggrang/avar": "^0.1.7"
+    "@jonggrang/avar": "0.1.8",
+    "@jonggrang/ref": "0.1.8"
   },
   "peerDependencies": {
     "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
     "@jonggrang/task": ">= 0.2.6 < 2.0.0"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",
-    "@types/node": "^8.10.11",
+    "@jonggrang/avar": "0.1.8",
+    "@jonggrang/prelude": "0.1.8",
+    "@jonggrang/ref": "0.1.8",
+    "@jonggrang/task": "0.2.6",
     "@types/mocha": "^5.2.1",
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/task": "^0.2.5",
-    "@jonggrang/avar": "^0.1.7",
-    "@jonggrang/ref": "^0.1.7"
- },
+    "@types/node": "^8.10.11",
+    "mocha": "^5.2.0"
+  },
   "publishConfig": {
     "access": "public"
   }

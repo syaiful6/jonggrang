@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/stream",
   "description": "Common stream utility.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -24,10 +24,10 @@
     "@jonggrang/task": ">= 0.2.6 < 2.0.0"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",
+    "@jonggrang/task": "0.2.6",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
-    "@jonggrang/task": "^0.2.5"
+    "mocha": "^5.2.0"
   },
   "publishConfig": {
     "access": "public"

@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/mutter",
   "description": "multipart/form-data handling",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,39 +18,39 @@
     "es6/"
   ],
   "dependencies": {
+    "@jonggrang/cryptic": "0.1.0",
+    "@jonggrang/object": "0.1.8",
+    "@jonggrang/stream": "0.1.0",
     "append-field": "^1.0.0",
-    "content-type": "^1.0.4",
     "busboy": "^0.2.14",
+    "content-type": "^1.0.4",
     "get-body": "^1.0.3",
-    "@jonggrang/cryptic": "^0.0.1",
-    "@jonggrang/object": "^0.1.7",
-    "@jonggrang/stream": "^0.0.1",
     "on-finished": "^2.3.0",
     "qs": "^6.5.2"
   },
   "peerDependencies": {
+    "@jonggrang/http-types": ">= 0.1.8 < 2.0.0",
     "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
     "@jonggrang/task": ">= 0.2.6 < 2.0.0",
-    "@jonggrang/wai": ">= 0.1.8 < 2.0.0",
-    "@jonggrang/http-types": ">= 0.1.8 < 2.0.0"
+    "@jonggrang/wai": ">= 0.1.8 < 2.0.0"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",
-    "rimraf": "^2.6.2",
-    "form-data": "^2.3.2",
-    "fs-temp": "^1.1.2",
+    "@jonggrang/http-types": "0.1.9",
+    "@jonggrang/prelude": "0.1.8",
+    "@jonggrang/task": "0.2.6",
+    "@jonggrang/wai": "0.1.9",
+    "@types/busboy": "^0.2.3",
+    "@types/content-type": "1.1.2",
+    "@types/form-data": "^2.2.1",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
-    "@types/content-type": "1.1.2",
-    "@types/busboy": "^0.2.3",
-    "@types/qs": "^6.5.1",
     "@types/on-finished": "^2.3.1",
-    "@types/form-data": "^2.2.1",
+    "@types/qs": "^6.5.1",
     "@types/rimraf": "^2.0.2",
-    "@jonggrang/prelude": "^0.1.7",
-    "@jonggrang/task": "^0.2.5",
-    "@jonggrang/wai": "^0.1.8",
-    "@jonggrang/http-types": "^0.1.8"
+    "form-data": "^2.3.2",
+    "fs-temp": "^1.1.2",
+    "mocha": "^5.2.0",
+    "rimraf": "^2.6.2"
   },
   "publishConfig": {
     "access": "public"
