@@ -271,7 +271,7 @@ export function sequential<A>(p: Parallel<A>): Task<A> {
  * Race tasks.
  */
 export function race<A>(xs: Task<A>[]): Task<A> {
-  return foldrArr(altComb as any, never.parallel(), xs).sequential();
+  return foldrArr((_, t, p) => t.parallel().alt(p), never.parallel(), xs).sequential();
 }
 
 /**
@@ -659,10 +659,6 @@ function singletonArr<A>(a: A): A[] {
 
 function pair<A>(a: A): (b: A) => A[] {
   return (b: A) => [a, b];
-}
-
-function altComb<A>(t: Task<A>, p: Parallel<A>): Parallel<A> {
-  return t.parallel().alt(p);
 }
 
 class TimerComputation {
