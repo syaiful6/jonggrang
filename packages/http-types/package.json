@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/http-types",
   "description": "Generic HTTP types for Typescript.",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,13 +18,13 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/parsing": "0.1.8"
+    "@jonggrang/parsing": "0.1.9"
   },
   "peerDependencies": {
     "@jonggrang/prelude": ">= 0.1.8 < 2.0.0"
   },
   "devDependencies": {
-    "@jonggrang/prelude": "0.1.8",
+    "@jonggrang/prelude": "0.1.9",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
     "jsverify": "^0.8.3",

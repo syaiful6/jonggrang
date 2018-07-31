@@ -44,11 +44,13 @@ function build() {
 }
 
 function release-next() {
-  node bin/build.js && lerna publish --exact --canary=next --npm-tag=next -- --access=public
+  node bin/build.js && lerna publish --exact \
+    --registry https://registry.thatiq.com --canary=next --npm-tag=next -- --access=public
 }
 
 function release() {
-  node bin/build.js && lerna publish --exact -- --access=public
+  node bin/build.js && lerna publish --exact  \
+    --registry https://registry.thatiq.com -- --access=public
 }
 
 # Run a function name in the context of this script
