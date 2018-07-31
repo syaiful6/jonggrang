@@ -22,7 +22,7 @@
   },
   "peerDependencies": {
     "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
-    "@jonggrang/task": ">= 0.2.6 < 2.0.0"
+    "@jonggrang/task": ">= 0.2.7 < 2.0.0"
   },
   "devDependencies": {
     "@jonggrang/prelude": "0.1.8",
