@@ -143,7 +143,7 @@ function listenConnection(
   if (listenOpts.path) {
     return bindConnectionUnix(listenOpts.path, listenOpts.permission || '660', listenOpts, server);
   }
-  return T.liftEff(server, listenOpts, server.listen as any);
+  return T.node(server, listenOpts, server.listen);
 }
 
 function bindConnectionUnix(
@@ -154,21 +154,10 @@ function bindConnectionUnix(
 ): T.Task<void> {
   return T.apathize(T.node(null, path, FS.unlink))
     .chain(() =>
-      T.liftEff(server, listenOpts, server.listen as any)
+      T.node(server, listenOpts, server.listen)
     ).chain(() =>
       T.forkTask(T.node(null, path, permission, FS.chmod))
     ) as T.Task<any>;
-}
-
-function waitListening(state: ServerState, cb: (err: Error | null, b: void) => void) {
-  const server = state.server as Server | HServer;
-  server.on('error', (err: Error) => {
-    cb(err, void 0);
-  });
-  server.on('listening', () => {
-    console.log('...started');
-    cb(null, void 0);
-  });
 }
 
 function connectAndTrapSignal(
@@ -177,8 +166,7 @@ function connectAndTrapSignal(
 ): T.Task<void> {
   return T.sequencePar([
     T.liftEff(null, state, registerRequestHandler),
-    listenConnection(state, settings),
-    T.node(null, state, waitListening)
+    listenConnection(state, settings)
   ]).chain(() => {
     return T.race([waitSigInt(), waitSigTerm()]);
   });
@@ -268,15 +256,13 @@ function destroAllConnections(sockets: Record<string, Socket>): void {
 }
 
 function closeServer(server: Server | HServer | null): T.Task<void> {
-  return T.makeTask(cb => {
+  return T.makeTask_(cb => {
     if (server == null) {
-      process.nextTick(() => cb(null, void 0));
-      return T.nonCanceler;
+      return process.nextTick(() => cb(null, void 0));
     }
     server.close(() => {
       cb(null, void 0);
     });
-    return T.nonCanceler;
   });
 }
 
