@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/container",
   "description": "Contains efficient general-purpose implementations of various immutable container types.",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "author": {
     "name": "Syaiful Bahri"
   },

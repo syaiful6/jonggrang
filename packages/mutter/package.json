@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/mutter",
   "description": "multipart/form-data handling",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,9 +18,9 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/cryptic": "0.1.1",
-    "@jonggrang/object": "0.1.9",
-    "@jonggrang/stream": "0.1.1",
+    "@jonggrang/cryptic": "0.1.2",
+    "@jonggrang/object": "0.1.10",
+    "@jonggrang/stream": "0.1.2",
     "append-field": "^1.0.0",
     "busboy": "^0.2.14",
     "content-type": "^1.0.4",
@@ -35,10 +35,10 @@
     "@jonggrang/wai": ">= 0.1.8 < 2.0.0"
   },
   "devDependencies": {
-    "@jonggrang/http-types": "0.1.10",
-    "@jonggrang/prelude": "0.1.9",
-    "@jonggrang/task": "0.2.7",
-    "@jonggrang/wai": "0.1.10",
+    "@jonggrang/http-types": "0.1.11",
+    "@jonggrang/prelude": "0.1.10",
+    "@jonggrang/task": "0.2.8",
+    "@jonggrang/wai": "0.1.11",
     "@types/busboy": "^0.2.3",
     "@types/content-type": "1.1.2",
     "@types/form-data": "^2.2.1",

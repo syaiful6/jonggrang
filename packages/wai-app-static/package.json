@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/wai-app-static",
   "description": "WAI application for static serving.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -27,10 +27,10 @@
     "@jonggrang/wai": ">= 0.1.8 < 2.0.0"
   },
   "devDependencies": {
-    "@jonggrang/http-types": "0.1.10",
-    "@jonggrang/prelude": "0.1.9",
-    "@jonggrang/task": "0.2.7",
-    "@jonggrang/wai": "0.1.10",
+    "@jonggrang/http-types": "0.1.11",
+    "@jonggrang/prelude": "0.1.10",
+    "@jonggrang/task": "0.2.8",
+    "@jonggrang/wai": "0.1.11",
     "@types/mime": "^2.0.0",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",

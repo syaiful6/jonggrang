@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/task",
   "description": "An asynchronous monad with support 'threading'.",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -21,7 +21,7 @@
     "@jonggrang/prelude": ">= 0.1.7 < 2.0.0"
   },
   "devDependencies": {
-    "@jonggrang/prelude": "0.1.9",
+    "@jonggrang/prelude": "0.1.10",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
     "jsverify": "^0.8.3",

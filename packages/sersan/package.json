@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/sersan",
   "description": "Secure, modular server session",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,17 +18,17 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/cryptic": "0.1.1",
-    "@jonggrang/object": "0.1.9"
+    "@jonggrang/cryptic": "0.1.2",
+    "@jonggrang/object": "0.1.10"
   },
   "peerDependencies": {
     "@jonggrang/prelude": ">= 0.1.8 < 2.0.0",
     "@jonggrang/task": ">= 0.2.6 < 2.0.0"
   },
   "devDependencies": {
-    "@jonggrang/prelude": "0.1.9",
-    "@jonggrang/ref": "0.1.9",
-    "@jonggrang/task": "0.2.7",
+    "@jonggrang/prelude": "0.1.10",
+    "@jonggrang/ref": "0.1.10",
+    "@jonggrang/task": "0.2.8",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.11",
     "mocha": "^5.2.0"
