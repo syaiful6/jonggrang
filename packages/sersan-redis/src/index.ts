@@ -8,19 +8,33 @@ import {
 
 
 /**
+ * Redis storage options
+ */
+export interface RedisStorageOpts {
+  readonly idleTimeout?: number;
+  readonly absoluteTimeout?: number;
+  readonly prefix?: string;
+}
+
+/**
  * Session storage backend using Redis via ioredis package
  */
 export class RedisStorage implements Storage {
   readonly tx: StorageTxConstructor;
-  constructor(
-    readonly redis: R.Redis,
-    readonly idleTimeout: number | null,
-    readonly absoluteTimeout: number | null
-  ) {
+  readonly idleTimeout: number | null;
+  readonly absoluteTimeout: number | null;
+  readonly prefix: string;
+
+  constructor(readonly redis: R.Redis, opts?: RedisStorageOpts) {
+    const options:  RedisStorageOpts = opts || {};
     this.tx = {
       of: T.pure,
       liftTask: identity
     };
+
+    this.idleTimeout = options.idleTimeout == null ? null : options.idleTimeout;
+    this.absoluteTimeout = options.absoluteTimeout == null ? null : options.absoluteTimeout;
+    this.prefix = options.prefix == null ? 'sersan' : options.prefix;
   }
 
   runTransaction<A>(t: T.Task<A>): T.Task<A> {
@@ -46,6 +60,14 @@ export class RedisStorage implements Storage {
   replace(sess: Session): T.Task<void> {
     return replaceSessionImpl(this, sess);
   }
+
+  sessionKey(id: string): string {
+    return `${this.prefix}:session:${id}`;
+  }
+
+  authKey(id: string) {
+    return `${this.prefix}:authId:${id}`;
+  }
 }
 
 /**
@@ -53,7 +75,7 @@ export class RedisStorage implements Storage {
  */
 function getSessionImpl(storage: RedisStorage, sessId: string): T.Task<Session | null> {
   const redis = storage.redis;
-  return T.node(redis, rSessionKey(sessId), redis.hgetall)
+  return T.node(redis, storage.sessionKey(sessId), redis.hgetall)
     .map((x: string[]) => parseSession(sessId, x));
 }
 
@@ -64,9 +86,9 @@ function destroySessionImpl(storage: RedisStorage, sid: string): T.Task<void> {
   return getSessionImpl(storage, sid)
     .chain(sess => {
       if (sess == null) return T.pure(void 0);
-      let commands = [['del', rSessionKey(sid)]];
+      let commands = [['del', storage.sessionKey(sid)]];
       if (sess.authId != null)
-        commands.push(['srem', rAuthKey(sess.authId), rSessionKey(sess.id)]);
+        commands.push(['srem', storage.authKey(sess.authId), storage.sessionKey(sess.id)]);
       return transaction(commands, storage.redis).map(absurd);
     });
 }
@@ -76,7 +98,7 @@ function destroySessionImpl(storage: RedisStorage, sid: string): T.Task<void> {
  */
 function destroyAllOfAuthIdImpl(storage: RedisStorage, authId: AuthId): T.Task<void> {
   const redis = storage.redis;
-  return T.node(redis, rAuthKey(authId), redis.smembers)
+  return T.node(redis, storage.authKey(authId), redis.smembers)
     .map((refs: string[]) => {
       redis.del([authId].concat(refs) as any);
     });
@@ -88,7 +110,7 @@ function destroyAllOfAuthIdImpl(storage: RedisStorage, authId: AuthId): T.Task<v
 function insertSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> {
   return getSessionImpl(storage, sess.id).chain(oldSess => {
     if (oldSess) return T.raise(new SessionAlreadyExists(oldSess, sess));
-    const sk = rSessionKey(sess.id);
+    const sk = storage.sessionKey(sess.id);
     let commands: string[][] = [['hmset', sk].concat(printSession(sess))];
     // ttl
     let ttl = expireSession(sess, storage);
@@ -96,7 +118,7 @@ function insertSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> {
 
     // auth
     if (sess.authId)
-      commands.push(['sadd', rAuthKey(sess.authId), sk]);
+      commands.push(['sadd', storage.authKey(sess.authId), sk]);
 
     return transaction(commands, storage.redis).map(absurd);
   });
@@ -108,7 +130,7 @@ function insertSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> {
 function replaceSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> {
   return getSessionImpl(storage, sess.id).chain(oldSess => {
     if (oldSess == null) return T.raise(new SessionDoesNotExist(sess));
-    const sk = rSessionKey(sess.id);
+    const sk = storage.sessionKey(sess.id);
     // delete old session and set new one
     let commands = [
       ['del', sk],
@@ -120,10 +142,10 @@ function replaceSessionImpl(storage: RedisStorage, sess: Session): T.Task<void> 
     // Remove the old auth ID from the map if it has changed.
     if (sess.authId !== oldSess.authId) {
       if (oldSess.authId != null) {
-        commands.push(['srem', rAuthKey(oldSess.authId), sk]);
+        commands.push(['srem', storage.authKey(oldSess.authId), sk]);
       }
       if (sess.authId != null) {
-        commands.push(['sadd', rAuthKey(sess.authId), sk]);
+        commands.push(['sadd', storage.authKey(sess.authId), sk]);
       }
     }
 
@@ -147,7 +169,7 @@ function transaction(commands: string[][], redis: R.Redis): T.Task<any> {
 function expireSession(sess: Session, storage: RedisStorage): string[] | null {
   const n = nextExpires(storage as any, sess);
   if (n == null) return null;
-  return ['expireat', rSessionKey(sess.id), '' + n];
+  return ['expireat', storage.sessionKey(sess.id), '' + Math.floor(n / 1000)];
 }
 
 /**
@@ -183,14 +205,6 @@ export function parseSession(sid: string, hash: any): Session | null {
   }
 
   return createSession(sid, result.authId, result.data, result.createdAt, result.accessedAt);
-}
-
-export function rSessionKey(id: string): string {
-  return `sersan:session:${id}`;
-}
-
-export function rAuthKey(authId: string): string {
-  return `sersan:authId:${authId}`;
 }
 
 function parseJsonOrNull(data: string): any {

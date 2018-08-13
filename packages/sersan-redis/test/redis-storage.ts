@@ -24,7 +24,11 @@ function quit(redis: Redis.Redis): T.Task<void> {
 }
 
 describe('Redis storage', function () {
-  const redis = new RS.RedisStorage({} as any, 600, 3600);
+  const redis = new RS.RedisStorage({} as any, {
+    idleTimeout: 600,
+    absoluteTimeout: 3600,
+    prefix: 'sersan-test',
+  });
 
   before(async function() {
     const connection = await T.toPromise(connect('//localhost:6379'));
