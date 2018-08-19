@@ -1,4 +1,5 @@
-import { Either, left, right } from '@jonggrang/prelude/lib/either';
+import { Either, left, right } from '@jonggrang/prelude';
+
 
 /**
  * HTTP standard method (as defined by RFC 2616, and PATCH which is defined
