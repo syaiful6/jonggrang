@@ -3,6 +3,7 @@ import { IncomingMessage, ServerResponse, Server } from 'http';
 import { Server as HServer } from 'https';
 import { Socket } from 'net';
 
+import { takeAVar } from '@jonggrang/avar';
 import * as T from '@jonggrang/task';
 import * as P from '@jonggrang/prelude';
 
@@ -170,7 +171,8 @@ function connectAndTrapSignal(
   ]).chain(() => {
     return T.race([
       waitSignal('SIGINT'),
-      waitSignal('SIGTERM')
+      waitSignal('SIGTERM'),
+      settings.killToken == null ? T.never : takeAVar(settings.killToken)
     ]);
   });
 }

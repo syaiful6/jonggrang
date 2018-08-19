@@ -1,6 +1,7 @@
 import { Readable } from 'stream';
 import { IncomingMessage, ServerResponse } from 'http';
 
+import { AVar } from '@jonggrang/avar';
 import * as P from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
 import * as H from '@jonggrang/http-types';
@@ -84,6 +85,7 @@ export interface Settings {
   readonly finfoCacheDuration: number;
   readonly logger: Logger;
   readonly listenOpts: ListenOpts;
+  readonly killToken?: AVar<void>;
   createConnection(res: ServerResponse): Connection;
   createHttpContext(req: IncomingMessage): T.Task<HttpContext>;
   onException(mreq: P.Maybe<IncomingMessage>, err: Error): T.Task<void>;
