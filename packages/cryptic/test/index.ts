@@ -28,12 +28,20 @@ describe('Random', () => {
 
   it('can encrypt and decrypt', () =>
     shouldBe('foobarbaz', T.co(function* () {
-      const [key, macKey ]: [string, string] = yield T.bothPar(
-        Crypt.randomString(32),
-        Crypt.randomString(32)
-      );
-      const encrypted = yield Crypt.encryptCTR('foobarbaz', { key, macKey });
-      const decrypted = Crypt.decryptCTR(encrypted, { key, macKey });
+      const allKey: string = yield Crypt.randomString(32 + 64);
+      const key = allKey.slice(0, 32);
+      const macKey = allKey.slice(32, 96);
+
+      const opts: Crypt.Options = {
+        key,
+        macKey,
+        signatureAlgorithm: 'sha256',
+        encryptionAlgorithm: 'aes256'
+      };
+
+      const encrypted = yield Crypt.encrypt('foobarbaz', opts);
+      const decrypted = Crypt.decrypt(encrypted, opts);
+
       return T.pure(decrypted.value);
     }))
   );
