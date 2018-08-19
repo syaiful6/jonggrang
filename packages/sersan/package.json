@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/sersan",
   "description": "Secure, modular server session",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,7 +18,7 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/cryptic": "0.1.2",
+    "@jonggrang/cryptic": "0.2.0",
     "@jonggrang/object": "0.1.10"
   },
   "peerDependencies": {

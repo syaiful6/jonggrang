@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/sersan-redis",
   "description": "Storage backend for sersan using Redis",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@jonggrang/prelude": "0.1.10",
-    "@jonggrang/sersan": "0.1.2",
+    "@jonggrang/sersan": "0.1.3",
     "@jonggrang/task": "0.2.8",
     "@types/ioredis": "^3.2.13",
     "@types/mocha": "^5.2.1",
