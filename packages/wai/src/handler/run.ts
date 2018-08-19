@@ -125,7 +125,7 @@ function shutdownServer(
   return T.sequencePar([
     T.liftEff(null, state.connections, destroAllConnections),
     closeServer(state.server)
-  ]).chain(() => T.liftEff(process, 0, process.exit));
+  ]) as any;
 }
 
 function registerRequestHandler(state: ServerState): void {
@@ -168,7 +168,10 @@ function connectAndTrapSignal(
     T.liftEff(null, state, registerRequestHandler),
     listenConnection(state, settings)
   ]).chain(() => {
-    return T.race([waitSigInt(), waitSigTerm()]);
+    return T.race([
+      waitSignal('SIGINT'),
+      waitSignal('SIGTERM')
+    ]);
   });
 }
 
@@ -197,26 +200,11 @@ export function createRequestHandler(
   };
 }
 
-function waitSigInt(): T.Task<void> {
+function waitSignal(signal: string): T.Task<void> {
   return T.makeTask(cb => {
-    function handler() {
-      cb(null, void 0);
-    }
-    process.removeAllListeners('SIGINT').on('SIGINT', handler);
+    process.once(signal as any, cb as any);
     return T.thunkCanceller(() => {
-      process.removeListener('SIGINT', handler);
-    });
-  });
-}
-
-function waitSigTerm(): T.Task<void> {
-  return T.makeTask(cb => {
-    function handler() {
-      cb(null, void 0);
-    }
-    process.removeAllListeners('SIGTERM').on('SIGTERM', handler);
-    return T.thunkCanceller(() => {
-      process.removeListener('SIGTERM', handler);
+      process.removeListener(signal, cb as any);
     });
   });
 }
