@@ -100,7 +100,7 @@ function reaper<W, I>(
       ? [{ tag: StateType.NOREAPER }, R.writeRef(tidRef, void 0)]
       : [{ tag: StateType.WORKLOAD, workload: wl }, reaper(settings, stateRef, tidRef) ];
   }
-  return T.delay(settings.delay).then(
+  return T.delay(settings.delay).chain(() =>
       R.modifyRef_(stateRef, swapWithEmpty))
     .chain(wl =>
       settings.action(wl))

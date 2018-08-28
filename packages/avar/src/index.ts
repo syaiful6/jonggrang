@@ -416,7 +416,7 @@ export function modifyAVar_<A, B>(avar: AVar<A>, act: (_: A) => Task<[A, B]>): T
     , failed: (_, a) => putAVar(avar, a)
     , completed: () => pure(void 0)
     },
-    v => act(v).chain(([a, b]) => putAVar(avar, a).then(pure(b)))
+    v => act(v).chain(([a, b]) => putAVar(avar, a).map(() => b))
   );
 }
 

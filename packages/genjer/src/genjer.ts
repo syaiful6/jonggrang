@@ -65,7 +65,7 @@ export function makeAppQueue<M, Q, S, I>(
           return readRef(ref)
             .chain(k => k.loop(E.right(q)))
             .chain(nq => writeRef(ref, nq));
-        }).then(readRef(ref));
+        }).chain(() => readRef(ref));
       });
     }
     function update(
@@ -93,7 +93,7 @@ export function makeAppQueue<M, Q, S, I>(
             model: next.model
           });
           appChange = { old: state.model, action: action.payload, model: nextState.model };
-          return onChange(appChange).then(T.forInPar(next.effects, pushEffect)).map(() => nextState);
+          return onChange(appChange).chain(() => T.forInPar(next.effects, pushEffect)).map(() => nextState);
 
         case AppActionType.RESTORE:
           needsRender = state.needsRender || state.model !== action.payload;
@@ -103,7 +103,7 @@ export function makeAppQueue<M, Q, S, I>(
     }
     function commit(state: AppState<M, Q, S>): T.Task<AppState<M, Q, S>> {
       return T.liftEff(null, state, commitRender)
-        .then(runSubs(state.interpret, app.subs(state.model))
+        .chain(() => runSubs(state.interpret, app.subs(state.model))
         .chain(tickInterpret =>
           tickInterpret.tick()
             .map(nextInterpret =>
@@ -114,7 +114,7 @@ export function makeAppQueue<M, Q, S, I>(
         );
     }
     function emit(a: I) {
-      T.launchTask(pushAction(a).then(self.run));
+      T.launchTask(pushAction(a).chain(() => self.run));
     }
     return T.liftEff(null, emit, app.render, app.init.model, el, snabbdomStep)
       .chain(snabbdom =>
@@ -164,9 +164,9 @@ export function make<M, Q, S, I>(
       newRef<S>(app.init.model).chain(stateRef => {
         function handleChange(ac: AppChange<S, I>): T.Task<void> {
           return writeRef(stateRef, ac.model)
-            .then(readRef(subsRef))
+            .chain(() => readRef(subsRef))
             .chain(sbs => T.forInPar(S.recordValues(sbs.cbs), cb => cb(ac)))
-            .then(T.pure(void 0));
+            .map(() => {});
         }
         function subscribe_(cb: (_: AppChange<S, I>) => T.Task<void>): T.Task<T.Task<void>> {
           return readRef(subsRef)

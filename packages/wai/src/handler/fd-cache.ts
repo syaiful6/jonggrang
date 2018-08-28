@@ -130,10 +130,10 @@ function maybeGetFd(mfd: MutableFdCache, path: string, hash: number, mentry: P.M
   if (P.isNothing(mentry)) {
     return newFdEntry(path)
       .chain(entry => mfd.add([hash, entry])
-        .then(T.pure([P.just(entry.fd), refresh(entry.status)] as [P.Maybe<number>, Refresh])));
+        .chain(() => T.pure([P.just(entry.fd), refresh(entry.status)] as [P.Maybe<number>, Refresh])));
   }
   let fdEntry = mentry.value;
-  return refresh(fdEntry.status).then(T.pure([P.just(fdEntry.fd), refresh(fdEntry.status)] as [P.Maybe<number>, Refresh]));
+  return refresh(fdEntry.status).chain(() => T.pure([P.just(fdEntry.fd), refresh(fdEntry.status)] as [P.Maybe<number>, Refresh]));
 }
 
 function listForInPar_<A, B>(xs: P.list.List<A>, fn: (_: A) => T.Task<B>): T.Task<void> {

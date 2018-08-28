@@ -83,12 +83,12 @@ function getAndRegisterInfo(fcache: FileInfoCache): (hash: number) => (path: str
 function positive(fic: FileInfoCache, h: number, path: string): T.Task<FileInfo> {
   return getFileInfo(path)
     .chain(finfo =>
-      fic.add([h, path, createEntry(EntryType.POSITIVE, finfo)]).then(T.pure(finfo)));
+      fic.add([h, path, createEntry(EntryType.POSITIVE, finfo)]).map(() => finfo));
 }
 
 function negative(fic: FileInfoCache, h: number, path: string): T.Task<FileInfo> {
   return fic.add([h, path, createEntry(EntryType.NEGATIVE)])
-    .then(T.raise(new Error('FileInfoCache:negative')));
+    .chain(() => T.raise(new Error('FileInfoCache:negative')));
 }
 
 function initialize(delay: number): T.Task<FileInfoCache> {
@@ -112,5 +112,5 @@ function override(): T.Task<(c: Cache) => Cache> {
 }
 
 function terminate(fcache: FileInfoCache): T.Task<void> {
-  return fcache.stop.then(T.pure(void 0));
+  return fcache.stop.map(() => {});
 }

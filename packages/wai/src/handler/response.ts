@@ -53,7 +53,7 @@ function sendRsp(
     case RspType.RSPBUFFER:
       return conn.writeHead(status, headers)
         .chain(() => conn.sendAll(rsp.buffer))
-        .then(T.pure([P.just(status), P.just(Buffer.byteLength(rsp.buffer))] as [P.Maybe<H.Status>, P.Maybe<number>]));
+        .chain(() => T.pure([P.just(status), P.just(Buffer.byteLength(rsp.buffer))] as [P.Maybe<H.Status>, P.Maybe<number>]));
 
     case RspType.RSPREADABLE:
       return conn.writeHead(status, headers)
@@ -62,7 +62,7 @@ function sendRsp(
 
     case RspType.RSPNOBODY:
       return conn.writeHead(status, headers)
-        .then(T.pure([P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]));
+        .chain(() => T.pure([P.just(status), P.nothing] as [P.Maybe<H.Status>, P.Maybe<number>]));
 
     case RspType.RSPFILE:
       if (rsp.part != null) {

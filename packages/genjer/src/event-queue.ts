@@ -28,8 +28,8 @@ export function stepper<I, O>(k: (_: I) => T.Task<O>): EvQueue<I, O> {
     function loop(i: I): T.Task<Loop<I>> {
       return k(i)
         .chain(v => next.push(v))
-        .then(next.run)
-        .then(T.pure({ loop, tick }));
+        .chain(() => next.run)
+        .map(() => ({ loop, tick }));
     }
 
     return tick();
@@ -42,7 +42,7 @@ export function withCont<I, O>(k: (ei: EvInstance<O>, i: I) => T.Task<void>): Ev
       return k(next, i);
     }
     function loop(i: I) {
-      return push(i).then(T.pure({ loop, tick }));
+      return push(i).map(() => ({ loop, tick }));
     }
 
     function tick() {
@@ -124,7 +124,7 @@ export function fix<I>(
                       .chain(q2 => {
                         if (q2.length === 0) {
                           return R.writeRef(machine, st)
-                            .then(R.writeRef(queue, []));
+                            .chain(() => R.writeRef(queue, []));
                         }
                         return loop(st);
                       });
@@ -134,7 +134,7 @@ export function fix<I>(
           const inst: EvInstance<I> = { run, push };
           return proc(inst)
             .chain(step => {
-              return R.writeRef(machine, step).then(T.pure(inst));
+              return R.writeRef(machine, step).map(() => inst);
             });
         });
     });
@@ -153,5 +153,5 @@ function traverse_<A, B>(
   f: (_: A) => T.Task<B>,
   fa: A | null | undefined
 ): T.Task<void> {
-  return foldr_((a, b) => f(a).then(b), T.pure(void 0), fa);
+  return foldr_((a, b) => f(a).chain(() => b), T.pure(void 0), fa);
 }

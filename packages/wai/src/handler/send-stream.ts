@@ -35,13 +35,13 @@ export function sendFile(
 
 export function sendFileFd(ws: ServerResponse, fd: number, range: FileRange, hook: T.Task<void>): T.Task<void> {
   const stream = fdcreateReadStream(fd, range);
-  return pipeStream(ws, stream as any, { end: false }).then(hook);
+  return pipeStream(ws, stream as any, { end: false }).chain(() => hook);
 }
 
 export function sendFilePath(ws: ServerResponse, path: string, range: FileRange, hook: T.Task<void>): T.Task<void> {
   const stream = pathCreateReadStream(path, range);
   onFinished(ws, destroyStream.bind(null, stream));
-  return pipeStream(ws, stream as any, { end: false }).then(hook);
+  return pipeStream(ws, stream as any, { end: false }).chain(() => hook);
 }
 
 export function sendStream(ws: ServerResponse, read: Readable): T.Task<void> {

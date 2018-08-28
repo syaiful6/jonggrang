@@ -49,7 +49,7 @@ describe('AVar', () => {
     Q.assertTask(
       AV.newAVar('foo')
         .chain(av =>
-          AV.tryTakeAVar(av).then(AV.isEmptyAVar(av)))
+          AV.tryTakeAVar(av).chain(() => AV.isEmptyAVar(av)))
     )
   );
 
@@ -66,7 +66,7 @@ describe('AVar', () => {
     Q.shouldBe(
       'foo',
       AV.newEmptyAVar.chain(avar =>
-        AV.putAVar(avar, 'foo').then(AV.takeAVar(avar))
+        AV.putAVar(avar, 'foo').chain(() => AV.takeAVar(avar))
       )
     )
   );
@@ -75,8 +75,8 @@ describe('AVar', () => {
     Q.shouldBe(
       1,
       AV.newEmptyAVar.chain(avar =>
-        T.forkTask(T.delay(15).then(AV.putAVar(avar, 1)))
-          .then(AV.takeAVar(avar))
+        T.forkTask(T.delay(15).chain(() => AV.putAVar(avar, 1)))
+          .chain(() => AV.takeAVar(avar))
       )
     )
   );
@@ -108,7 +108,7 @@ describe('AVar', () => {
       AV.newAVar('foo')
         .chain(av =>
           AV.swapAVar(av, 'bar')
-            .then(AV.takeAVar(av)))
+            .chain(() => AV.takeAVar(av)))
     )
   );
 
@@ -121,7 +121,7 @@ describe('AVar', () => {
             AV.withAVar(av, () => T.delay(100)))
           .chain(fib =>
             T.killFiber(new Error('kill withAVar action'), fib))
-          .then(AV.takeAVar(av)))
+          .chain(() => AV.takeAVar(av)))
     )
   );
 
@@ -131,7 +131,7 @@ describe('AVar', () => {
       AV.newAVar('foo')
         .chain(av =>
           AV.modifyAVar(av, s => T.pure(s + 'baz'))
-            .then(AV.readAVar(av))
+            .chain(() => AV.readAVar(av))
       )
     )
   );

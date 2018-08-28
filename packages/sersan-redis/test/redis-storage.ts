@@ -31,12 +31,12 @@ describe('Redis storage', function () {
   });
 
   before(async function() {
-    const connection = await T.toPromise(connect('//localhost:6379'));
+    const connection = await connect('//localhost:6379');
     (redis as any).redis = connection;
   });
 
   after(async function () {
-    await T.toPromise(quit(redis.redis));
+    await quit(redis.redis);
   });
 
   allStorageTest(redis, it);
