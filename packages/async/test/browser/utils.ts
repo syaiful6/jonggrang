@@ -19,7 +19,7 @@ export function stop<A>(fib: T.Fiber<A>, av: AV.AVar<void>): T.Task<void> {
     .chain(() => T.delay(10).chain(() => AV.takeAVar(av)));
 }
 
-export function test(s: string, fn: () => Iterator<T.Task<any>>) {
+export function test(s: string, fn: () => Iterator<T.Task<any>, T.Task<any>>) {
   it(s, function () {
     return T.toPromise(T.co(fn));
   });

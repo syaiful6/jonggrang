@@ -91,7 +91,7 @@ export function eachObj<A, B>(
 ): T.Task<Record<string, B>> {
   return keys(m).reduce((acc, k) => {
     function set(o: Record<string, B>) {
-      return (v: B) => insert(k, v, o);
+      return (v: B): Record<string, B> => insert(k, v, o);
     }
     return acc.map(set).ap(fn(m[k], k));
   }, T.pure({} as Record<string, B>));

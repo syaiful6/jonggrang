@@ -16,7 +16,7 @@ export function keys<A>(v: A): Array<keyof A> {
 /**
  * Insert or replace a key/value pair in a map
  */
-export function insert<K extends string, V>(k: K, v: V, m: Readonly<Record<K, V>>): Readonly<Record<K, V>> {
+export function insert<V>(k: string, v: V, m: Readonly<Record<string, V>>): Readonly<Record<string, V>> {
   let rec = thawStrMap(m);
   rec[k] = v;
   return rec;

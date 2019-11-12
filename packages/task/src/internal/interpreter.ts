@@ -643,6 +643,8 @@ function stepContinueLoop(fib: TaskFiber<any>, localRunTick: number): boolean {
     case 'SEQUENTIAL':
       stepContinueSequential(fib);
       return false;
+    default:
+      return false;
   }
 }
 

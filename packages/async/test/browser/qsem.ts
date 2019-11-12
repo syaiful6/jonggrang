@@ -7,6 +7,33 @@ import * as Q from '../../src/qsem';
 import { Forked, test, fork, stop } from './utils';
 
 describe('QSem', function () {
+  it('FIFO semantics for the waiters', async function() {
+    const qsem: Q.QSem = await Q.newQSem(0);
+    const [t1, m1]: Forked<void> = await fork(Q.waitQSem(qsem));
+
+    await stop(t1, m1);
+    await Q.signalQSem(qsem);
+    await T.delay(10);
+    const [t2, m2]: Forked<void> = await fork(Q.waitQSem(qsem));
+    await T.delay(10);
+
+    const result: AV.AVar<boolean> = await AV.newEmptyAVar;
+    const [t3, m3]: Forked<void> = await fork(
+      T.onException(
+        Q.waitQSem(qsem),
+        AV.putAVar(result, false)
+      ).chain(() => AV.putAVar(result, true))
+    );
+    await Q.signalQSem(qsem);
+    await T.delay(10);
+
+    await stop(t2, m2);
+    await stop(t3, m3);
+
+    const r: boolean = await AV.takeAVar(result);
+    assert.ok(r);
+    await T.pure(void 0);
+  });
   test('FIFO semantics for the waiters', function* () {
     const qsem: Q.QSem = yield Q.newQSem(0);
     const [t1, m1]: Forked<void> = yield fork(Q.waitQSem(qsem));

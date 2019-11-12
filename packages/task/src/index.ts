@@ -419,7 +419,7 @@ export function generalBracket<A, B>(
  * function will be Generator function.
  * @param fn
  */
-export function co(fn: () => Iterator<Task<any>>): Task<any> {
+export function co(fn: () => Iterator<Task<any>, Task<any>>): Task<any> {
   return defer(() => {
     let gen = fn();
 
