@@ -20,15 +20,9 @@
     "target": "es5",
     "noUnusedLocals": true,
     "types": [
+      "mocha",
       "node"
-    ],
-    "baseUrl": ".",
-    "paths": {
-      "*": [
-        "node_modules/*",
-        "types/*"
-      ]
-    }
+    ]
   },
   "formatCodeOptions": {
     "indentSize": 2,

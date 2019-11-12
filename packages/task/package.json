@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/task",
   "description": "An asynchronous monad with support 'threading'.",
-  "version": "0.2.8",
+  "version": "0.1.0",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -17,15 +17,14 @@
     "lib/",
     "es6/"
   ],
-  "peerDependencies": {
-    "@jonggrang/prelude": ">= 0.1.7 < 2.0.0"
+  "dependencies": {
+    "@jonggrang/prelude": "^0.1.0"
   },
   "devDependencies": {
-    "@jonggrang/prelude": "0.1.10",
     "@types/mocha": "^5.2.1",
-    "@types/node": "^8.10.11",
-    "jsverify": "^0.8.3",
-    "mocha": "^5.2.0"
+    "@types/node": "^12.12.7",
+    "jsverify": "^0.8.4",
+    "mocha": "^6.2.2"
   },
   "publishConfig": {
     "access": "public"

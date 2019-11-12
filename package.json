@@ -7,24 +7,25 @@
   },
   "devDependencies": {
     "glob-expand": "0.2.1",
-    "karma": "^2.0.2",
-    "karma-chrome-launcher": "^2.2.0",
-    "karma-firefox-launcher": "^1.1.0",
+    "karma": "^4.4.1",
+    "karma-chrome-launcher": "^3.1.0",
+    "karma-firefox-launcher": "^1.2.0",
     "karma-mocha": "^1.3.0",
-    "karma-typescript": "^3.0.12",
-    "lerna": "^2.11.0",
+    "karma-typescript": "^4.1.1",
+    "lerna": "^3.18.0",
     "mkdirp": "^0.5.x",
-    "mocha": "^5.2.0",
-    "nyc": "^11.8.0",
-    "rimraf": "^2.6.2",
-    "ts-node": "^6.0.2",
-    "tslint": "^5.9.1",
-    "typescript": "^2.8.3"
+    "mocha": "^6.2.2",
+    "nyc": "^14.1.1",
+    "rimraf": "^3.0.0",
+    "ts-node": "^8.5.0",
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.2"
   },
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
+    "bootstrap": "lerna bootstrap && lerna link",
     "build": "node bin/build.js",
     "release:pre": "yarn build",
     "release:next": "yarn release:pre && lerna publish --exact --canary=next --npm-tag=next -- --access=public",

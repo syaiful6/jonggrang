@@ -1,10 +1,8 @@
 import * as P from '@jonggrang/prelude';
 import * as T from '@jonggrang/task';
-import { insert, keys } from '@jonggrang/object';
-
 
 import { newQSem, withQSem } from './qsem';
-import { arrReplicate } from './utils';
+import { arrReplicate, keys, insert } from './utils';
 
 
 /**

@@ -89,24 +89,9 @@ const PACKAGES_DIRECTORY = join(ROOT_DIRECTORY, 'packages')
 // string or tuples [(name, es6)]
 let allPackages = [
   'prelude',
-  'object',
-  'container',
   'task',
   'avar',
   'async',
-  'ref',
-  'parsing',
-  'http-types',
-  'uri',
-  ['auto-update', true],
-  ['stream', true],
-  ['wai', true],
-  'genjer',
-  ['cryptic', true],
-  ['wai-app-static', true],
-  ['sersan', true],
-  ['sersan-redis', true],
-  ['mutter', true],
 ]
 
 console.log() // used to add separation between commands
