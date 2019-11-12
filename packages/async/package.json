@@ -1,7 +1,7 @@
 {
   "name": "@jonggrang/async",
   "description": "Control asynchronous extension for task",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": {
     "name": "Syaiful Bahri"
   },
@@ -18,9 +18,9 @@
     "es6/"
   ],
   "dependencies": {
-    "@jonggrang/avar": "^0.1.0",
-    "@jonggrang/prelude": "^0.1.0",
-    "@jonggrang/task": "^0.1.0"
+    "@jonggrang/avar": "1.0.0",
+    "@jonggrang/prelude": "1.0.0",
+    "@jonggrang/task": "1.0.0"
   },
   "devDependencies": {
     "@types/mocha": "^5.2.7",
