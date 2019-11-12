@@ -249,10 +249,6 @@ export class Task<A> {
     return this.chain(f);
   }
 
-  then<B>(next: Task<B>): Task<B> {
-    return this.chain(_ => next);
-  }
-
   static chainRec<B, C>(fn: ChainRecFn<B, C>, i: B): Task<C> {
     function go(a: B): Task<C> {
       return fn(P.left, P.right, a).chain(res => {

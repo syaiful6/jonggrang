@@ -200,7 +200,7 @@ describe('Task Core', function () {
               () => Q.modifyRef(ref, v => v + 'release'),
               () => T.delay(10)
             ));
-          yield T.forkTask(T.delay(11).then(Q.modifyRef(ref, v => v + 'delay')));
+          yield T.forkTask(T.delay(11).chain(() => Q.modifyRef(ref, v => v + 'delay')));
           yield T.delay(5);
           yield Q.modifyRef(ref, v => v + 'done');
           return T.pure('done');
@@ -441,7 +441,7 @@ describe('Task Core', function () {
           T.bracket(
             T.pure(void 0),
             () => Q.modifyRef(ref, s2 => s2 + 'killed' + s),
-            () => T.delay(n).then(Q.modifyRef(ref, s2 => s2 + s))
+            () => T.delay(n).chain(() => Q.modifyRef(ref, s2 => s2 + s))
           );
         let f1: T.Fiber<void> = yield T.forkTask(T.sequential(
           action(10, 'foo').parallel().alt(action(20, 'bar').parallel())
