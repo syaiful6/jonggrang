@@ -18,18 +18,6 @@ export { scheduler } from './internal/scheduler';
 
 
 /**
- * patch Task, so it have then method, this allow us to use it in async-await
- */
-declare module './internal/types' {
-  interface Task<A> extends PromiseLike<A> {
-  }
-}
-
-Task.prototype.then = function then(onFulfilled, onRejected) {
-  return toPromise(this).then(onFulfilled, onRejected);
-};
-
-/**
  * Invokes pending cancelers in a fiber and runs cleanup effects. Blocks
  * until the fiber has fully exited.
  * @param e
@@ -431,7 +419,7 @@ export function generalBracket<A, B>(
  * function will be Generator function.
  * @param fn
  */
-export function co(fn: () => Iterator<Task<any>, Task<any>>): Task<any> {
+export function co(fn: () => Iterator<Task<any>, Task<any>, any>): Task<any> {
   return defer(() => {
     let gen = fn();
 
