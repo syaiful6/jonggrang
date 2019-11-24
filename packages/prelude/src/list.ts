@@ -86,7 +86,7 @@ export function range(start: number, end: number): List<number> {
 /**
  * Left-associative fold of a structure.
  */
-export function foldl<A, B>(f: (b: B, a: A) => B, b: B, list: List<A>): B {
+export function foldl<A, B>(list: List<A>, b: B, f: (b: B, a: A) => B): B {
   while (list.tag !== ListType.NIL) {
     b = f(b, list.head);
     list = list.tail;
@@ -97,15 +97,15 @@ export function foldl<A, B>(f: (b: B, a: A) => B, b: B, list: List<A>): B {
 /**
  * Right-associative fold of a structure.
  */
-export function foldr<A, B>(f: (a: A, b: B) => B, b: B, list: List<A>): B {
-  return foldl((b2, a2) => f(a2, b2), b, foldl((b1, a1) => cons(a1, b1), nil, list));
+export function foldr<A, B>(list: List<A>, b: B, f: (a: A, b: B) => B): B {
+  return foldl(foldl(list, nil, (b1, a1) => cons(a1, b1)), b, (b2, a2) => f(a2, b2));
 }
 
 /**
  * Append an element to the end of a list, creating a new list.
  */
 export function snoc<A>(xs: List<A>, x: A): List<A> {
-  return foldr(cons, singleton(x), xs) as any;
+  return foldr(xs, singleton(x), cons) as any;
 }
 
 // Non-indexed reads
@@ -191,7 +191,7 @@ export function isEmpty<A>(xs: List<A>): xs is { tag: ListType.NIL } {
  * Get the length of a list
  */
 export function length(xs: List<any>): number {
-  return foldl(_increment, 0, xs);
+  return foldl(xs, 0, _increment);
 }
 
 // Indexed operations
@@ -212,7 +212,7 @@ export function index<A>(xs: List<A>, i: number): Maybe<A> {
 /**
  * Find the first index for which a predicate holds.
  */
-export function findIndex<A>(f: (_: A) => boolean, xs: List<A>): Maybe<number> {
+export function findIndex<A>(xs: List<A>, f: (_: A) => boolean): Maybe<number> {
   let i = 0;
   while (xs.tag !== ListType.NIL) {
     if (f(xs.head)) return just(i);
@@ -225,17 +225,17 @@ export function findIndex<A>(f: (_: A) => boolean, xs: List<A>): Maybe<number> {
 /**
  * Find the last index for which a predicate holds.
  */
-export function findLastIndex<A>(f: (_: A) => boolean, xs: List<A>): Maybe<number> {
-  return mapMaybe(findIndex(f, reverse(xs)), ix => (length(xs) - 1) - ix);
+export function findLastIndex<A>(xs: List<A>, f: (_: A) => boolean): Maybe<number> {
+  return mapMaybe(findIndex(reverse(xs), f), ix => (length(xs) - 1) - ix);
 }
 
 /**
  * Insert an element into a list at the specified index, returning a new
  * list or `Nothing` if the index is out-of-bounds.
  */
-export function insertAt<A>(ix: number, x: A, xs: List<A>): Maybe<List<A>> {
+export function insertAt<A>(xs: List<A>, ix: number, x: A): Maybe<List<A>> {
   return ix === 0 ? just(cons(x, xs))
-    : xs.tag === ListType.CONS ? mapMaybe(insertAt(ix - 1, x, xs.tail), ys => cons(xs.head, ys))
+    : xs.tag === ListType.CONS ? mapMaybe(insertAt(xs.tail, ix - 1, x), ys => cons(xs.head, ys))
       : nothing;
 }
 
@@ -243,9 +243,9 @@ export function insertAt<A>(ix: number, x: A, xs: List<A>): Maybe<List<A>> {
  * Delete an element from a list at the specified index, returning a new
  * list or `Nothing` if the index is out-of-bounds.
  */
-export function deleteAt<A>(ix: number, xs: List<A>): Maybe<List<A>> {
+export function deleteAt<A>(xs: List<A>, ix: number): Maybe<List<A>> {
   return ix === 0 && xs.tag === ListType.CONS ? just(xs.tail)
-    : xs.tag === ListType.CONS ?  mapMaybe(deleteAt(ix - 1, xs.tail), ys => cons(xs.head, ys))
+    : xs.tag === ListType.CONS ?  mapMaybe(deleteAt(xs.tail, ix - 1), ys => cons(xs.head, ys))
       : nothing;
 }
 
@@ -253,9 +253,9 @@ export function deleteAt<A>(ix: number, xs: List<A>): Maybe<List<A>> {
  * Update the element at the specified index, returning a new
  * list or `Nothing` if the index is out-of-bounds.
  */
-export function updateAt<A>(ix: number, x: A, xs: List<A>): Maybe<List<A>> {
+export function updateAt<A>(xs: List<A>, ix: number, x: A): Maybe<List<A>> {
   return ix === 0 && xs.tag === ListType.CONS ? just(cons(x, xs.tail))
-    : xs.tag === ListType.CONS ? mapMaybe(updateAt(ix - 1, x, xs.tail), ys => cons(xs.head, ys))
+    : xs.tag === ListType.CONS ? mapMaybe(updateAt(xs.tail, ix - 1, x), ys => cons(xs.head, ys))
       : nothing;
 }
 
@@ -264,8 +264,8 @@ export function updateAt<A>(ix: number, x: A, xs: List<A>): Maybe<List<A>> {
  * the current value, returning a new list or `Nothing` if the index is
  * out-of-bounds.
  */
-export function modifiAt<A>(ix: number, f: (x: A) => A, xs: List<A>): Maybe<List<A>> {
-  return alterAt(ix, x => just(f(x)), xs);
+export function modifiAt<A>(xs: List<A>, ix: number, f: (x: A) => A): Maybe<List<A>> {
+  return alterAt(xs, ix, x => just(f(x)));
 }
 
 /**
@@ -273,14 +273,14 @@ export function modifiAt<A>(ix: number, f: (x: A) => A, xs: List<A>): Maybe<List
  * function to the current value, returning a new list or `Nothing` if the
  * index is out-of-bounds.
  */
-export function alterAt<A>(ix: number, f: (x: A) => Maybe<A>, xs: List<A>): Maybe<List<A>> {
+export function alterAt<A>(xs: List<A>, ix: number, f: (x: A) => Maybe<A>): Maybe<List<A>> {
   if (ix === 0 && xs.tag === ListType.CONS) {
     let ret = f(xs.head);
     return isNothing(ret) ? just(xs.tail) : just(cons(ret.value, xs.tail));
   }
 
   return xs.tag === ListType.CONS
-    ? mapMaybe(alterAt(ix - 1, f, xs.tail), ys => cons(xs.head, ys))
+    ? mapMaybe(alterAt(xs.tail, ix - 1, f), ys => cons(xs.head, ys))
     : nothing;
 }
 
@@ -290,14 +290,14 @@ export function alterAt<A>(ix: number, f: (x: A) => Maybe<A>, xs: List<A>): Mayb
  * Flatten a list of lists.
  */
 export function concat<A>(xxs: List<List<A>>): List<A> {
-  return concatMap(identity as any, xxs);
+  return concatMap(xxs, identity as any);
 }
 
 /**
  * Apply a function to each element in a list, and flatten the results
  * into a single, new list.
  */
-export function concatMap<A, B>(f: (x: A) => List<B>, xs: List<A>): List<B> {
+export function concatMap<A, B>(xs: List<A>, f: (x: A) => List<B>): List<B> {
   let acc: List<B> = nil;
   while (xs.tag !==  ListType.NIL) {
     acc = append(acc, f(xs.head));
@@ -309,7 +309,7 @@ export function concatMap<A, B>(f: (x: A) => List<B>, xs: List<A>): List<B> {
 /**
  * Transform each element in a list using a given function
  */
-export function map<A, B>(f: (_: A) => B, xs: List<A>): List<B> {
+export function map<A, B>(xs: List<A>, f: (_: A) => B): List<B> {
   let acc: List<B> = nil;
   while (xs.tag === ListType.CONS) {
     acc = cons(f(xs.head), acc);
@@ -322,7 +322,7 @@ export function map<A, B>(f: (_: A) => B, xs: List<A>): List<B> {
  * Apply a function to each element in a list, keeping only the results which
  * contain a value.
  */
-export function filterMap<A, B>(f: (x: A) => Maybe<B>, xs: List<A>): List<B> {
+export function filterMap<A, B>(xs: List<A>, f: (x: A) => Maybe<B>): List<B> {
   let acc: List<B> = nil;
   let ret: Maybe<B>;
   while (xs.tag !== ListType.NIL) {
@@ -336,7 +336,7 @@ export function filterMap<A, B>(f: (x: A) => Maybe<B>, xs: List<A>): List<B> {
 /**
  * Filter a list, keeping the elements which satisfy a predicate function.
  */
-export function filter<A>(f: (x: A) => boolean, xs: List<A>): List<A> {
+export function filter<A>(xs: List<A>, f: (x: A) => boolean): List<A> {
   let acc: List<A> = nil;
   while (xs.tag !== ListType.NIL) {
     if (f(xs.head)) acc = cons(xs.head, acc);
@@ -349,15 +349,15 @@ export function filter<A>(f: (x: A) => boolean, xs: List<A>): List<A> {
  * partition a List on an either predicate.
  */
 export function partitionMap<A, L, R>(
-  f: (_: A) => Either<L, R>,
-  xs: List<A>
+  xs: List<A>,
+  f: (_: A) => Either<L, R>
 ): { left: List<L>; right: List<R> } {
   function select(x: A, acc: { left: List<L>; right: List<R> }): { left: List<L>; right: List<R> } {
     let ret = f(x);
     return isLeft(ret) ? { left: cons(ret.value, acc.left), right: acc.right }
       : { left: acc.left, right: cons(ret.value, acc.right) };
   }
-  return foldr(select, { left: nil, right: nil }, xs);
+  return foldr(xs, { left: nil, right: nil }, select);
 }
 
 /**
@@ -365,7 +365,7 @@ export function partitionMap<A, L, R>(
  * the leftmost element of the structure matching the predicate, or
  * 'Nothing' if there is no such element.
  */
-export function find<A>(f: (_: A) => boolean, xs: List<A>): Maybe<A> {
+export function find<A>(xs: List<A>, f: (_: A) => boolean): Maybe<A> {
   while (xs.tag !== ListType.NIL) {
     if (f(xs.head)) return just(xs.head);
     xs = xs.tail;
@@ -377,7 +377,7 @@ export function find<A>(f: (_: A) => boolean, xs: List<A>): Maybe<A> {
  * Append to list
  */
 export function append<A>(xs: List<A>, ys: List<A>): List<A> {
-  return foldr(cons, ys, xs) as any;
+  return foldr(ys, xs, cons) as any;
 }
 
 // Zipping
@@ -386,7 +386,7 @@ export function append<A>(xs: List<A>, ys: List<A>): List<A> {
  * collecting the results in a new list.
  * If one list is longer, elements will be discarded from the longer list.
  */
-export function zipWith<A, B, C>(f: (a: A, b: B) => C, xs: List<A>, ys: List<B>): List<C> {
+export function zipWith<A, B, C>(xs: List<A>, ys: List<B>, f: (a: A, b: B) => C): List<C> {
   let acc: List<C> = nil;
   while (xs.tag === ListType.CONS && ys.tag === ListType.CONS) {
     acc = cons(f(xs.head, ys.head), acc);
@@ -400,7 +400,7 @@ export function zipWith<A, B, C>(f: (a: A, b: B) => C, xs: List<A>, ys: List<B>)
  * Collect pairs of elements at the same positions in two lists.
  */
 export function zip<A, B>(xs: List<A>, ys: List<B>): List<[A, B]> {
-  return zipWith(arrTuple as any, xs, ys);
+  return zipWith(xs, ys, arrTuple);
 }
 
 /**

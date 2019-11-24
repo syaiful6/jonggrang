@@ -1,0 +1,32 @@
+{
+  "name": "@jonggrang/num",
+  "description": "Jongrang's numeric lib.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Syaiful Bahri"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syaiful6/jonggrang.git"
+  },
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "module": "es6/index.js",
+  "license": "MIT",
+  "files": [
+    "lib/",
+    "es6/"
+  ],
+  "dependencies": {
+    "decimal.js": "^10.2.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.12.7",
+    "jsverify": "^0.8.4",
+    "mocha": "^6.2.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
