@@ -18,7 +18,7 @@
     "es6/"
   ],
   "dependencies": {
-    "decimal.js": "^10.2.0"
+    "big-integer": "^1.6.48"
   },
   "devDependencies": {
     "@types/mocha": "^5.2.7",
