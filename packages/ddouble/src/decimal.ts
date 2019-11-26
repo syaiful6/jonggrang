@@ -1,69 +1,127 @@
-import bigInt from 'big-integer';
+import * as int from './integer';
 
-export class Decimal {
-  constructor(public num: bigInt.BigInteger, public exp: number) {
-  }
-
-  static fromExp(n: string, exp: number): Decimal;
-  static fromExp(n: number, exp: number): Decimal;
-  static fromExp(n: bigint, exp: number): Decimal;
-  static fromExp(n: bigInt.BigInteger, exp: number): Decimal;
-  static fromExp(n: any, exp: number) {
-    const x = roundExp(exp);
-    const diff = exp - x;
-    return diff === 0 ? new Decimal(bigInt(n), exp) : new Decimal(bigintMulExp10(n, diff), x);
-  }
-
-  isZero() {
-    return this.num.isZero();
-  }
-
-  add(y: Decimal) {
-    const e =  Math.min(this.exp, y.exp);
-    const xx = expand(this, e);
-    const yy = expand(y, e);
-    return new Decimal(xx.num.add(yy.num), e);
-  }
-
-  negate() {
-    return new Decimal(this.num.negate(), this.exp);
-  }
-
-  substract(y: Decimal) {
-    return this.add(y.negate());
-  }
-
-  multiply(y: Decimal) {
-    const z = Decimal.fromExp(this.num.multiply(y.num), this.exp + y.exp);
-    return z.exp < 0 ? z.reduce() : z;
-  }
-
-  divide(y: Decimal) {
-    return this.divideWith(y);
-  }
-
-  reduce() {
-    const p = countPow10(this.num);
-    if (p < 0) return this;
-
-    const expp = this.exp + p;
-    return roundExp(expp) === this.exp ? this : Decimal.fromExp(bigintDivExp10(this.num, p), expp);
-  }
-
-  divideWith(y: Decimal, minPrec: number = 15) {
-    if (this.isZero() || y.isZero()) return new Decimal(bigInt(0), 0);
-    const e = this.exp - y.exp;
-    const xdigits = countPow10(this.num);
-    const ydigits = countPow10(y.num);
-    const extra   = Math.max(0, ydigits - xdigits) + minPrec;
-    return extra > 0
-      ? Decimal.fromExp(bigintMulExp10(this.num, extra).divide(y.num), e - extra).reduce()
-      : Decimal.fromExp(this.num.divide(y.num), e - extra).reduce();
-  }
+export interface Decimal {
+  num: int.Integer;
+  exp: number;
 }
 
+export function unsafeDecimal(num: int.Integer, exp: number): Decimal {
+  return {num, exp};
+}
+
+export const ZERO = unsafeDecimal(0, 0);
+
+// round exponents to specific intervals (7) to avoid too much rescaling
 function roundExp(exp: number) {
   return exp === 0 ? exp : 7 * intDiv(exp, 7);
+}
+
+/**
+ * Create a decimal from an integer `i` with an optional
+ * exponent `exp` (=`0`) such that the result equals `i`*10^`exp`^.
+ */
+export function fromInteger(i: int.Integer, exp: number = 0): Decimal {
+  const x = roundExp(exp);
+  const diff = exp - x;
+  return diff === 0 ? unsafeDecimal(i, exp) : unsafeDecimal(int.mulExp10(i, diff), x);
+}
+
+/**
+ * Choose an exponent that minimizes memory usage.
+ */
+export function reduce(x: Decimal): Decimal {
+  const p = int.isExp10(x);
+  if (!int.isPositive(p)) return x;
+  const expp = x.exp + p;
+
+  return roundExp(expp) === x.exp ? x : fromInteger(int.cdivExp10(x.num, p), expp);
+}
+
+/**
+ * Add two decimal
+ * @param  {Decimal} x
+ * @param  {Decimal} y
+ * @return {Decimal}
+ */
+export function add(x: Decimal, y: Decimal): Decimal {
+  const e =  Math.min(x.exp, y.exp);
+  const xx = expand(x, e);
+  const yy = expand(y, e);
+  return fromInteger(int.add(xx, yy), e);
+}
+
+/**
+ * Negate a decimal.
+ */
+export function negate(x: Decimal): Decimal {
+  return unsafeDecimal(int.negate(x.num), x.exp);
+}
+
+/**
+ * Subtract two decimals.
+ */
+export function substract(x: Decimal, y: Decimal): Decimal {
+  return add(x, negate(y));
+}
+
+/**
+ * Increment a decimal
+ */
+export function increment(x: Decimal): Decimal {
+  return unsafeDecimal(int.increment(x.num), x.exp);
+}
+
+/**
+ * Multiply two decimals with full precision.
+ */
+export function multiply(x: Decimal, y: Decimal): Decimal {
+  const z = fromInteger(int.multiply(x, y), x.exp + y.exp);
+  return z.exp < 0 ? reduce(z) : z;
+}
+
+// Rounding modes
+export const enum ROUNDING {
+  HALF_EVEN,
+  HALF_CEILING,
+  HALF_FLOOR,
+  HALF_TRUNCATE,
+  HALF_AWAY_FROM_ZERO,
+  CEILING,
+  FLOOR,
+  TRUNCATE,
+  AWAY_FROM_ZERO,
+}
+
+export function roundToPrecision(x: Decimal, prec: number = 0, round: ROUNDING = HALF_EVEN): Decimal {
+  prec = prec | 0; // convert to int32
+  if (x.exp >= -prec) return x;
+  const cx = reduce(x);
+  const p  = -cx.exp - prec;
+  if (p < 0) return cx; // already less than prec precision
+
+  const [q, r] = int.divmodExp10(cx.num, p);
+
+  const roundHalf: (keepOnEq: boolean) => {
+    const half = int.divide(int.exp10(p), 2);
+    let ord = int.compare(r, half);
+    // eq
+    if (ord === 0) {
+      return keepOnEq ? q : int.increment(q);
+    } else if (ord > 0) {
+      // gt
+      return int.increment(q);
+    }
+
+    // less than
+    return q;
+  }
+
+  let q1: int.Integer;
+  if (int.isZero(q)) {
+    q1 = q;
+  } else if (round === HALF_EVEN) {
+
+  }
 }
 
 function intDiv(x: number, y: number) {
@@ -75,28 +133,5 @@ function intDiv(x: number, y: number) {
 
 function expand(x: Decimal, e: number) {
    if (x.exp <= e) return x;
-   return Decimal.fromExp(bigintMulExp10(x.num, x.exp - e), e);
-}
-
-function bigintMulExp10(i: string | number | bigint | bigInt.BigInteger, n: bigInt.BigNumber) {
-  return bigInt(i as any).multiply(bigInt(10).pow(n));
-}
-
-function bigintDivExp10(i: string | number | bigint | bigInt.BigInteger, n: bigInt.BigNumber) {
-  return bigInt(i as any).divide(bigInt(10).pow(n));
-}
-
-// function exp10(exp: string | number | bigint | bigInt.BigInteger) {
-//   return bigintMulExp10(1, exp);
-// }
-
-function countPow10(x: bigInt.BigInteger) {
-  let j = 0;
-  while(!x.isZero()) {
-    var {quotient, remainder} = x.divmod(10);
-    if (remainder.isZero()) { j++; }
-          else break;
-    x = quotient;
-  }
-  return j
+   return fromInteger(int.mulExp10(x.num, x.exp - e), e);
 }
