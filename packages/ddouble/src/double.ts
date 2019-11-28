@@ -1,3 +1,5 @@
+import * as int from './integer';
+
 // Smallest positive normalized double value
 const DBL_MIN = 2.2250738585072014e-308;
 
@@ -118,6 +120,14 @@ export function ldexp(x: number, e: number) {
     : x < 0.0 ? -0 : 0;
 }
 
+export function decode(d: number): [int.Integer, number] {
+  if (d === 0) return [0, 0];
+
+  return isSubnormal(d)
+    ? decodeNormalized(d * 18014398509481984, -54)
+    : decodeNormalized(d, 0);
+}
+
 /**
  * Show a `:double` in exponential (scientific) notation.
  * The optional `precision` (= `-17`) specifies the precision.
@@ -152,6 +162,19 @@ function exp2Int(e: number) {
 
 function mulExp2(x: number, e: number) {
   return x * exp2Int(e);
+}
+
+function decodeNormalized(d: number, eAdjust: number): [int.Integer, number] {
+  const [lo, hi] = doubleToBits(d);
+  const sign = hi < 0 ? -1 : 1;
+  const exp  = ((hi >> 20) & 0x7FF) - 1043;
+  const man  = (hi & 0xFFFFF) + 0x100000;
+
+  return [int.multiply(sign, int.add(int.multiply(man, 0x100000000), uint(lo))), exp - 32 + eAdjust];
+}
+
+function uint(d: number) {
+  return d < 0 ? int.add(0x100000000, d) : d;
 }
 
 let big_endian: boolean | void = undefined;

@@ -1,4 +1,5 @@
 import * as int from './integer';
+import {decode as decodeDouble} from './double';
 
 export interface Decimal {
   num: int.Integer;
@@ -38,6 +39,13 @@ export function fromInteger(i: int.Integer, exp: number = 0): Decimal {
   return diff === 0 ? unsafeDecimal(i, exp) : unsafeDecimal(int.mulExp10(i, diff), x);
 }
 
+export function fromNumber(d: number, maxPrec: number = -1): Decimal {
+  const [man, exp] = decodeDouble(d);
+  if (exp >= 0) return fromInteger(int.multiply(man, int.pow(2, exp)));
+  const prec = maxPrec < 0 ? -exp : Math.min(maxPrec, -exp);
+  return divide(fromInteger(man), pow(fromInteger(2), -exp), prec);
+}
+
 /**
  * Choose an exponent that minimizes memory usage.
  */
@@ -59,7 +67,7 @@ export function add(x: Decimal, y: Decimal): Decimal {
   const e =  Math.min(x.exp, y.exp);
   const xx = expand(x, e);
   const yy = expand(y, e);
-  return fromInteger(int.add(xx, yy), e);
+  return fromInteger(int.add(xx.num, yy.num), e);
 }
 
 /**
@@ -87,8 +95,14 @@ export function increment(x: Decimal): Decimal {
  * Multiply two decimals with full precision.
  */
 export function multiply(x: Decimal, y: Decimal): Decimal {
-  const z = fromInteger(int.multiply(x, y), x.exp + y.exp);
+  const z = fromInteger(int.multiply(x.num, y.num), x.exp + y.exp);
   return z.exp < 0 ? reduce(z) : z;
+}
+
+export function pow(x: Decimal, n: number): Decimal {
+  const m = Math.abs(n);
+  const y = fromInteger(int.pow(x.num, m), x.exp * m);
+  return n < 0 ? divide(fromInteger(1), y, 3 + m) : y;
 }
 
 // Rounding modes
@@ -161,6 +175,35 @@ export function compare(x: Decimal, y: Decimal): 0 | 1 | -1 {
   return int.compare(xx.num, yy.num);
 }
 
+export function sign(x: Decimal): 0 | 1 | -1 {
+  return int.sign(x.num);
+}
+
+export function min(x: Decimal, y: Decimal): Decimal {
+  return compare(x, y) !== 1 ? x : y;
+}
+
+export function max(x: Decimal, y: Decimal): Decimal {
+  return compare(x, y) != -1 ? x : y;
+}
+
+export function sum(ds: Decimal[]): Decimal {
+  return ds.reduce(add, ZERO);
+}
+
+export function unsaferToJSNumber(x: Decimal): number {
+  if (x.exp > 0) {
+    return int.unsafeToJSNumber(x.num) * Math.pow(10, x.exp);
+  }
+  const [q, r] = int.divmodExp10(x.num, -x.exp);
+  return int.unsafeToJSNumber(q) + int.unsafeToJSNumber(r) * Math.pow(10, x.exp);
+}
+
+export function show(d: Decimal, prec: number = -1000): string {
+  const exp = getExponent(d);
+  return exp > -5 && exp < (prec < 0 ? 15 : prec) ? showFixed(d, prec) : showExp(d, prec);
+}
+
 export function showFixed(d: Decimal, prec: number = -1000): string {
   prec = prec | 0;
   const x = roundToPrecision(d, Math.abs(prec));
@@ -176,6 +219,24 @@ export function showFixed(d: Decimal, prec: number = -1000): string {
   const frac   = int.subtract(i, int.mulExp10(man, digits));
 
   return sign + man.toString() + showFrac(padLeft(frac.toString(), digits, '0'), prec);
+}
+
+/**
+ * Show a decimal `d` with a given precision `prec` (=`-1000`) in scientific notation.
+ * The precision specifies the  number of digits after the dot, i.e.
+ * the number of significant digits is `prec+1`.
+ * @param d
+ * @param prec
+ */
+export function showExp(d: Decimal, prec: number = -1000): string {
+  prec = prec | 0;
+  const x = roundToPrecision(d, Math.abs(prec) - getExponent(d));
+  const s = int.abs(x.num).toString();
+  const digits = s.length;
+  const exp = x.exp + digits - 1;
+  const sign = isNegative(x) ? '-' : '';
+  const exponent = exp === 0 ? '' : 'e' + (exp > 0 ? '+' : '') + exp.toString();
+  return sign + s[0] + showFrac(s.slice(1), prec) + exponent;
 }
 
 // The exponent of a decimal if displayed in scientific notation.

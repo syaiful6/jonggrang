@@ -25,6 +25,15 @@ export function isInteger53(x: number): boolean {
   return Math.floor(x) === x;
 }
 
+export function sign(x: Integer): 1 | 0 | -1 {
+  if (typeof x === 'number') {
+    return x > 0 ? 1 : x < 0 ? -1 : 0;
+  }
+
+  const d = bigInt(x as any);
+  return d.isZero() ? 0 : d.isPositive() ? 1 : 0;
+}
+
 function unBig(x: Integer): Integer {
   if (typeof x === 'number') return isSmall(x) ? x : bigInt(x);
   if ((x as any).isSmall && isSmall((x as any).value)) return x;
@@ -98,6 +107,14 @@ export function mod(x: Integer, y: Integer) {
 export function abs(x: Integer): Integer {
   if (typeof x === 'number') return Math.abs(x);
   return bigInt(x as any).abs();
+}
+
+export function pow(i: Integer, exp: Integer): Integer {
+  if (typeof i === 'number' && isSmall(i) && typeof exp === 'number') {
+    let j = Math.pow(i, exp);
+    if (isSmall(j)) return j;
+  }
+  return unBig(bigInt(i as any).pow(exp));
 }
 
 export function exp10(n: Integer): Integer {
@@ -219,7 +236,7 @@ function countDigitSmall(x: number) {
   if (x === 0) return x;
   x = Math.abs(x);
   if (x < 1e8) return countDigit8(x);
-  return (1 + Math.floor(Math.log(Math.abs(x)))) / LOG10;
+  return (1 + Math.floor(Math.log(Math.abs(x)) / LOG10));
 }
 
 function countDigit8(x: number) {
