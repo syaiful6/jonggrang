@@ -16,6 +16,10 @@ export function isPositive(x: Integer) {
   return typeof x === 'number' ? x > 0 : compare(x, 0) > 0;
 }
 
+export function isNegative(x: Integer): boolean {
+  return !isPositive(x);
+}
+
 export function isInteger53(x: number): boolean {
   if (isNaN(x) || !isSmall(x)) return false;
   return Math.floor(x) === x;
@@ -34,7 +38,7 @@ function unBig(x: Integer): Integer {
 }
 
 export function unsafeToJSNumber(x: Integer): number {
-  return typeof x === 'number' ? x : bigInt(x).toJSNumber();
+  return typeof x === 'number' ? x : bigInt(x as any).toJSNumber();
 }
 
 export function isZero(x: Integer): boolean {
@@ -91,6 +95,11 @@ export function mod(x: Integer, y: Integer) {
   divmod(x, y)[1];
 }
 
+export function abs(x: Integer): Integer {
+  if (typeof x === 'number') return Math.abs(x);
+  return bigInt(x as any).abs();
+}
+
 export function exp10(n: Integer): Integer {
   return mulExp10(1, n);
 }
@@ -109,7 +118,7 @@ export function cdivmodExp10(i: Integer, n: Integer): [Integer, Integer] {
   return [cq, cr];
 }
 
-export function divmodExp10(i: Integer, n: Integer): Integer {
+export function divmodExp10(i: Integer, n: Integer): [Integer, Integer] {
   const [cq, cr] = cdivmodExp10(i, n);
   return isPositive(cr) ? [cq, cr] : [decrement(cq), add(cr, exp10(n))];
 }
@@ -122,7 +131,12 @@ export function cdivExp10(i: Integer, n: Integer): Integer {
 }
 
 export function compare(x: Integer, y: Integer): 1 | 0 | -1 {
-  return bigInt(x as any).compare(y);
+  if (typeof x === 'number' && typeof y === 'number') {
+    const d = x - y;
+    return d > 0 ? 1 : (d < 0 ? -1: 0);
+  }
+  const t = bigInt(x as any).compare(y);
+  return t > 0 ? 1 : (t < 0 ? -1 : 0);
 }
 
 export function negate(x: Integer) {
@@ -131,12 +145,25 @@ export function negate(x: Integer) {
 }
 
 export function increment(x: Integer) {
+  if (typeof x === 'number') return x + 1;
   return unBig(bigInt(x as any).next());
 }
 
 export function decrement(x: Integer) {
   if (typeof x === 'number') return x - 1;
   return unBig(bigInt(x as any).prev());
+}
+
+export function isOdd(x: Integer): boolean {
+  if (typeof x === 'number') {
+    return x % 1 === 1;
+  }
+
+  return bigInt(x as any).isOdd();
+}
+
+export function isEven(x: Integer): boolean {
+  return !isOdd(x);
 }
 
 // Return the number of ending `0` digits of `i`. Return `0` when `i==0`.
@@ -159,7 +186,7 @@ export function isExp10(x: Integer): number {
 
 const TEN = bigInt(10);
 
-export function bigCountDigits(x: Integer): Integer {
+export function countDigits(x: Integer): number {
   if (typeof x === 'number') {
     return countDigitSmall(x);
   }
