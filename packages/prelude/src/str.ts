@@ -47,7 +47,7 @@ export function take(n: number, s: string): string {
  * Returns the number of contiguous characters at the beginning
  * of the string for which the predicate holds.
  */
-export function count(pred: (_: string) => boolean, s: string): number {
+export function count(s: string, pred: (_: string) => boolean): number {
   let i = 0;
   while (i < s.length && pred(s.charAt(i))) {
     i++;
@@ -59,15 +59,15 @@ export function count(pred: (_: string) => boolean, s: string): number {
  * Returns the longest prefix (possibly empty) of characters that satisfy
  * the predicate.
  */
-export function takeWhile(pred: (_: string) => boolean, s: string): string {
-  return take(count(pred, s), s);
+export function takeWhile(s: string, pred: (_: string) => boolean): string {
+  return take(count(s, pred), s);
 }
 
 /**
  * Returns the suffix remaining after `takeWhile`.
  */
-export function dropWhile(pred: (_: string) => boolean, s: string): string {
-  return drop(count(pred, s), s);
+export function dropWhile(s: string, pred: (_: string) => boolean): string {
+  return drop(count(s, pred), s);
 }
 
 /**

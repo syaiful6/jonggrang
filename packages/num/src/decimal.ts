@@ -1,8 +1,14 @@
 import * as int from './integer';
 import {decode as decodeDouble} from './double';
 
+/**
+ * Type of a decimal number. Decimals have arbitrary precision and range and
+ * do exact decimal arithmetic and are well suited for financial calculations for
+ * example.
+ */
 export interface Decimal {
   num: int.Integer;
+  // the exponent part is int32
   exp: number;
 }
 
@@ -30,6 +36,21 @@ function roundExp(exp: number) {
 }
 
 /**
+ * Parse a `:decimal` number. Return null if fails otherwise return a decimal
+ */
+export function parseDecimal(s: string): Decimal | null {
+  const matches = /^([\-\+]?)(\d+)(?:\.(\d*))?(?:[eE]([\-\+]?\d+))?$/.exec(s);
+  if (matches == null) return null;
+  const sign  = matches[1];
+  const whole = matches[2];
+  const frac  = matches[3];
+  let x = matches[4] ? parseInt(matches[4]) : 0;
+  const exp   = -frac.length + (x === NaN ? 0 : x);
+  const f     = fromInteger(int.parseIntegerDefault(whole + frac, 0), exp);
+  return sign === '-' ? negate(f) : f;
+}
+
+/**
  * Create a decimal from an integer `i` with an optional
  * exponent `exp` (=`0`) such that the result equals `i`*10^`exp`^.
  */
@@ -39,7 +60,14 @@ export function fromInteger(i: int.Integer, exp: number = 0): Decimal {
   return diff === 0 ? unsafeDecimal(i, exp) : unsafeDecimal(int.mulExp10(i, diff), x);
 }
 
-export function fromNumber(d: number, maxPrec: number = -1): Decimal {
+/**
+ * Create a decimal from a double/float with a specified maximal precision (=-1)
+ * Use a negative maximal precision to create a decimal that precisely represents the
+ * double. Note: creating a decimal from a double may lose precision and give surprising
+ * results as many decimal fractions cannot be represented precisely by a double
+ * Also, fromInteger(i,exp) is more efficient and better when exact representations are required.
+ */
+export function fromDouble(d: number, maxPrec: number = -1): Decimal {
   const [man, exp] = decodeDouble(d);
   if (exp >= 0) return fromInteger(int.multiply(man, int.pow(2, exp)));
   const prec = maxPrec < 0 ? -exp : Math.min(maxPrec, -exp);
@@ -59,9 +87,6 @@ export function reduce(x: Decimal): Decimal {
 
 /**
  * Add two decimal
- * @param  {Decimal} x
- * @param  {Decimal} y
- * @return {Decimal}
  */
 export function add(x: Decimal, y: Decimal): Decimal {
   const e =  Math.min(x.exp, y.exp);
@@ -156,6 +181,10 @@ export function roundToPrecision(x: Decimal, prec: number = 0, round: ROUNDING =
   return fromInteger(q1, -prec);
 }
 
+/**
+ * Divide two decimals with a given extra precision minPrec (=15). The min-prec is
+ * the number of extra digits used to calculate inexact divisions.
+ */
 export function divide(x: Decimal, y: Decimal, minPrec: number = 15): Decimal {
   if (isZero(x) || isZero(y)) return ZERO;
   const e = x.exp - y.exp;
@@ -184,11 +213,36 @@ export function min(x: Decimal, y: Decimal): Decimal {
 }
 
 export function max(x: Decimal, y: Decimal): Decimal {
-  return compare(x, y) != -1 ? x : y;
+  return compare(x, y) !== -1 ? x : y;
 }
 
 export function sum(ds: Decimal[]): Decimal {
   return ds.reduce(add, ZERO);
+}
+
+export function abs(d: Decimal): Decimal {
+  return isNegative(d) ? negate(d) : d;
+}
+
+export function toInteger(d: Decimal, rnd: ROUNDING = ROUNDING.HALF_EVEN): int.Integer {
+  const y = round(d);
+  return y.exp > 0 ? int.mulExp10(y.num, y.exp) : y.num;
+}
+
+export function round(d: Decimal, rnd: ROUNDING = ROUNDING.HALF_EVEN): Decimal {
+  return roundToPrecision(d, 0, rnd);
+}
+
+export function floor(x: Decimal): Decimal {
+  return round(x, ROUNDING.FLOOR);
+}
+
+export function ceiling(x: Decimal): Decimal {
+  return round(x, ROUNDING.CEILING);
+}
+
+export function truncate(x: Decimal): Decimal {
+  return round(x, ROUNDING.TRUNCATE);
 }
 
 export function unsaferToJSNumber(x: Decimal): number {

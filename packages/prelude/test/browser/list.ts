@@ -133,81 +133,81 @@ describe('Prelude list', () => {
   });
 
   it('findIndex should return index for which a predicate holds.', () => {
-    assert.deepEqual(L.findIndex(x => x > 3,  L.list(1, 2, 3, 4, 5, 6)), just(3));
+    assert.deepEqual(L.findIndex(L.list(1, 2, 3, 4, 5, 6), x => x > 3), just(3));
   });
 
   it('findIndex should return Nothing if the predicate never return true', () => {
-    assert.deepEqual(L.findIndex(x => x === 21, L.list(1, 2, 3, 4)), nothing);
-    assert.deepEqual(L.findIndex(x => x > 3, L.nil), nothing);
+    assert.deepEqual(L.findIndex(L.list(1, 2, 3, 4), x => x === 21), nothing);
+    assert.deepEqual(L.findIndex(L.nil, x => x > 3), nothing);
   });
 
   it('findLastIndex return last index for which a predicate holds', () => {
-    assert.deepEqual(L.findLastIndex(x => x > 3, L.list(1, 2, 3, 4, 5, 2, 1)), just(4));
+    assert.deepEqual(L.findLastIndex(L.list(1, 2, 3, 4, 5, 2, 1), x => x > 3), just(4));
   });
 
   it('find return leftmost element for which a predicate holds', () => {
-    assert.deepEqual(L.find(_ => true, L.nil), nothing);
-    assert.deepEqual(L.find(x => x % 2 === 0, L.list(1, 2, 4, 8)), just(2));
+    assert.deepEqual(L.find(L.nil, () => true), nothing);
+    assert.deepEqual(L.find(L.list(1, 2, 4, 8), x => x % 2 === 0), just(2));
   });
 
   it('insertAt should add an item at the specified index', () => {
-    assert.deepEqual(L.insertAt(0, 1, L.list(2, 3)), just(L.list(1, 2, 3)));
-    assert.deepEqual(L.insertAt(1, 1, L.list(2, 3)), just(L.list(2, 1, 3)));
-    assert.deepEqual(L.insertAt(2, 1, L.list(2, 3)), just(L.list(2, 3, 1)));
+    assert.deepEqual(L.insertAt(L.list(2, 3), 0, 1), just(L.list(1, 2, 3)));
+    assert.deepEqual(L.insertAt(L.list(2, 3), 1, 1), just(L.list(2, 1, 3)));
+    assert.deepEqual(L.insertAt(L.list(2, 3), 2, 1), just(L.list(2, 3, 1)));
   });
 
   it('insertAt should return Nothing if the index is out of range', () => {
-    assert.deepEqual(L.insertAt(2, 1, L.nil), nothing);
+    assert.deepEqual(L.insertAt(L.nil, 2, 1), nothing);
   });
 
   it('deleteAt should remove an item at the specified index', () => {
-    assert.deepEqual(L.deleteAt(0, L.list(1, 2, 3)), just(L.list(2, 3)));
-    assert.deepEqual(L.deleteAt(1, L.list(1, 2, 3)), just(L.list(1, 3)));
+    assert.deepEqual(L.deleteAt(L.list(1, 2, 3), 0), just(L.list(2, 3)));
+    assert.deepEqual(L.deleteAt(L.list(1, 2, 3), 1), just(L.list(1, 3)));
   });
 
   it('deleteAt should return Nothing if the index is out of range', () => {
-    assert.deepEqual(L.deleteAt(1, L.nil), nothing);
+    assert.deepEqual(L.deleteAt(L.nil, 1), nothing);
   });
 
   it('updateAt should replace an item at the specified index', () => {
-    assert.deepEqual(L.updateAt(0, 9, L.list(1, 2, 3)), just(L.list(9, 2, 3)));
-    assert.deepEqual(L.updateAt(1, 9, L.list(1, 2, 3)), just(L.list(1, 9, 3)));
+    assert.deepEqual(L.updateAt(L.list(1, 2, 3), 0, 9), just(L.list(9, 2, 3)));
+    assert.deepEqual(L.updateAt(L.list(1, 2, 3), 1, 9), just(L.list(1, 9, 3)));
   });
 
   it('updateAt should return Nothing if the index is out of range', () => {
-    assert.deepEqual(L.updateAt(1, 9, L.nil), nothing);
+    assert.deepEqual(L.updateAt( L.nil, 1, 9), nothing);
   });
 
   it('modifyAt should update an item at the specified index', () => {
-    assert.deepEqual(L.modifiAt(0, x => x + 1, L.list(1, 2, 3)), just(L.list(2, 2, 3)));
-    assert.deepEqual(L.modifiAt(1, x => x + 1, L.list(1, 2, 3)), just(L.list(1, 3, 3)));
+    assert.deepEqual(L.modifiAt(L.list(1, 2, 3), 0, x => x + 1), just(L.list(2, 2, 3)));
+    assert.deepEqual(L.modifiAt(L.list(1, 2, 3), 1, x => x + 1), just(L.list(1, 3, 3)));
   });
 
   it('modifyAt should return Nothing if the index is out of range', () => {
-    assert.deepEqual(L.modifiAt(1, x => x + 1, L.nil), nothing);
+    assert.deepEqual(L.modifiAt(L.nil, 1, x => x + 1), nothing);
   });
 
   it('alterAt should update an item at the specified index when the function returns Just', () => {
     function splat(x: number): Maybe<number> {
       return just(x + 1);
     }
-    assert.deepEqual(L.alterAt(0, splat, L.list(1, 2, 3)), just(L.list(2, 2, 3)));
-    assert.deepEqual(L.alterAt(2, splat, L.list(1, 2, 3)), just(L.list(1, 2, 4)));
+    assert.deepEqual(L.alterAt(L.list(1, 2, 3), 0, splat), just(L.list(2, 2, 3)));
+    assert.deepEqual(L.alterAt(L.list(1, 2, 3), 2, splat), just(L.list(1, 2, 4)));
   });
 
   it('alterAt should drop an item at the specified index when the function returns Nothing', () => {
     function splatDel(x: number): Maybe<number> {
       return nothing;
     }
-    assert.deepEqual(L.alterAt(0, splatDel, L.list(1, 2, 3)), just(L.list(2, 3)));
-    assert.deepEqual(L.alterAt(1, splatDel, L.list(1, 2, 3)), just(L.list(1, 3)));
+    assert.deepEqual(L.alterAt(L.list(1, 2, 3), 0, splatDel), just(L.list(2, 3)));
+    assert.deepEqual(L.alterAt(L.list(1, 2, 3), 1, splatDel), just(L.list(1, 3)));
   });
 
   it('alterAt should return Nothing if the index is out of range', () => {
     function splat(x: number): Maybe<number> {
       return just(x + 1);
     }
-    assert.deepEqual(L.alterAt(1, splat, L.nil), nothing);
+    assert.deepEqual(L.alterAt(L.nil, 1, splat), nothing);
   });
 
   it('append should concatenate two list', () => {
@@ -215,8 +215,8 @@ describe('Prelude list', () => {
   });
 
   it('map transform each element in list', () => {
-    assert.deepEqual(L.map(x => x + 1, L.list(1, 2, 3)), L.list(2, 3, 4));
-    assert.deepEqual(L.map(x => x + 1, L.nil), L.nil);
+    assert.deepEqual(L.map(L.list(1, 2, 3), x => x + 1), L.list(2, 3, 4));
+    assert.deepEqual(L.map(L.nil, x => x + 1), L.nil);
   });
 
   it('concatMap should be equivalent to (concat <<< map)', () => {
@@ -224,17 +224,15 @@ describe('Prelude list', () => {
       return L.cons(x * 2, L.singleton(x));
     }
     const xs = L.list(1, 2, 3, 4);
-    assert.deepEqual(L.concatMap(doubleAndOrig, xs), L.concat(L.map(doubleAndOrig, xs)));
+    assert.deepEqual(L.concatMap(xs, doubleAndOrig), L.concat(L.map(xs, doubleAndOrig)));
   });
 
   it('zipWith should use the specified function to zip two lists together', () => {
-    let xs = L.zipWith((x: number, y: string) => [toString(x), y] as [string, string],
-                       L.list(1, 2, 3), L.list('a', 'b', 'c'));
+    let xs = L.zipWith(L.list(1, 2, 3), L.list('a', 'b', 'c'), (a, b) => [toString(a), b]);
     assert.deepEqual(xs, L.list(['1', 'a'], ['2', 'b'], ['3', 'c']));
 
     // truncate to minimum length
-    let ys = L.zipWith((x: number, y: string) => [toString(x), y] as [string, string],
-                       L.list(1, 2, 3), L.list('a', 'b', 'c', 'd', 'e'));
+    let ys = L.zipWith(L.list(1, 2, 3), L.list('a', 'b', 'c', 'd', 'e'), (a, b) => [toString(a), b]);
     assert.deepEqual(ys, L.list(['1', 'a'], ['2', 'b'], ['3', 'c']));
   });
 
@@ -247,18 +245,18 @@ describe('Prelude list', () => {
     function transform(x: number): Maybe<string> {
       return x !== 0 ? just(x.toString()) : nothing;
     }
-    assert.deepEqual(L.filterMap(transform, L.list(0, 1, 0, 0, 2, 3)), L.list('1', '2', '3'));
+    assert.deepEqual(L.filterMap(L.list(0, 1, 0, 0, 2, 3), transform), L.list('1', '2', '3'));
   });
 
   it('filter should remove items that don\'t match a predicate', () => {
-    assert.deepEqual(L.filter(odd, L.range(0, 10)), L.list(1, 3, 5, 7, 9));
+    assert.deepEqual(L.filter(L.range(0, 10), odd), L.list(1, 3, 5, 7, 9));
   });
 
   it('partitionMap should partition a list when function return left or right', () => {
     function oddPar(x: number): Either<number, number> {
       return odd(x) ? left(x) : right(x);
     }
-    assert.deepEqual(L.partitionMap(oddPar, L.range(0, 10)), {
+    assert.deepEqual(L.partitionMap(L.range(0, 10), oddPar), {
       left: L.list(1, 3, 5, 7, 9),
       right: L.list(0, 2, 4, 6, 8, 10)
     });

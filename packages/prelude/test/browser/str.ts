@@ -64,28 +64,28 @@ describe('Prelude Str', () => {
 
   describe('count', () => {
     it('work with empty string and return zero', () => {
-      assert.equal(S.count(x => x === 'a', ''), 0);
-      assert.equal(S.count(() => true, ''), 0);
+      assert.equal(S.count('', x => x === 'a'), 0);
+      assert.equal(S.count('', () => true), 0);
     });
 
     it('return the number of contiguous characters at the beginning that predicate hold', () => {
-      assert.equal(S.count(a => a === 'a', 'ab'), 1);
-      assert.equal(S.count(a => a === 'a', 'aaab'), 3);
-      assert.equal(S.count(a => a === 'a', 'aabaaa'), 2);
+      assert.equal(S.count('ab', a => a === 'a'), 1);
+      assert.equal(S.count('aaab', a => a === 'a'), 3);
+      assert.equal(S.count('aabaaa', a => a === 'a'), 2);
     });
   });
 
   describe('takeWhile', () => {
     it('return whole string if predicate always return true', () => {
-      assert.equal(S.takeWhile(() => true, 'abc'), 'abc');
+      assert.equal(S.takeWhile('abc', () => true), 'abc');
     });
 
     it('return empty string if predicate always return false', () => {
-      assert.equal(S.takeWhile(() => false, 'abc'), '');
+      assert.equal(S.takeWhile('abc', () => false), '');
     });
 
     it('returns the longest prefix that satisfy predicate', () => {
-      assert.equal(S.takeWhile(a => a !== 'b', 'aabbaa'), 'aa');
+      assert.equal(S.takeWhile('aabbaa', a => a !== 'b'), 'aa');
     });
   });
 });

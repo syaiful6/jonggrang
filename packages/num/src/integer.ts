@@ -8,6 +8,21 @@ const LOG_BASE = 7;
 //
 export type Integer = number | bigint | bigInt.BigInteger;
 
+export function parseIntegerDefault(s: string, d: Integer = 0, hex: boolean = false): Integer {
+  s = s.trim();
+  if (s === '') return d;
+  const cappre  = /^([\-\+])?(0[xX])?(.*)$/.exec(s);
+  if (cappre == null) return d;
+  const sdigits = cappre[3].toLowerCase();
+  const sign    = cappre[1] || "";
+  if (cappre[2]) hex = true;
+  const rx = hex ? /^[0-9a-f]+$/ : /^[0-9]+(?:e\+?[0-9]+)?$/;
+  const cap = rx.exec(sdigits);
+  if (cap == null) return d;
+  else if (hex) return unBig(bigInt(sign + sdigits, 16));
+  else return unBig(bigInt(sign + sdigits));
+}
+
 function isSmall(x: number) {
   return x >= MIN_PRECISE && x <= MAX_PRECISE
 }
@@ -106,7 +121,7 @@ export function mod(x: Integer, y: Integer) {
 
 export function abs(x: Integer): Integer {
   if (typeof x === 'number') return Math.abs(x);
-  return bigInt(x as any).abs();
+  return unBig(bigInt(x as any).abs());
 }
 
 export function pow(i: Integer, exp: Integer): Integer {
@@ -144,7 +159,7 @@ export function cdivExp10(i: Integer, n: Integer): Integer {
   if (typeof i === 'number' && typeof n === 'number' && isSmall(i) && n <= 14) {
     return Math.trunc(i / Math.pow(10, n));
   }
-  return bigInt(i as any).divide(bigInt(10).pow(n));
+  return unBig(bigInt(i as any).divide(bigInt(10).pow(n)));
 }
 
 export function compare(x: Integer, y: Integer): 1 | 0 | -1 {
