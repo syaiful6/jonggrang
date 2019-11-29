@@ -13,8 +13,8 @@ import * as P from '@jonggrang/prelude';
  */
 export interface QSem {
   quantityStore: AV.AVar<number>;
-  queueWait: AV.AVar<void>;
-  headWait: AV.AVar<void>;
+  queueWait: AV.AVar<any>;
+  headWait: AV.AVar<any>;
 }
 
 /**
@@ -105,7 +105,7 @@ export function peekAvailQSem(msem: QSem): T.Task<number> {
  * @param wait
  * @param head
  */
-function createQSem(qty: AV.AVar<number>, wait: AV.AVar<void>, head: AV.AVar<void>): QSem {
+function createQSem(qty: AV.AVar<number>, wait: AV.AVar<any>, head: AV.AVar<any>): QSem {
   return { quantityStore: qty, queueWait: wait, headWait: head };
 }
 

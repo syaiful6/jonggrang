@@ -20,7 +20,10 @@ describe('num decimal', () => {
 
   it('can parse a decimal', () => {
     const md = D.parseDecimal('0.12');
-    assert.ok(md);
+    if (md == null) {
+      assert.fail('failed to parse decimal');
+      return;
+    }
     assert.equal(D.show(md), '0.12');
   });
 });

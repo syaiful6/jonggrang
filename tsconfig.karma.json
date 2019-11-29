@@ -3,7 +3,6 @@
   "compilerOptions": {
     "target": "ES5",
     "noImplicitAny": true,
-    "sourceMap": true,
     "strictNullChecks": true,
     "declaration": true,
     "removeComments": false,
@@ -16,10 +15,20 @@
       "es2015.core",
       "es2015.iterable",
       "es2015.generator"
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "node_modules/*",
+        "types/*"
+      ]
+    }
   },
   "includes": [
-    "packages/**/src/**/*",
-    "packages/**/test/browser/**/*"
+    "packages/*/src/**/*.ts",
+    "packages/*/test/browser/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
   ]
 }

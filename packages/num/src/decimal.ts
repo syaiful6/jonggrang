@@ -117,6 +117,13 @@ export function increment(x: Decimal): Decimal {
 }
 
 /**
+ * Decrement a decimal
+ */
+export function decrement(x: Decimal): Decimal {
+  return unsafeDecimal(int.decrement(x.num), x.exp);
+}
+
+/**
  * Multiply two decimals with full precision.
  */
 export function multiply(x: Decimal, y: Decimal): Decimal {

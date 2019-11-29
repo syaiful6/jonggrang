@@ -53,7 +53,7 @@ export function fromInteger(i: int.Integer, exp: number): DDouble {
 
 function smallExponent(i: int.Integer, exp: number): DDouble {
   const dd = fromDouble(int.unsafeToJSNumber(i));
-  return exp === 0 ? dd : mulExp10(dd, e);
+  return exp === 0 ? dd : mulExp10(dd, exp);
 }
 
 export function isZero(dd: DDouble): boolean {

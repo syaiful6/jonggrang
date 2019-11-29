@@ -7,6 +7,7 @@
 typings
 lib
 es6
+es
 coverage
 
 # dependencies

@@ -377,7 +377,7 @@ export function find<A>(xs: List<A>, f: (_: A) => boolean): Maybe<A> {
  * Append to list
  */
 export function append<A>(xs: List<A>, ys: List<A>): List<A> {
-  return foldr(ys, xs, cons) as any;
+  return foldr(xs, ys, cons) as any;
 }
 
 // Zipping

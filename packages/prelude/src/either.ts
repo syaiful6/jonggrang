@@ -24,7 +24,7 @@ export interface Right<A> {
  * Construct an Either with constructor Right
  * @param value
  */
-export function right<A>(value: A): Right<A> {
+export function right<A>(value: A): Either<any, A> {
   return { tag: EitherType.RIGHT, value };
 }
 
@@ -32,7 +32,7 @@ export function right<A>(value: A): Right<A> {
  * Construct an Either with constructor Right
  * @param value
  */
-export function left<A>(value: A): Left<A> {
+export function left<A>(value: A): Either<A, any> {
   return { tag: EitherType.LEFT, value };
 }
 

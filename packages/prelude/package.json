@@ -11,13 +11,15 @@
   },
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
-  "module": "es6/index.js",
+  "module": "es/index.js",
   "license": "MIT",
   "files": [
     "lib/",
-    "es6/"
+    "es/"
   ],
   "devDependencies": {
+    "typescript": "^3.7.2",
+    "ts-node": "^8.5.0",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.7",
     "jsverify": "^0.8.4",
@@ -25,5 +27,11 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "test": "mocha test/index.ts -require ts-node/register",
+    "compile": "yarn run compile-es && yarn run compile-commonjs",
+    "compile-es": "tsc --outDir es --module es6 --moduleResolution node",
+    "compile-commonjs": "tsc --outDir lib"
   }
 }

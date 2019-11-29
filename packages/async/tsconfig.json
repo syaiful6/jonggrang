@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": [
+    "src/async.ts",
+    "src/chan.ts",
+    "src/index.ts",
+    "src/qsem.ts",
+    "src/utils.ts"
+  ]
+}
