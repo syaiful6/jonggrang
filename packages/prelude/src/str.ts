@@ -78,3 +78,42 @@ export function stripPrefix(pattern: string, str: string): Maybe<string> {
   const ix = indexOf(pattern, str);
   return isJust(ix) && ix.value === 0 ? just(drop(pattern.length, str)) : nothing;
 }
+
+/**
+ * Repeat a string `n` times
+ */
+export function repeat(s: string, n: number): string {
+  n = n | 0;
+  if (n <= 0)  return "";
+  if (n ===1 ) return s;
+  if (n === 2) return s+s;
+  let res = "";
+  while(n > 0) {
+    if (n & 1) res += s;
+    n >>>= 1;
+    s += s;
+  }
+  return res;
+}
+
+/**
+ * Right-align a string to width `width`  using `fill`  (default is a space)
+ * to fill from the left.
+ */
+export function padLeft(s: string, width: number, fill: string = ' '): string {
+  width = width | 0;
+  const n = s.length;
+  if (width <= n) return s;
+  return repeat(fill, width - n) + s;
+}
+
+/**
+ * Left-align a string to width `width`  using `fill` (default is a space) to
+ * fill on the right.
+ */
+export function padRight(s: string, width: number, fill: string = ' '): string {
+  width = width | 0;
+  const n = s.length;
+  if (width <= n) return s;
+  return s + repeat(fill, width - n);
+}

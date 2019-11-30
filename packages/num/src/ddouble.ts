@@ -17,11 +17,25 @@ function isPrecise(i: int.Integer): boolean {
   return l >= 0 && s <= 0;
 }
 
+/**
+ * The DDouble type implements `double double` 128-bit floating numbers as pair
+ * of IEEE double values. This extends the precision to 31 decimal digits
+ * (versus 15 for double) but keeps the same range as a double with a maximum
+ * value of about 1.8·10308
+ *
+ * Internally a ddouble d is represented as a pair of doubles, hi and lo, such
+ * that the number represented by d is hi+lo, where |lo| ≤ 0.5·ulp(hi).
+ */
 export interface DDouble {
   hi: number;
   lo: number;
 }
 
+/**
+ * Create a `DDouble` from a pair of `hi` and `lo` double.
+ * @param hi
+ * @param lo
+ */
 export function unsafeDDouble(hi: number, lo: number): DDouble {
   return {hi, lo};
 }

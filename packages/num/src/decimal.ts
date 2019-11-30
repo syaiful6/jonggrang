@@ -1,3 +1,5 @@
+import {str} from '@jonggrang/prelude';
+
 import * as int from './integer';
 import {decode as decodeDouble} from './double';
 
@@ -269,8 +271,8 @@ export function showFixed(d: Decimal, prec: number = -1000): string {
   prec = prec | 0;
   const x = roundToPrecision(d, Math.abs(prec));
   if (x.exp >= 0) {
-    const frac = prec <= 0 ? '' : '.' + repeat('0', prec);
-    return x.num.toString() + repeat('0', x.exp) + frac;
+    const frac = prec <= 0 ? '' : '.' + str.repeat('0', prec);
+    return x.num.toString() + str.repeat('0', x.exp) + frac;
   }
 
   const digits = -x.exp;
@@ -278,8 +280,7 @@ export function showFixed(d: Decimal, prec: number = -1000): string {
   const i      = int.abs(x.num);
   const man    = int.cdivExp10(i, digits);
   const frac   = int.subtract(i, int.mulExp10(man, digits));
-
-  return sign + man.toString() + showFrac(padLeft(frac.toString(), digits, '0'), prec);
+  return sign + man.toString() + showFrac(str.padLeft(frac.toString(), digits, '0'), prec);
 }
 
 /**
@@ -307,7 +308,7 @@ export function getExponent(x: Decimal) {
 
 function showFrac(frac: string, prec: number): string {
   const fracTrimmed = frac.replace(/0+$/, '');
-  const fracFull    = prec >= 0 ? padRight(fracTrimmed, prec, '0') : fracTrimmed;
+  const fracFull    = prec >= 0 ? str.padRight(fracTrimmed, prec, '0') : fracTrimmed;
   return fracFull === '' ? '' : '.' + fracFull;
 }
 
@@ -321,31 +322,4 @@ function intDiv(x: number, y: number) {
 function expand(x: Decimal, e: number) {
    if (x.exp <= e) return x;
    return fromInteger(int.mulExp10(x.num, x.exp - e), e);
-}
-
-function repeat(s: string, n: number) {
-  if (n <= 0)  return "";
-  if (n ===1 ) return s;
-  if (n === 2) return s+s;
-  let res = "";
-  while(n > 0) {
-    if (n & 1) res += s;
-    n >>>= 1;
-    s += s;
-  }
-  return res;
-}
-
-function padLeft(s: string, width: number, fill: string = '') {
-  width = width | 0;
-  const n = s.length;
-  if (width <= n) return s;
-  return repeat(fill, width - n) + s;
-}
-
-function padRight(s: string, width: number, fill: string = '') {
-  width = width | 0;
-  const n = s.length;
-  if (width <= n) return s;
-  return s + repeat(fill, width - n);
 }

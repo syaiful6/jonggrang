@@ -18,7 +18,8 @@
     "es/"
   ],
   "dependencies": {
-    "big-integer": "^1.6.48"
+    "big-integer": "^1.6.48",
+    "@jonggrang/prelude": "1.0.0"
   },
   "devDependencies": {
     "@types/mocha": "^5.2.7",

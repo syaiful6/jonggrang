@@ -32,7 +32,7 @@ export function isPositive(x: Integer) {
 }
 
 export function isNegative(x: Integer): boolean {
-  return !isPositive(x);
+  return typeof x === 'number' ? x < 0 : compare(x, 0) < 0;
 }
 
 export function isInteger53(x: number): boolean {

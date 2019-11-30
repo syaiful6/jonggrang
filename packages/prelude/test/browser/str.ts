@@ -88,4 +88,26 @@ describe('Prelude Str', () => {
       assert.equal(S.takeWhile('aabbaa', a => a !== 'b'), 'aa');
     });
   });
+
+  it('repeat correctly build string', () => {
+    assert.equal(S.repeat('0', 2), '00');
+  });
+
+  it('padLeft correctly align a string to width', () => {
+    let s = S.padLeft('19', 4, '0');
+    assert.equal(s, '0019');
+
+    // padded with default fill
+    let s2 = S.padLeft('foo', 5);
+    assert.equal(s2, '  foo');
+  });
+
+  it('padRight correctly align a string to width', () => {
+    let s = S.padLeft('19', 4, '0');
+    assert.equal(s, '1900');
+
+    // padded with default fill
+    let s2 = S.padLeft('foo', 5);
+    assert.equal(s2, 'foo  ');
+  });
 });
