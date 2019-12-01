@@ -85,5 +85,13 @@ describe('num decimal', () => {
       const c = D.min(a, b);
       assert.equal(D.show(c), '0.25');
     });
+
+    it('max return the maximum of two decimal', () => {
+      const a = D.fromInteger(5, -1); // 0.5
+      const b = D.fromInteger(25, -2); // 0.25
+
+      const c = D.max(a, b);
+      assert.equal(D.show(c), '0.5');
+    });
   });
 });

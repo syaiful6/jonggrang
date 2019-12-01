@@ -206,6 +206,14 @@ export function divide(x: Decimal, y: Decimal, minPrec: number = 15): Decimal {
     : reduce(fromInteger(int.divide(x.num, y.num), e - extra));
 }
 
+/**
+ * Compare two decimal, returns
+ * - 1 if the first decimal greater
+ * - -1 if the first decimal less than the second decimal
+ * - 0 if the two decimal equals
+ * @param x
+ * @param y
+ */
 export function compare(x: Decimal, y: Decimal): 0 | 1 | -1 {
   const e = Math.min(x.exp, y.exp);
   const xx = expand(x, e);
@@ -217,10 +225,20 @@ export function sign(x: Decimal): 0 | 1 | -1 {
   return int.sign(x.num);
 }
 
+/**
+ * Returns the minimum of two decimal
+ * @param x
+ * @param y
+ */
 export function min(x: Decimal, y: Decimal): Decimal {
   return compare(x, y) !== 1 ? x : y;
 }
 
+/**
+ * Returns the maximum of two decimal
+ * @param x
+ * @param y
+ */
 export function max(x: Decimal, y: Decimal): Decimal {
   return compare(x, y) !== -1 ? x : y;
 }

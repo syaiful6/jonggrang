@@ -74,6 +74,10 @@ export function isZero(dd: DDouble): boolean {
   return dd.hi === 0;
 }
 
+/**
+ * Negate a ddouble.
+ * @param dd
+ */
 export function negate(dd: DDouble): DDouble {
   return unsafeDDouble(-dd.hi, -dd.lo);
 }
@@ -82,6 +86,11 @@ export function abs(x: DDouble): DDouble {
   return isNegative(x) ? negate(x) : x;
 }
 
+/**
+ * Add two ddouble
+ * @param x
+ * @param y
+ */
 export function add(x: DDouble, y: DDouble): DDouble {
   const z1 = sum(x.hi, x.hi);
   const lo = sum(x.lo, x.lo);
@@ -91,10 +100,20 @@ export function add(x: DDouble, y: DDouble): DDouble {
   return dquicksum(z2.num, e2);
 }
 
+/**
+ * Subtract two values
+ * @param x
+ * @param y
+ */
 export function substract(x: DDouble, y: DDouble): DDouble {
   return add(x, negate(y));
 }
 
+/**
+ * Multiply two ddoubles.
+ * @param x
+ * @param y
+ */
 export function multiply(x: DDouble, y: DDouble): DDouble {
   const z = prod(x.hi, y.hi);
   const e  = z.err + (x.hi * y.lo + x.lo * y.hi);
@@ -107,6 +126,11 @@ export function square(x: DDouble): DDouble {
   return dquicksum(z.num, e);
 }
 
+/**
+ * Divide two ddoubles.
+ * @param x
+ * @param y
+ */
 export function divide(x: DDouble, y: DDouble): DDouble {
   const q1 = fromDouble(x.hi / y.hi);
   if (!isDDoubleFinite(q1) || !isFinite(y.hi)) return q1;
@@ -136,7 +160,7 @@ export function sign(x: DDouble): 1 | -1 | 0 {
 
 export function compare(x: DDouble, y: DDouble): 1 | -1 | 0 {
   if (x.hi === y.hi) {
-    return x.lo === y.lo ? 0 : x.lo < y.lo ? -1 : 0;
+    return x.lo > y.lo ? 1 : x.lo < y.lo ? -1 : 0;
   }
 
   return x.hi < y.hi ? -1 : 1;
